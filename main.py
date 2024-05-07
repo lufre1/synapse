@@ -3,6 +3,7 @@ import numpy as np
 from torch_em.model import UNet3d
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # Import for 3D plotting
+import napari
 
 # Import your util.py for data loading
 import util
@@ -40,15 +41,40 @@ def visualize_data(data):
     plt.show()
 
 
+def visualize_data_napari(data):
+    """
+    Visualizes the 3D raw data using napari.
+
+    Args:
+        data (dict): Dictionary containing loaded raw data ("raw" key).
+    """
+
+    # Extract the raw data
+    raw_data = data["raw"]
+
+    # Create a napari viewer
+    viewer = napari.Viewer()
+
+    # Add raw data as a volume
+    viewer.add_image(raw_data, name="Raw Data")
+
+    # You can add additional layers here (e.g., labels if available)
+    viewer.add_labels(data["labels"])
+
+    # Show the napari viewer
+    viewer.show()
+
+
 def main():
     # Load data from the specified path (assuming util.py handles single file)
-    data_dir = "/scratch-grete/projects/nim00007/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt"
+    data_dir = "/home/freckmann15/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt"
     all_data = util.load_all_hdf5_data(data_dir)
 
     if all_data:
         # Assuming there's only one entry (modify if needed)
         data = all_data[0]
-        visualize_data(data)
+        # visualize_data(data)
+        visualize_data_napari(data)
     else:
         print("No HDF5 data files found in the specified directory.")
 

@@ -76,11 +76,11 @@ def load_single_hdf5_data(data_path):
 data_dir = "/scratch-grete/projects/nim00007/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt"
 all_data = load_all_hdf5_data(data_dir)
 
-if all_data:
-    # Process all loaded data (access raw data and labels from each dictionary in all_data)
-    for entry in all_data:
-        data = entry["raw"]
-        labels = entry["labels"]
-        filename = entry["filename"]
-else:
-    print("No HDF5 data files found in the specified directory.")
+# if all_data:
+#     # Process all loaded data (access raw data and labels from each dictionary in all_data)
+#     for entry in all_data:
+#         data = entry["raw"]
+#         labels = entry["labels"]
+#         filename = entry["filename"]
+# else:
+#     print("No HDF5 data files found in the specified directory.")
