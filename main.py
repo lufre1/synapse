@@ -4,9 +4,9 @@ from torch_em.model import UNet3d
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # Import for 3D plotting
 import napari
-
 # Import your util.py for data loading
 import util
+from unet import UNet3D
 
 
 def visualize_data(data):
@@ -62,7 +62,8 @@ def visualize_data_napari(data):
     viewer.add_labels(data["labels"])
 
     # Show the napari viewer
-    viewer.show()
+    # viewer.show()
+    napari.run()
 
 
 def main():
@@ -71,10 +72,11 @@ def main():
     all_data = util.load_all_hdf5_data(data_dir)
 
     if all_data:
-        # Assuming there's only one entry (modify if needed)
+        # Assuming there's at least one entry (modify if needed)
         data = all_data[0]
         # visualize_data(data)
         visualize_data_napari(data)
+        
     else:
         print("No HDF5 data files found in the specified directory.")
 
