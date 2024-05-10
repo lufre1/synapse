@@ -3,10 +3,33 @@ from glob import glob
 import h5py
 from tqdm import tqdm
 import napari
+import torch_em
+import torch.nn as nn
 
 # Define the data path and filename
 # data_path = "/scratch-grete/projects/nim00007/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt/170_2_rec.h5"
 # data_format = "*.h5"
+
+
+def get_loss_function(loss_name, affinities=False):
+    loss_names = ["bce", "ce", "dice"]
+    if isinstance(loss_name, str):
+        assert loss_name in loss_names, f"{loss_name}, {loss_names}"
+        if loss_name == "dice":
+            loss_function = torch_em.loss.DiceLoss()
+        elif loss_name == "ce":
+            loss_function = nn.CrossEntropyLoss()
+        elif loss_name == "bce":
+            loss_function = nn.BCEWithLogitsLoss()
+    else:
+        loss_function = loss_name
+
+    # we need to add a loss wrapper for affinities
+    if affinities:
+        loss_function = torch_em.loss.LossWrapper(
+            loss_function, transform=torch_em.loss.ApplyAndRemoveMask()
+        )
+    return loss_function
 
 
 def load_all_hdf5_data(data_dir, data_format="*.h5"):
