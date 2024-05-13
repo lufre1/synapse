@@ -11,6 +11,7 @@ from torch_em.util.debug import check_loader, check_trainer
 
 # Import your util.py for data loading
 import util
+from config import *
 from unet import UNet3D as MyUnet3d
 
 
@@ -18,8 +19,8 @@ def main():
     # Load data from the specified path (assuming util.py handles single file)
     # data_dir = "/home/freckmann15/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt"
     # data_dir = "/home/freckmann15/data/mitochondria/cooper/example_cristae"
-    data_dir = "/home/freckmann15/data/mitochondria/"
-    test_data_dir = "/home/freckmann15/data/lucchi"
+    data_dir = DATA_DIR
+    test_data_dir = TEST_DATA_DIR
     all_data = util.load_all_hdf5_data(data_dir)
 
     if all_data:
