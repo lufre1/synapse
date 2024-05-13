@@ -37,11 +37,11 @@ def main():
     patch_shape = (32, 256, 256)
     loss_name = "dice"
     metric_name = "dice"
-    n_iterations = 10000
+    n_iterations = 1
     learning_rate = 1.0e-4
     loss_function = util.get_loss_function(loss_name)
     metric_function = util.get_loss_function(metric_name)
-    in_channels, out_channels = 1, 2
+    in_channels, out_channels = 1, 1
     initial_features = 32
     final_activation = None
     if final_activation is None and loss_name == "dice":
