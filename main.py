@@ -40,6 +40,7 @@ def main():
         yaml.dump(metadata_list, f, default_flow_style=False)
 
     print(f"Metadata saved to: {metadata_file}")
+
     metadata_dict = util.load_metadata(data_dir)
     # Save metadata to YAML file
     print(metadata_dict)
