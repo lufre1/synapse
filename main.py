@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # Import for 3D plotting
 from torch.utils.tensorboard import SummaryWriter
+import yaml
+import os
 
 import torch_em
 import torch_em.data.datasets as torchem_data
@@ -19,17 +21,25 @@ def main():
     # Load data from the specified path (assuming util.py handles single file)
     data_dir = DATA_DIR
     test_data_dir = TEST_DATA_DIR
-    all_data = util.load_all_hdf5_data(data_dir)
+    all_data = None  # util.load_all_hdf5_data(data_dir, amount=2)
+    visualize = False
 
-    if all_data:
+    if all_data and visualize:
         # Assuming there's at least one entry (modify if needed)
-        data = all_data[0]
-
-        #util.visualize_data_napari(data)
+        for i in range(min(len(all_data), 3)):
+            data = all_data[i]
+            util.visualize_data_napari(data)
 
     else:
-        print("No HDF5 data files found in the specified directory.")
+        print("No visualization with napari.")
+    metadata_list = util.get_all_metadata(data_dir, data_format="*.h5")
+    # Save metadata to YAML file
+    metadata_file = os.path.join(data_dir, "metadata.yaml")
+    with open(metadata_file, "w") as f:
+        yaml.dump(metadata_list, f, default_flow_style=False)
 
+    print(f"Metadata saved to: {metadata_file}")
+    return None
     # Define experiment and model parameters
     experiment_name = "cristae-and-mito-net"
     batch_size = 1

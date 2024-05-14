@@ -5,6 +5,7 @@ from tqdm import tqdm
 import napari
 import torch_em
 import torch.nn as nn
+import numpy as np
 
 # Define the data path and filename
 # data_path = "/scratch-grete/projects/nim00007/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt/170_2_rec.h5"
@@ -32,7 +33,7 @@ def get_loss_function(loss_name, affinities=False):
     return loss_function
 
 
-def load_all_hdf5_data(data_dir, data_format="*.h5"):
+def load_all_hdf5_data(data_dir, data_format="*.h5", amount=None):
     """
     Loads all HDF5 data files from a directory and its subdirectories.
 
@@ -59,7 +60,8 @@ def load_all_hdf5_data(data_dir, data_format="*.h5"):
             # Extract filename without extension
             filename = data_path.split("/")[-1].split(".")[0]
             all_data.append({"filename": filename, **data})  # Unpack data dictionary
-
+        if amount is not None and amount == len(all_data):
+            return all_data
     return all_data
 
 
@@ -95,6 +97,95 @@ def load_single_hdf5_data(data_path):
 
         # Return data as a dictionary
         return {"raw": raw_data, "labels": labels_data}
+
+
+def get_all_metadata(data_dir, data_format="*.h5"):
+    """
+    Retrieves metadata for all HDF5 files in a directory and its subdirectories.
+
+    Args:
+        data_dir (str): Path to the directory containing HDF5 files.
+        data_format (str, optional): File format to search for (default: "*.h5").
+
+    Returns:
+        list: A list of dictionaries containing the retrieved metadata for 
+              each HDF5 file, or None if errors encountered.
+    """
+
+    # Get all file paths matching the format
+    data_paths = glob(os.path.join(data_dir, "**", data_format), recursive=True)
+    metadata_list = []
+
+    # Loop through all files and get metadata
+    for data_path in tqdm(data_paths):
+        metadata = get_data_metadata(data_path)
+        if metadata:
+            metadata_list.append(metadata)
+
+    return metadata_list
+
+
+def get_data_metadata(data_path):
+    """
+    Retrieves metadata about the data in an HDF5 file without loading it entirely.
+
+    Args:
+        data_path (str): Path to the HDF5 file.
+
+    Returns:
+        dict: A dictionary with filename as key and nested dictionary containing 
+              the retrieved metadata, or None if error.
+    """
+
+    try:
+        # Open the HDF5 file in read-only mode
+        with h5py.File(data_path, "r") as f:
+
+            # Check for existence of datasets
+            if "raw" not in f:
+                print(f"Error: 'raw' dataset not found in {data_path}")
+                return None  # Indicate error
+
+            # Get image size (assuming 'raw' dataset holds the 3D image)
+            image_size = f["raw"].shape
+
+            # Check for labels group
+            has_cristae_label = False
+            if "labels" in f:
+                labels_group = f["labels"]
+                has_cristae_label = "cristae" in labels_group.keys()
+
+            # Calculate exact min and max values using NumPy functions
+            min_value = np.amin(f["raw"], axis=None)
+            max_value = np.amax(f["raw"], axis=None)
+
+            # Calculate basic statistics
+            average_value = np.mean(f["raw"])  # Calculate mean across all axes
+            try:
+                std_dev = np.std(f["raw"])  # Calculate standard deviation
+            except RuntimeWarning:
+                # Handle potential runtime warnings (e.g., all elements equal)
+                std_dev = None
+
+            # Extract filename from data_path
+            filename = os.path.basename(data_path)  # Get filename from path
+
+            # Create nested dictionary for metadata
+            metadata = {
+                "image_size": image_size,
+                "has_cristae_label": has_cristae_label,  # Boolean
+                "value_range": (float(min_value), float(max_value)),
+                "average_value": float(average_value),
+                "std_dev": std_dev if std_dev is not None else None,
+            }
+            print(metadata)
+
+            # Return dictionary with filename as key and metadata nested
+            return {filename: metadata}
+
+    except Exception as e:
+        print(f"Error getting metadata for {data_path}: {e}")
+        return None
 
 
 def visualize_data_napari(data):
