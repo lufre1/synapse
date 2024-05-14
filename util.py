@@ -212,7 +212,7 @@ def load_metadata(data_path):
     # Load metadata from the file using YAML (safe_load)
     try:
         with open(filename, 'r') as f:
-            metadata = yaml.safe_load(f)
+            metadata = yaml.full_load(f) #yaml.safe_load(f)
             return metadata
     except FileNotFoundError:
         print(f"Error: File not found: {filename}")
