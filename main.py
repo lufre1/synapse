@@ -32,6 +32,7 @@ def main():
 
     else:
         print("No visualization with napari.")
+
     metadata_list = util.get_all_metadata(data_dir, data_format="*.h5")
     # Save metadata to YAML file
     metadata_file = os.path.join(data_dir, "metadata.yaml")
@@ -39,6 +40,10 @@ def main():
         yaml.dump(metadata_list, f, default_flow_style=False)
 
     print(f"Metadata saved to: {metadata_file}")
+    metadata_dict = util.load_metadata(data_dir)
+    # Save metadata to YAML file
+    print(metadata_dict)
+
     return None
     # Define experiment and model parameters
     experiment_name = "cristae-and-mito-net"

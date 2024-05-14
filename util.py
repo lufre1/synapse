@@ -6,6 +6,7 @@ import napari
 import torch_em
 import torch.nn as nn
 import numpy as np
+import yaml
 
 # Define the data path and filename
 # data_path = "/scratch-grete/projects/nim00007/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt/170_2_rec.h5"
@@ -172,11 +173,11 @@ def get_data_metadata(data_path):
 
             # Create nested dictionary for metadata
             metadata = {
-                "image_size": image_size,
+                "image_size": list(image_size),
                 "has_cristae_label": has_cristae_label,  # Boolean
                 "value_range": (float(min_value), float(max_value)),
                 "average_value": float(average_value),
-                "std_dev": std_dev if std_dev is not None else None,
+                "std_dev": float(std_dev) if std_dev is not None else None,
             }
             print(metadata)
 
@@ -186,6 +187,40 @@ def get_data_metadata(data_path):
     except Exception as e:
         print(f"Error getting metadata for {data_path}: {e}")
         return None
+
+
+def load_metadata(data_path):
+    """
+    Loads metadata from a single YAML file in a directory.
+
+    Args:
+        data_path (str): Path to the directory containing the metadata.yaml file.
+
+    Returns:
+        dict: The loaded metadata from the YAML file, 
+            or None if no file found or parsing error.
+    """
+
+    # Construct the expected filename for metadata
+    filename = os.path.join(data_path, "metadata.yaml")
+
+    # Check if the file exists
+    if not os.path.isfile(filename):
+        print(f"Error: No metadata.yaml file found in {data_path}")
+        return None
+
+    # Load metadata from the file using YAML (safe_load)
+    try:
+        with open(filename, 'r') as f:
+            metadata = yaml.safe_load(f)
+            return metadata
+    except FileNotFoundError:
+        print(f"Error: File not found: {filename}")
+    except yaml.YAMLError as e:
+        print(f"Error parsing YAML file {filename}: {e}")
+
+    # Return None if any exceptions occur
+    return None
 
 
 def visualize_data_napari(data):
