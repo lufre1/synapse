@@ -212,15 +212,56 @@ def load_metadata(data_path):
     # Load metadata from the file using YAML (safe_load)
     try:
         with open(filename, 'r') as f:
-            metadata = yaml.full_load(f) #yaml.safe_load(f)
-            return metadata
+            metadata = yaml.full_load(f)
     except FileNotFoundError:
         print(f"Error: File not found: {filename}")
     except yaml.YAMLError as e:
         print(f"Error parsing YAML file {filename}: {e}")
 
+    average_values = []
+    with_cristae_labels = []
+    images_sizes = []
+    std_devs = []
+    value_ranges = []
+    for item in metadata:
+        for name, data_dict in item.items():
+            for key, value in data_dict.items():
+                if key == "average_value":
+                    average_values.append(value)
+                if key == "has_cristae_label":
+                    with_cristae_labels.append(value)
+                if key == "image_size":
+                    images_sizes.append(value)
+                if key == "std_dev":
+                    std_devs.append(value)
+                if key == "value_range":
+                    value_ranges.append(value)
+        #print(len(average_values) , len(with_cristae_labels) , len(images_sizes) , len(std_devs) , (value_ranges))
+    # Assuming average_values and std_devs contain numerical data
+    average_average_value = sum(average_values) / len(average_values)
+    average_std_dev = sum(std_devs) / len(std_devs)
+    average_image_sizes = []
+    for dim in range(len(images_sizes[0])):  # Assuming all images have the same number of dimensions
+        # Calculate the average for each dimension
+        dimension_values = [image_size[dim] for image_size in images_sizes]
+        average_image_sizes.append(sum(dimension_values) / len(dimension_values))
+
+    min_values = [range_tuple[0] for range_tuple in value_ranges]  # Extract minimum values
+    max_values = [range_tuple[1] for range_tuple in value_ranges]  # Extract maximum values
+
+    average_min_value = sum(min_values) / len(min_values)
+    average_max_value = sum(max_values) / len(max_values)
+
+    print("Average minimum value:", average_min_value)
+    print("Average maximum value:", average_max_value)
+
+    # Print the calculated averages
+    print("Average Average Value:", average_average_value)
+    print("Average Std Dev:", average_std_dev)
+    print("Images with cristae labels:", sum(with_cristae_labels), "/", len(with_cristae_labels)) # sum(label for label in with_cristae_labels if label)
+    print("Average Image Sizes:", average_image_sizes)
     # Return None if any exceptions occur
-    return None
+    return metadata
 
 
 def visualize_data_napari(data):

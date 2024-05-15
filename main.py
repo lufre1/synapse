@@ -43,7 +43,9 @@ def main():
 
     metadata_dict = util.load_metadata(data_dir)
     # Save metadata to YAML file
-    print(metadata_dict)
+    # for item in metadata_dict:
+    #     # Do something with each key-value pair
+    #     print(f"Processing item: {item}")
 
     return None
     # Define experiment and model parameters
