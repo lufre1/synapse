@@ -13,6 +13,54 @@ import yaml
 # data_format = "*.h5"
 
 
+def extract_data(data_list, train_ratio, test_ratio, label_key="mitochondria"):
+    """
+    Extracts images and labels for training, validation, and testing from a data list.
+
+    Args:
+        data_list (list): List of dictionaries containing loaded data from HDF5 files.
+        train_ratio (float): Proportion of data for training (0.0-1.0).
+        test_ratio (float): Proportion of data for testing (0.0-1.0).
+        label_key (str, optional): Key for label data within the dictionary (default: "mitochondria").
+
+    Returns:
+        tuple: A tuple containing three dictionaries:
+            - train_data: Dictionary containing training images and labels.
+            - val_data: Dictionary containing validation images and labels (if applicable).
+            - test_data: Dictionary containing testing images and labels.
+    """
+
+    num_images = len(data_list)
+    train_size = int(num_images * train_ratio)
+    val_size = int(num_images * (1 - train_ratio - test_ratio))  # Optional validation set
+    test_size = num_images - train_size - val_size
+
+    train_images, train_labels = [], []
+    val_images, val_labels = [], []  # Optional validation set
+    test_images, test_labels = [], []
+
+    for i in range(num_images):
+        data_dict = data_list[i]
+        image = data_dict["raw"]
+        label = data_dict["labels"][label_key]
+
+    # Efficiently distribute data based on pre-calculated sizes
+    if i < train_size:
+        train_images.append(image)
+        train_labels.append(label)
+    elif i < train_size + val_size:  # Optional validation set
+        val_images.append(image)
+        val_labels.append(label)
+    else:
+        test_images.append(image)
+        test_labels.append(label)
+
+    return {
+        "train_data": {"images": train_images, "labels": train_labels},
+        "val_data": {"images": val_images, "labels": val_labels} if val_size > 0 else None,  # Optional validation set
+        "test_data": {"images": test_images, "labels": test_labels}
+    }
+
 def get_loss_function(loss_name, affinities=False):
     loss_names = ["bce", "ce", "dice"]
     if isinstance(loss_name, str):
