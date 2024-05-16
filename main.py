@@ -87,16 +87,19 @@ def main():
 
     # print(f"Metadata saved to: {metadata_file}")
 
-    util.load_metadata(data_dir)
+    #util.load_metadata(data_dir)
 
     # Define experiment and model parameters
     experiment_name = "cristae-and-mito-net"
     batch_size = 1
-    n_workers = 2
+    n_workers = 4 if torch.cuda.is_available() else 1
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     label_transform = None
     patch_shape = (32, 256, 256)
+    patch_shape = (64, 512, 512)
     loss_name = "dice"
     metric_name = "dice"
+    ndim = 3
     n_iterations = 1
     learning_rate = 1.0e-4
     loss_function = util.get_loss_function(loss_name)
@@ -136,18 +139,37 @@ def main():
     # # create DataLoader
     # train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True) 
     # val_loader = DataLoader(val_dataset, batch_size=batch_size) 
+    file1 = util.load_single_hdf5_data(train_data["data_paths"][0])
+    if file1["labels"]:  # Check if any labels were loaded
+        for label_key, label_data in file1["labels"].items():
+            print(f"Label '{label_key}' shape: {label_data.shape}")
+            print("Raw shape: ", file1["raw"].shape)
+    else:
+        print("No labels found in this file.")
+
+    with_channels = True
+    with_label_channels = True,
+
     train_loader = torch_em.default_segmentation_loader(
         raw_paths=train_data["data_paths"], raw_key="raw",
         label_paths=train_data["data_paths"], label_key="labels/mitochondria",
-        patch_shape=patch_shape, ndim=2, batch_size=batch_size,
+        patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
         label_transform=label_transform, num_workers=n_workers,
+        with_channels=with_channels, with_label_channels=with_label_channels,
     )
     val_loader = torch_em.default_segmentation_loader(
         raw_paths=val_data["data_paths"], raw_key="raw",
         label_paths=val_data["data_paths"], label_key="labels/mitochondria",
-        patch_shape=patch_shape, ndim=2, batch_size=batch_size,
+        patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
         label_transform=label_transform, num_workers=n_workers,
+        with_channels=with_channels, with_label_channels=with_label_channels,
     )
+    image, label = next(iter(train_loader))
+    data = {
+        "raw": image,
+        "label": label
+    }
+    util.visualize_data_napari(data)
 
     trainer = torch_em.default_segmentation_trainer(
         name=experiment_name, model=model,
@@ -156,10 +178,11 @@ def main():
         learning_rate=learning_rate,
         mixed_precision=True,
         log_image_interval=50,
+        device=device,
         # logger=None
     )
     check_loader(train_loader, n_samples=1)
-    check_trainer(trainer, n_samples=1)
+    #check_trainer(trainer, n_samples=1)
     #trainer.fit(n_iterations)
 
 

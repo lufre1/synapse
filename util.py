@@ -3,6 +3,7 @@ from glob import glob
 import h5py
 from tqdm import tqdm
 import napari
+import torch
 import torch_em
 import torch.nn as nn
 import numpy as np
@@ -411,9 +412,13 @@ def visualize_data_napari(data):
         data (dict): Dictionary containing loaded raw data ("raw" key) 
                     and labels ("labels" dictionary with loaded labels).
     """
-
-    # Extract the raw data
-    raw_data = data["raw"]
+    if isinstance(data, torch.Tensor):
+        raw_data = data.cpu().detach().numpy()
+    else:
+        raw_data = data
+    #print(raw_data)
+    # # Extract the raw data
+    raw_data = data["raw"].cpu().detach().numpy()
 
     # Create a napari viewer
     viewer = napari.Viewer()
@@ -422,8 +427,13 @@ def visualize_data_napari(data):
     viewer.add_image(raw_data, name="Raw Data")
 
     # Add all available labels from "labels" data
-    for label_name, label_data in data["labels"].items():
-        viewer.add_labels(label_data, name=label_name)
+    # for label_name, label_data in data["labels"].items():
+    #     viewer.add_labels(label_data, name=label_name)
+    
+    label = data["label"].cpu().detach().numpy()
+    print(label.shape, label)
+    viewer.add_labels(label.astype(int), name="Label")
+    
 
     # Show the napari viewer
     napari.run()
