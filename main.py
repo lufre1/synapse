@@ -66,17 +66,18 @@ def main():
     # Load data from the specified path (assuming util.py handles single file)
     data_dir = DATA_DIR
     lucchi_data_dir = TEST_DATA_DIR
-    all_data = util.load_all_hdf5_data(data_dir, amount=2) # None
+    #all_data = util.load_all_hdf5_data(data_dir, amount=None) # None
+    data_paths, key_dicts = util.get_data_paths_and_keys(data_dir)
+    train_data, val_data, test_data = util.split_data_paths(data_paths, key_dicts, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, seed=None)
     visualize = False
+    # if all_data and visualize:
+    #     # Assuming there's at least one entry (modify if needed)
+    #     for i in range(min(len(all_data), 3)):
+    #         data = all_data[i]
+    #         util.visualize_data_napari(data)
 
-    if all_data and visualize:
-        # Assuming there's at least one entry (modify if needed)
-        for i in range(min(len(all_data), 3)):
-            data = all_data[i]
-            util.visualize_data_napari(data)
-
-    else:
-        print("No visualization with napari.")
+    # else:
+    #     print("No visualization with napari.")
 
     # metadata_list = util.get_all_metadata(data_dir, data_format="*.h5")
     # # Save metadata to YAML file
@@ -91,6 +92,8 @@ def main():
     # Define experiment and model parameters
     experiment_name = "cristae-and-mito-net"
     batch_size = 1
+    n_workers = 2
+    label_transform = None
     patch_shape = (32, 256, 256)
     loss_name = "dice"
     metric_name = "dice"
@@ -118,27 +121,33 @@ def main():
     #                                             batch_size=batch_size, download=True
     #                                               )
 
-    train_ratio = 0.8  # 80% for training
-    test_ratio = 0.1   # 10% for testing
-    data_sets = util.extract_data(all_data, train_ratio, test_ratio, label_key="mitochondria")
-
-
-
-
-
-    # create Datasets
-    train_dataset = data_classes.CustomDataset(
-        data_sets["train_data"]["images"], data_sets["train_data"]["labels"],
-        patch_shape=patch_shape, label_aware_crop=label_aware_crop
-        )
-    val_dataset = data_classes.CustomDataset(
-        data_sets["val_data"]["images"], data_sets["val_data"]["labels"],
-        patch_shape=patch_shape, label_aware_crop=label_aware_crop
-        )
-
-    # create DataLoader
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True) 
-    val_loader = DataLoader(val_dataset, batch_size=batch_size)
+    # train_ratio = 0.8  # 80% for training
+    # test_ratio = 0.1   # 10% for testing
+    # data_sets = util.extract_data(all_data, train_ratio, test_ratio, label_key="mitochondria")
+    # # create Datasets
+    # train_dataset = data_classes.CustomDataset(
+    #     data_sets["train_data"]["images"], data_sets["train_data"]["labels"],
+    #     patch_shape=patch_shape, label_aware_crop=label_aware_crop
+    #     )
+    # val_dataset = data_classes.CustomDataset(
+    #     data_sets["val_data"]["images"], data_sets["val_data"]["labels"],
+    #     patch_shape=patch_shape, label_aware_crop=label_aware_crop
+    #     )
+    # # create DataLoader
+    # train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True) 
+    # val_loader = DataLoader(val_dataset, batch_size=batch_size) 
+    train_loader = torch_em.default_segmentation_loader(
+        raw_paths=train_data["data_paths"], raw_key="raw",
+        label_paths=train_data["data_paths"], label_key="labels/mitochondria",
+        patch_shape=patch_shape, ndim=2, batch_size=batch_size,
+        label_transform=label_transform, num_workers=n_workers,
+    )
+    val_loader = torch_em.default_segmentation_loader(
+        raw_paths=val_data["data_paths"], raw_key="raw",
+        label_paths=val_data["data_paths"], label_key="labels/mitochondria",
+        patch_shape=patch_shape, ndim=2, batch_size=batch_size,
+        label_transform=label_transform, num_workers=n_workers,
+    )
 
     trainer = torch_em.default_segmentation_trainer(
         name=experiment_name, model=model,
@@ -149,7 +158,9 @@ def main():
         log_image_interval=50,
         # logger=None
     )
-    trainer.fit(n_iterations)
+    check_loader(train_loader, n_samples=1)
+    check_trainer(trainer, n_samples=1)
+    #trainer.fit(n_iterations)
 
 
 if __name__ == "__main__":

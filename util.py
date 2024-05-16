@@ -12,6 +12,96 @@ import yaml
 # data_path = "/scratch-grete/projects/nim00007/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt/170_2_rec.h5"
 # data_format = "*.h5"
 
+import random
+
+def split_data_paths(data_paths, key_dicts, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, seed=None):
+    """
+    Splits data paths and key information into training, validation, and testing sets.
+
+    Args:
+        data_paths (list): List of paths to all HDF5 files.
+        key_dicts (list): List of dictionaries containing image and label data keys for each HDF5 file.
+        train_ratio (float, optional): Proportion of data for training (0.0-1.0) (default: 0.8).
+        val_ratio (float, optional): Proportion of data for validation (0.0-1.0) (default: 0.1).
+        test_ratio (float, optional): Proportion of data for testing (0.0-1.0) (default: 0.1).
+        seed (int, optional): Random seed for shuffling data paths (default: None).
+
+    Returns:
+        tuple: A tuple containing three dictionaries:
+            - train_data: Dictionary containing "data_paths" and "key_dicts" for training data.
+            - val_data: Dictionary containing "data_paths" and "key_dicts" for validation data (if applicable).
+            - test_data: Dictionary containing "data_paths" and "key_dicts" for testing data.
+
+    Raises:
+        ValueError: If the sum of ratios exceeds 1.
+    """
+
+    if train_ratio + val_ratio + test_ratio != 1.0:
+        raise ValueError("Sum of train, validation, and test ratios must equal 1.0.")
+
+    if seed is not None:
+        random.seed(seed)
+    random.shuffle(data_paths)
+    random.shuffle(key_dicts)
+
+    num_data = len(data_paths)
+    train_size = int(num_data * train_ratio)
+    val_size = int(num_data * val_ratio)  # Optional validation set
+    test_size = num_data - train_size - val_size
+
+    train_data = {
+        "data_paths": data_paths[:train_size],
+        "key_dicts": key_dicts[:train_size]
+    }
+    val_data = {"data_paths": [], "key_dicts": []}  # Optional validation set
+    test_data = {
+        "data_paths": data_paths[train_size+val_size:],
+        "key_dicts": key_dicts[train_size+val_size:]
+    }
+
+    if val_size > 0:
+        val_data = {
+            "data_paths": data_paths[train_size:train_size+val_size],
+            "key_dicts": key_dicts[train_size:train_size+val_size]
+        }
+
+    return train_data, val_data, test_data
+
+
+def get_data_paths_and_keys(data_dir, data_format="*.h5", image_key="raw", label_key="labels/mitochondria"):
+    """
+    Retrieves all HDF5 data paths and their corresponding image and label data keys.
+
+    Args:
+        data_dir (str): Path to the directory containing HDF5 files.
+        data_format (str, optional): File format to search for (default: "*.h5").
+        image_key (str, optional): Key for image data within the HDF5 file (default: "raw").
+        label_key (str, optional): Key for label data within the HDF5 file (default: "labels/mitochondria").
+
+    Returns:
+        tuple: A tuple containing two lists:
+            - data_paths: List of paths to all HDF5 files in the directory and subdirectories.
+            - key_dicts: List of dictionaries containing image and label data keys for each HDF5 file.
+                - Each dictionary has keys: "image_key" and "label_key".
+    """
+
+    data_paths = glob(os.path.join(data_dir, "**", data_format), recursive=True)
+    key_dicts = []
+
+    for data_path in data_paths:
+        try:
+            # Open the HDF5 file in read-only mode
+            with h5py.File(data_path, "r") as f:
+                # Check for existence of image and label datasets (considering key flexibility)
+                if image_key not in f or (label_key is not None and label_key not in f):
+                    print(f"Warning: Key(s) missing in {data_path}. Skipping...")
+                    continue
+                key_dicts.append({"image_key": image_key, "label_key": label_key})
+        except OSError:
+            print(f"Error accessing file: {data_path}. Skipping...")
+
+    return data_paths, key_dicts
+
 
 def extract_data(data_list, train_ratio, test_ratio, label_key="mitochondria"):
     """
@@ -60,6 +150,7 @@ def extract_data(data_list, train_ratio, test_ratio, label_key="mitochondria"):
         "val_data": {"images": val_images, "labels": val_labels} if val_size > 0 else None,  # Optional validation set
         "test_data": {"images": test_images, "labels": test_labels}
     }
+
 
 def get_loss_function(loss_name, affinities=False):
     loss_names = ["bce", "ce", "dice"]
