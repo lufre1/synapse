@@ -127,25 +127,31 @@ def split_data_paths_without_key_dicts(data_paths, train_ratio=0.8, val_ratio=0.
     return train_data, val_data, test_data
 
 
-def split_data_paths_to_dict(data_paths, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1):
+def split_data_paths_to_dict(data_paths, rois_list, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1):
     """
-    Splits data paths into training, validation, and testing sets without shuffling.
+    Splits data paths and ROIs into training, validation, and testing sets without shuffling.
 
     Args:
         data_paths (list): List of paths to all HDF5 files.
+        rois_list (list): List of ROIs corresponding to each data path.
         train_ratio (float, optional): Proportion of data for training (0.0-1.0) (default: 0.8).
         val_ratio (float, optional): Proportion of data for validation (0.0-1.0) (default: 0.1).
         test_ratio (float, optional): Proportion of data for testing (0.0-1.0) (default: 0.1).
 
     Returns:
-        dict: A dictionary containing "train", "val", and "test" keys, each with a list of data paths.
+        tuple: A tuple containing two dictionaries:
+            - data_split: Dictionary containing "train", "val", and "test" keys with data paths.
+            - rois_split: Dictionary containing "train", "val", and "test" keys with corresponding ROIs.
 
     Raises:
-        ValueError: If the sum of ratios exceeds 1.
+        ValueError: If the sum of ratios exceeds 1 or the length of data paths and ROIs don't match.
     """
 
     if train_ratio + val_ratio + test_ratio != 1.0:
         raise ValueError("Sum of train, validation, and test ratios must equal 1.0.")
+
+    if len(data_paths) != len(rois_list):
+        raise ValueError("Length of data paths and ROIs must be the same.")
 
     num_data = len(data_paths)
     train_size = int(num_data * train_ratio)
@@ -157,12 +163,18 @@ def split_data_paths_to_dict(data_paths, train_ratio=0.8, val_ratio=0.1, test_ra
         "val": data_paths[train_size:train_size+val_size],
         "test": data_paths[train_size+val_size:]
     }
+    rois_split = {
+        "train": rois_list[:train_size],
+        "val": rois_list[train_size:train_size+val_size],
+        "test": rois_list[train_size+val_size:]
+    }
 
     if val_size == 0:
         # Remove empty val key if validation is not used
         del data_split["val"]
+        del rois_split["val"]
 
-    return data_split
+    return data_split, rois_split
 
 
 def split_data_paths(data_paths, key_dicts, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, seed=None):
@@ -556,37 +568,66 @@ def load_metadata(data_path):
 
 def visualize_data_napari(data):
     """
-    Visualizes the 3D raw data and available labels using napari.
+    Visualizes the 3D raw data and all labels using napari.
 
     Args:
         data (dict): Dictionary containing loaded raw data ("raw" key) 
                     and labels ("labels" dictionary with loaded labels).
     """
-    if isinstance(data, torch.Tensor):
-        raw_data = data.cpu().detach().numpy()
+    if isinstance(data["raw"], torch.Tensor):
+        raw_data = data["raw"].cpu().detach().numpy()
     else:
-        raw_data = data
-    #print(raw_data)
-    # # Extract the raw data
-    raw_data = data["raw"].cpu().detach().numpy()
+        raw_data = data["raw"]
 
     # Create a napari viewer
     viewer = napari.Viewer()
 
     # Add raw data as a volume
     viewer.add_image(raw_data, name="Raw Data")
+    
+    if isinstance(data["label"], torch.Tensor):
+        label_data = data["label"].cpu().detach().numpy()
+    else:
+        label_data = data["label"]
 
-    # Add all available labels from "labels" data
-    # for label_name, label_data in data["labels"].items():
-    #     viewer.add_labels(label_data, name=label_name)
-    
-    label = data["label"].cpu().detach().numpy()
-    #print(label.shape)
-    viewer.add_labels(label.astype(int), name="Label")
-    
+    viewer.add_labels(label_data.astype(int), name="Label")  # Ensure labels are integers
+            
 
     # Show the napari viewer
     napari.run()
+# def visualize_data_napari(data):
+#     """
+#     Visualizes the 3D raw data and available labels using napari.
+
+#     Args:
+#         data (dict): Dictionary containing loaded raw data ("raw" key) 
+#                     and labels ("labels" dictionary with loaded labels).
+#     """
+#     if isinstance(data, torch.Tensor):
+#         raw_data = data.cpu().detach().numpy()
+#     else:
+#         raw_data = data
+#     #print(raw_data)
+#     # # Extract the raw data
+#     raw_data = data["raw"].cpu().detach().numpy()
+
+#     # Create a napari viewer
+#     viewer = napari.Viewer()
+
+#     # Add raw data as a volume
+#     viewer.add_image(raw_data, name="Raw Data")
+
+#     # Add all available labels from "labels" data
+#     # for label_name, label_data in data["labels"].items():
+#     #     viewer.add_labels(label_data, name=label_name)
+    
+#     label = data["label"].cpu().detach().numpy()
+#     #print(label.shape)
+#     viewer.add_labels(label.astype(int), name="Label")
+    
+
+#     # Show the napari viewer
+#     napari.run()
 
 
 # Example usage (assuming util.py is in the same directory as your main script)

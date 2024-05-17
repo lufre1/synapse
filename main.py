@@ -68,7 +68,7 @@ def main():
     lucchi_data_dir = TEST_DATA_DIR
     #all_data = util.load_all_hdf5_data(data_dir, amount=None) # None
     data_paths, rois_list = util.get_data_paths_and_rois(data_dir)#util.get_data_paths_and_keys(data_dir)
-    data = util.split_data_paths_to_dict(data_paths, train_ratio=0.5, val_ratio=0.5, test_ratio=0)
+    data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_list, train_ratio=0.5, val_ratio=0.5, test_ratio=0)
     # split_data_paths(data_paths, key_dicts, train_ratio=0.5, val_ratio=0.5, test_ratio=0, seed=None)
     visualize = False
     
@@ -122,6 +122,7 @@ def main():
         final_activation=final_activation
     )
 
+    print(data["train"])
 
     with_channels = False
     with_label_channels = False
@@ -132,6 +133,7 @@ def main():
         patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
         label_transform=label_transform, num_workers=n_workers,
         with_channels=with_channels, with_label_channels=with_label_channels,
+        #rois=rois_dict["train"]
     )
     val_loader = torch_em.default_segmentation_loader(
         raw_paths=data["val"], raw_key="raw", #raw_key=val_data["key_dicts"][0]["image_key"],
@@ -141,11 +143,12 @@ def main():
         with_channels=with_channels, with_label_channels=with_label_channels,
     )
     image, label = next(iter(train_loader))
-    data = {
+    print(image.shape, label.shape)
+    vis_data = {
         "raw": image,
         "label": label
     }
-    util.visualize_data_napari(data)
+    util.visualize_data_napari(vis_data)
 
     trainer = torch_em.default_segmentation_trainer(
         name=experiment_name, model=model,
