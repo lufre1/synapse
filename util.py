@@ -16,6 +16,155 @@ import yaml
 import random
 
 
+def get_data_paths_and_rois(data_dir, data_format="*.h5",
+                            image_key="raw",
+                            label_key_mito="labels/mitochondria",
+                            label_key_cristae="labels/cristae"):
+    """
+    Retrieves all HDF5 data paths, their corresponding image and label data keys,
+    and extracts Regions of Interest (ROIs) for labels.
+
+    Args:
+        data_dir (str): Path to the directory containing HDF5 files.
+        data_format (str, optional): File format to search for (default: "*.h5").
+        image_key (str, optional): Key for image data within the HDF5 file (default: "raw").
+        label_key_mito (str, optional): Key for the first label data (default: "labels/mitochondria").
+        label_key_cristae (str, optional): Key for the second label data (default: "labels/cristae").
+
+    Returns:
+        tuple: A tuple containing three lists:
+            - data_paths: List of paths to all HDF5 files in the directory and subdirectories.
+            - rois_list: List containing ROIs for each valid HDF5 file.
+                - Each ROI is a list of tuples or slices representing where labels are True (or 1).
+    """
+
+    data_paths = glob(os.path.join(data_dir, "**", data_format), recursive=True)
+    # key_dicts = []
+    rois_list = []
+
+    for data_path in data_paths:
+        try:
+            # Open the HDF5 file in read-only mode
+            with h5py.File(data_path, "r") as f:
+                # Check for existence of image and label datasets (considering key flexibility)
+                if image_key not in f or (label_key_mito is not None and label_key_mito not in f):
+                    print(f"Warning: Key(s) missing in {data_path}. Skipping {image_key}")
+                    continue
+
+                # Get label data (assuming labels are boolean or 1/0 for True/False)
+                label_data_mito = f[label_key_mito][()] if label_key_mito is not None else None
+                #label_data_cristae = f[label_key_cristae][()] if label_key_cristae is not None else None
+
+                # Extract ROIs (assuming ndim of label data is the same as image data)
+                rois = []
+                if label_data_mito is not None:
+                    # Find non-zero elements (assuming True is represented by non-zero values)
+                    # roi = tuple(slice(co - rh, co + rh) for co, rh in zip(coord, roi_halo))
+                    non_zero_indices = np.nonzero(label_data_mito) # .astype(int)
+                    for dim in range(label_data_mito.ndim):
+                        rois.append(slice(non_zero_indices[dim].min(), non_zero_indices[dim].max() + 1))  # +1 for inclusive upper bound
+                # if label_data_cristae is not None:
+                #     # Repeat for cristae label (if it exists)
+                #     non_zero_indices = np.nonzero(label_data_cristae)
+                #     for dim in range(label_data_cristae.ndim):
+                #         rois.append(slice(non_zero_indices[dim].min(), non_zero_indices[dim].max() + 1))
+
+                # Create a dictionary for this file's key information
+                # key_dict = {
+                #     "image_key": image_key,
+                #     "label_key_mito": label_key_mito,
+                #     "label_key_cristae": label_key_cristae,
+                # }
+                # key_dicts.append(key_dict)
+                rois_list.append(rois)  # Add ROIs for this file
+
+        except OSError:
+            print(f"Error accessing file: {data_path}. Skipping...")
+
+    return data_paths, rois_list
+
+
+def split_data_paths_without_key_dicts(data_paths, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, seed=None):
+    """
+    Splits data paths into training, validation, and testing sets.
+
+    Args:
+        data_paths (list): List of paths to all HDF5 files.
+        train_ratio (float, optional): Proportion of data for training (0.0-1.0) (default: 0.8).
+        val_ratio (float, optional): Proportion of data for validation (0.0-1.0) (default: 0.1).
+        test_ratio (float, optional): Proportion of data for testing (0.0-1.0) (default: 0.1).
+        seed (int, optional): Random seed for shuffling data paths (default: None).
+
+    Returns:
+        tuple: A tuple containing three dictionaries:
+            - train_data: Dictionary containing "data_paths" for training data.
+            - val_data: Dictionary containing "data_paths" for validation data (if applicable).
+            - test_data: Dictionary containing "data_paths" for testing data.
+
+    Raises:
+        ValueError: If the sum of ratios exceeds 1.
+    """
+
+    if train_ratio + val_ratio + test_ratio != 1.0:
+        raise ValueError("Sum of train, validation, and test ratios must equal 1.0.")
+
+    if seed is not None:
+        random.seed(seed)
+    random.shuffle(data_paths)
+
+    num_data = len(data_paths)
+    train_size = int(num_data * train_ratio)
+    val_size = int(num_data * val_ratio)  # Optional validation set
+    test_size = num_data - train_size - val_size
+
+    train_data = {"data_paths": data_paths[:train_size]}
+    val_data = {"data_paths": []}  # Optional validation set
+    test_data = {"data_paths": data_paths[train_size+val_size:]}
+
+    if val_size > 0:
+        val_data = {"data_paths": data_paths[train_size:train_size+val_size]}
+
+    return train_data, val_data, test_data
+
+
+def split_data_paths_to_dict(data_paths, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1):
+    """
+    Splits data paths into training, validation, and testing sets without shuffling.
+
+    Args:
+        data_paths (list): List of paths to all HDF5 files.
+        train_ratio (float, optional): Proportion of data for training (0.0-1.0) (default: 0.8).
+        val_ratio (float, optional): Proportion of data for validation (0.0-1.0) (default: 0.1).
+        test_ratio (float, optional): Proportion of data for testing (0.0-1.0) (default: 0.1).
+
+    Returns:
+        dict: A dictionary containing "train", "val", and "test" keys, each with a list of data paths.
+
+    Raises:
+        ValueError: If the sum of ratios exceeds 1.
+    """
+
+    if train_ratio + val_ratio + test_ratio != 1.0:
+        raise ValueError("Sum of train, validation, and test ratios must equal 1.0.")
+
+    num_data = len(data_paths)
+    train_size = int(num_data * train_ratio)
+    val_size = int(num_data * val_ratio)  # Optional validation set
+    test_size = num_data - train_size - val_size
+
+    data_split = {
+        "train": data_paths[:train_size],
+        "val": data_paths[train_size:train_size+val_size],
+        "test": data_paths[train_size+val_size:]
+    }
+
+    if val_size == 0:
+        # Remove empty val key if validation is not used
+        del data_split["val"]
+
+    return data_split
+
+
 def split_data_paths(data_paths, key_dicts, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, seed=None):
     """
     Splits data paths and key information into training, validation, and testing sets.
@@ -432,7 +581,7 @@ def visualize_data_napari(data):
     #     viewer.add_labels(label_data, name=label_name)
     
     label = data["label"].cpu().detach().numpy()
-    print("Image shape: ", raw_data.shape, "Label shape: ", label.shape)
+    #print(label.shape)
     viewer.add_labels(label.astype(int), name="Label")
     
 
@@ -452,48 +601,3 @@ def visualize_data_napari(data):
 #         filename = entry["filename"]
 # else:
 #     print("No HDF5 data files found in the specified directory.")
-
-
-def check_h5_data_correctness(data_dir, data_format="*.h5", amount=None):
-    """
-    Checks for basic correctness of data in HDF5 files within a directory.
-
-    Args:
-        data_dir (str): Path to the directory containing HDF5 files.
-        data_format (str, optional): File format to search for (default: "*.h5").
-        amount (int, optional): Limit the number of files to check (default: None).
-
-    Returns:
-        None: The function doesn't return anything, it prints messages 
-            indicating any encountered errors.
-    """
-
-    # Get data paths and key information
-    data_paths, key_dicts = get_data_paths_and_keys(data_dir, data_format)
-
-    for data_path, key_dict in tqdm(zip(data_paths, key_dicts)):
-        # Load data using existing function
-        data = load_single_hdf5_data(data_path)
-
-        if data is None:
-            print(f"Error: Failed to load data from {data_path}.")
-            continue  # Skip to the next file if loading fails
-
-        # Print detailed information for files with issues
-        missing_labels = [label for label in key_dict["label_key"] if label not in data["labels"]]
-        if missing_labels:
-            print(f"\nWarning: Missing labels in {data_path}: {', '.join(missing_labels)}")
-            print("  - File structure:")
-            for key, value in data.items():
-                print(f"    - '{key}': {type(value)}  {value.shape if hasattr(value, 'shape') else ''}")  # Print data type and shape (if applicable)
-            print(f"  - Raw image shape: {data['raw'].shape if 'raw' in data else 'Not found'}")
-
-            # Access and print label data shapes
-            for label_key, label_data in data["labels"].items():
-                if label_key == "mitochondria":  # Check for your desired label
-                    print(f"  - Label '{label_key}' shape: {label_data.shape if hasattr(label_data, 'shape') else 'Not found'}")
-
-        if amount is not None and len(data_paths) >= amount:
-            break  # Limit the number of files checked (if specified)
-
-    print("Finished checking data correctness.")
