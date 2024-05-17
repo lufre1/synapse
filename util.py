@@ -15,6 +15,7 @@ import yaml
 
 import random
 
+
 def split_data_paths(data_paths, key_dicts, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, seed=None):
     """
     Splits data paths and key information into training, validation, and testing sets.
@@ -431,7 +432,7 @@ def visualize_data_napari(data):
     #     viewer.add_labels(label_data, name=label_name)
     
     label = data["label"].cpu().detach().numpy()
-    print(label.shape, label)
+    print("Image shape: ", raw_data.shape, "Label shape: ", label.shape)
     viewer.add_labels(label.astype(int), name="Label")
     
 
@@ -451,3 +452,48 @@ def visualize_data_napari(data):
 #         filename = entry["filename"]
 # else:
 #     print("No HDF5 data files found in the specified directory.")
+
+
+def check_h5_data_correctness(data_dir, data_format="*.h5", amount=None):
+    """
+    Checks for basic correctness of data in HDF5 files within a directory.
+
+    Args:
+        data_dir (str): Path to the directory containing HDF5 files.
+        data_format (str, optional): File format to search for (default: "*.h5").
+        amount (int, optional): Limit the number of files to check (default: None).
+
+    Returns:
+        None: The function doesn't return anything, it prints messages 
+            indicating any encountered errors.
+    """
+
+    # Get data paths and key information
+    data_paths, key_dicts = get_data_paths_and_keys(data_dir, data_format)
+
+    for data_path, key_dict in tqdm(zip(data_paths, key_dicts)):
+        # Load data using existing function
+        data = load_single_hdf5_data(data_path)
+
+        if data is None:
+            print(f"Error: Failed to load data from {data_path}.")
+            continue  # Skip to the next file if loading fails
+
+        # Print detailed information for files with issues
+        missing_labels = [label for label in key_dict["label_key"] if label not in data["labels"]]
+        if missing_labels:
+            print(f"\nWarning: Missing labels in {data_path}: {', '.join(missing_labels)}")
+            print("  - File structure:")
+            for key, value in data.items():
+                print(f"    - '{key}': {type(value)}  {value.shape if hasattr(value, 'shape') else ''}")  # Print data type and shape (if applicable)
+            print(f"  - Raw image shape: {data['raw'].shape if 'raw' in data else 'Not found'}")
+
+            # Access and print label data shapes
+            for label_key, label_data in data["labels"].items():
+                if label_key == "mitochondria":  # Check for your desired label
+                    print(f"  - Label '{label_key}' shape: {label_data.shape if hasattr(label_data, 'shape') else 'Not found'}")
+
+        if amount is not None and len(data_paths) >= amount:
+            break  # Limit the number of files checked (if specified)
+
+    print("Finished checking data correctness.")

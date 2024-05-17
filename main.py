@@ -68,8 +68,12 @@ def main():
     lucchi_data_dir = TEST_DATA_DIR
     #all_data = util.load_all_hdf5_data(data_dir, amount=None) # None
     data_paths, key_dicts = util.get_data_paths_and_keys(data_dir)
-    train_data, val_data, test_data = util.split_data_paths(data_paths, key_dicts, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, seed=None)
+    train_data, val_data, test_data = util.split_data_paths(data_paths, key_dicts, train_ratio=0.5, val_ratio=0.5, test_ratio=0, seed=None)
     visualize = False
+    
+    #util.check_h5_data_correctness(data_dir)
+    
+    
     # if all_data and visualize:
     #     # Assuming there's at least one entry (modify if needed)
     #     for i in range(min(len(all_data), 3)):
@@ -139,27 +143,31 @@ def main():
     # # create DataLoader
     # train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True) 
     # val_loader = DataLoader(val_dataset, batch_size=batch_size) 
-    file1 = util.load_single_hdf5_data(train_data["data_paths"][0])
-    if file1["labels"]:  # Check if any labels were loaded
-        for label_key, label_data in file1["labels"].items():
-            print(f"Label '{label_key}' shape: {label_data.shape}")
-            print("Raw shape: ", file1["raw"].shape)
-    else:
-        print("No labels found in this file.")
+   
+    # file1 = util.load_single_hdf5_data(train_data["data_paths"][0])
+    # if file1["labels"]:  # Check if any labels were loaded
+    #     for label_key, label_data in file1["labels"].items():
+    #         print(f"Label '{label_key}' shape: {label_data.shape}")
+    #         print("Raw shape: ", file1["raw"].shape)
+    # else:
+    #     print("No labels found in this file.")
 
-    with_channels = True
-    with_label_channels = True,
+    print("train_data['data_paths']: ", val_data["data_paths"])
+    print(val_data["key_dicts"][0])
+
+    with_channels = False
+    with_label_channels = False
 
     train_loader = torch_em.default_segmentation_loader(
-        raw_paths=train_data["data_paths"], raw_key="raw",
-        label_paths=train_data["data_paths"], label_key="labels/mitochondria",
+        raw_paths=train_data["data_paths"], raw_key=train_data["key_dicts"][0]["image_key"],
+        label_paths=train_data["data_paths"], label_key=train_data["key_dicts"][0]["label_key"],
         patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
         label_transform=label_transform, num_workers=n_workers,
         with_channels=with_channels, with_label_channels=with_label_channels,
     )
     val_loader = torch_em.default_segmentation_loader(
-        raw_paths=val_data["data_paths"], raw_key="raw",
-        label_paths=val_data["data_paths"], label_key="labels/mitochondria",
+        raw_paths=val_data["data_paths"], raw_key=val_data["key_dicts"][0]["image_key"],
+        label_paths=val_data["data_paths"], label_key=val_data["key_dicts"][0]["label_key"],
         patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
         label_transform=label_transform, num_workers=n_workers,
         with_channels=with_channels, with_label_channels=with_label_channels,
