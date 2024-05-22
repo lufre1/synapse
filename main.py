@@ -20,55 +20,13 @@ from config import *
 from unet import UNet3D as MyUnet3d
 
 
-def label_aware_crop(image, mask, patch_shape):
-    """
-    Performs random crop while ensuring at least one label is present (for 3D data).
-
-    Args:
-        image (np.ndarray): 3D image data.
-        mask (np.ndarray): 3D label data.
-        patch_shape (tuple): Desired output size of the crop (spatial dimensions).
-
-    Returns:
-        tuple: A tuple containing the cropped image and label data (both np.ndarray).
-    """
-
-    image_shape = image.shape
-    mask_shape = mask.shape
-
-    # Validate input shapes
-    assert image_shape == mask_shape, "Image and mask shapes must be the same."
-
-    # Calculate maximum possible crop coordinates considering patch size and image dimensions
-    max_i = image_shape[0] - patch_shape[0] + 1
-    max_j = image_shape[1] - patch_shape[1] + 1
-    max_k = image_shape[2] - patch_shape[2] + 1
-
-    while True:
-        # Generate random crop coordinates within valid ranges
-        i = random.randint(0, max_i)
-        j = random.randint(0, max_j)
-        k = random.randint(0, max_k)
-
-        # Crop the image and mask based on the generated coordinates
-        cropped_image = image[i:i+patch_shape[0], j:j+patch_shape[1], k:k+patch_shape[2]]
-        cropped_mask = mask[i:i+patch_shape[0], j:j+patch_shape[1], k:k+patch_shape[2]]
-
-        # Check if at least one non-zero element exists in the cropped label
-        if cropped_mask.sum() > 0:
-            return cropped_image, cropped_mask
-
-    # If the loop exits without finding a valid crop (unlikely scenario), raise an error
-    raise ValueError("Unable to find a crop with at least one label.")
-
-
 def main():
     # Load data from the specified path (assuming util.py handles single file)
     data_dir = DATA_DIR
     lucchi_data_dir = TEST_DATA_DIR
     #all_data = util.load_all_hdf5_data(data_dir, amount=None) # None
-    data_paths, rois_list = util.get_data_paths_and_rois(data_dir)#util.get_data_paths_and_keys(data_dir)
-    data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_list, train_ratio=0.5, val_ratio=0.5, test_ratio=0)
+    data_paths, rois_dict = util.get_data_paths_and_rois(data_dir)#util.get_data_paths_and_keys(data_dir)
+    data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.5, val_ratio=0.5, test_ratio=0)
     # split_data_paths(data_paths, key_dicts, train_ratio=0.5, val_ratio=0.5, test_ratio=0, seed=None)
     visualize = False
     
@@ -99,10 +57,11 @@ def main():
     batch_size = 1
     n_workers = 4 if torch.cuda.is_available() else 1
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Using {device} with {n_workers} workers.")
     label_transform = None
     patch_shape = (32, 256, 256)
-    patch_shape = (64, 512, 512)
-    patch_shape = (128, 1024, 1024)
+    #patch_shape = (64, 512, 512)
+    #patch_shape = (128, 1024, 1024)
     loss_name = "dice"
     metric_name = "dice"
     ndim = 3
@@ -122,10 +81,11 @@ def main():
         final_activation=final_activation
     )
 
-    print(data["train"])
-
+    #print(data["train"])
     with_channels = False
     with_label_channels = False
+
+    print("train", len(data["train"]), "val", len(data["val"]))
 
     train_loader = torch_em.default_segmentation_loader(
         raw_paths=data["train"], raw_key="raw", # raw_key=train_data["key_dicts"][0]["image_key"],
@@ -133,7 +93,7 @@ def main():
         patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
         label_transform=label_transform, num_workers=n_workers,
         with_channels=with_channels, with_label_channels=with_label_channels,
-        #rois=rois_dict["train"]
+        rois=rois_dict["train"]
     )
     val_loader = torch_em.default_segmentation_loader(
         raw_paths=data["val"], raw_key="raw", #raw_key=val_data["key_dicts"][0]["image_key"],
@@ -141,9 +101,10 @@ def main():
         patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
         label_transform=label_transform, num_workers=n_workers,
         with_channels=with_channels, with_label_channels=with_label_channels,
+        rois=rois_dict["val"]
     )
     image, label = next(iter(train_loader))
-    print(image.shape, label.shape)
+
     vis_data = {
         "raw": image,
         "label": label
@@ -162,7 +123,7 @@ def main():
     )
     #check_loader(train_loader, n_samples=1)
     #check_trainer(trainer, n_samples=1)
-    #trainer.fit(n_iterations)
+    trainer.fit(n_iterations)
 
 
 if __name__ == "__main__":

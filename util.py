@@ -8,18 +8,73 @@ import torch_em
 import torch.nn as nn
 import numpy as np
 import yaml
+import random
 
 # Define the data path and filename
 # data_path = "/scratch-grete/projects/nim00007/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt/170_2_rec.h5"
 # data_format = "*.h5"
 
-import random
+
+def get_rois_coordinates(label_data, num_labels=2):
+    """
+    Calculates the average coordinates for each unique label in a 3D label image.
+
+    Args:
+        label_data (np.ndarray): A 3D array representing the label data.
+            - Assumed to use integer values to represent unique labels (adjust as needed).
+
+    Returns:
+        dict: A dictionary mapping unique labels to lists of average coordinates
+            for each dimension.
+    """
+
+    # Find unique labels
+    unique_labels = np.unique(label_data[label_data > 0])  # Assuming non-zero values are labels
+    counter = 0
+    # Initialize lists to store results
+    label_extents = {}
+    for label in unique_labels:
+        # Get all coordinates for the current label
+        label_coords = np.where(label_data == label)
+
+        # Calculate min and max coordinates across all dimensions (assuming row-major order)
+        min_coords = np.min(label_coords, axis=1)
+        max_coords = np.max(label_coords, axis=1) + 1  # +1 for inclusive upper bound
+        roi_extents = tuple(slice(min_value, max_value + 1) for min_value, max_value in zip(min_coords, max_coords))
+
+        label_extents[label] = roi_extents
+        #print("content", roi_extents)
+        if num_labels and counter == num_labels:
+            return label_extents
+        counter += 1
+    return label_extents
+
+
+def get_rois_coordinates_label_agnostic(label_data, num_labels=2):
+    """
+    Calculates the average coordinates for each unique label in a 3D label image.
+
+    Args:
+        label_data (np.ndarray): A 3D array representing the label data.
+            - Assumed to use integer values to represent unique labels (adjust as needed).
+
+    Returns:
+        dict: A dictionary mapping unique labels to lists of average coordinates
+            for each dimension.
+    """
+
+    # Find unique labels
+    valid_coordinates = np.where(label_data[label_data > 0])  # Assuming non-zero values are labels
+    roi = tuple(slice(
+                int(coord.min()), int(coord.max()) + 1) for coord in valid_coordinates)
+    return roi
 
 
 def get_data_paths_and_rois(data_dir, data_format="*.h5",
                             image_key="raw",
                             label_key_mito="labels/mitochondria",
-                            label_key_cristae="labels/cristae"):
+                            label_key_cristae="labels/cristae",
+                            roi_halo=(2, 3, 1)):  # Fixed halo radius for now
     """
     Retrieves all HDF5 data paths, their corresponding image and label data keys,
     and extracts Regions of Interest (ROIs) for labels.
@@ -30,17 +85,18 @@ def get_data_paths_and_rois(data_dir, data_format="*.h5",
         image_key (str, optional): Key for image data within the HDF5 file (default: "raw").
         label_key_mito (str, optional): Key for the first label data (default: "labels/mitochondria").
         label_key_cristae (str, optional): Key for the second label data (default: "labels/cristae").
+        roi_halo (tuple, optional): A fixed tuple representing the halo radius for ROIs in each dimension (default: (2, 3, 1)).
 
     Returns:
         tuple: A tuple containing three lists:
             - data_paths: List of paths to all HDF5 files in the directory and subdirectories.
             - rois_list: List containing ROIs for each valid HDF5 file.
-                - Each ROI is a list of tuples or slices representing where labels are True (or 1).
+                - Each ROI is a list of tuples representing slices for each dimension.
     """
 
     data_paths = glob(os.path.join(data_dir, "**", data_format), recursive=True)
-    # key_dicts = []
-    rois_list = []
+    rois_dict = {}
+    new_data_paths = [] # one data path for each ROI
 
     for data_path in data_paths:
         try:
@@ -51,89 +107,71 @@ def get_data_paths_and_rois(data_dir, data_format="*.h5",
                     print(f"Warning: Key(s) missing in {data_path}. Skipping {image_key}")
                     continue
 
-                # Get label data (assuming labels are boolean or 1/0 for True/False)
+                # Get image and label data (assuming labels are boolean or 1/0 for True/False)
                 label_data_mito = f[label_key_mito][()] if label_key_mito is not None else None
-                #label_data_cristae = f[label_key_cristae][()] if label_key_cristae is not None else None
 
                 # Extract ROIs (assuming ndim of label data is the same as image data)
-                rois = []
                 if label_data_mito is not None:
-                    # Find non-zero elements (assuming True is represented by non-zero values)
-                    # roi = tuple(slice(co - rh, co + rh) for co, rh in zip(coord, roi_halo))
-                    non_zero_indices = np.nonzero(label_data_mito) # .astype(int)
-                    for dim in range(label_data_mito.ndim):
-                        rois.append(slice(non_zero_indices[dim].min(), non_zero_indices[dim].max() + 1))  # +1 for inclusive upper bound
-                # if label_data_cristae is not None:
-                #     # Repeat for cristae label (if it exists)
-                #     non_zero_indices = np.nonzero(label_data_cristae)
-                #     for dim in range(label_data_cristae.ndim):
-                #         rois.append(slice(non_zero_indices[dim].min(), non_zero_indices[dim].max() + 1))
-
-                # Create a dictionary for this file's key information
-                # key_dict = {
-                #     "image_key": image_key,
-                #     "label_key_mito": label_key_mito,
-                #     "label_key_cristae": label_key_cristae,
-                # }
-                # key_dicts.append(key_dict)
-                rois_list.append(rois)  # Add ROIs for this file
-
+                    # Calculate centroid using skimage.measure.centroid
+                    roi = get_rois_coordinates_label_agnostic(label_data_mito)
+                    rois_dict[data_path] = roi
+                    new_data_paths.append(data_path)
         except OSError:
             print(f"Error accessing file: {data_path}. Skipping...")
 
-    return data_paths, rois_list
+    return new_data_paths, rois_dict
 
 
-def split_data_paths_without_key_dicts(data_paths, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, seed=None):
-    """
-    Splits data paths into training, validation, and testing sets.
+# def split_data_paths_without_key_dicts(data_paths, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, seed=None):
+#     """
+#     Splits data paths into training, validation, and testing sets.
 
-    Args:
-        data_paths (list): List of paths to all HDF5 files.
-        train_ratio (float, optional): Proportion of data for training (0.0-1.0) (default: 0.8).
-        val_ratio (float, optional): Proportion of data for validation (0.0-1.0) (default: 0.1).
-        test_ratio (float, optional): Proportion of data for testing (0.0-1.0) (default: 0.1).
-        seed (int, optional): Random seed for shuffling data paths (default: None).
+#     Args:
+#         data_paths (list): List of paths to all HDF5 files.
+#         train_ratio (float, optional): Proportion of data for training (0.0-1.0) (default: 0.8).
+#         val_ratio (float, optional): Proportion of data for validation (0.0-1.0) (default: 0.1).
+#         test_ratio (float, optional): Proportion of data for testing (0.0-1.0) (default: 0.1).
+#         seed (int, optional): Random seed for shuffling data paths (default: None).
 
-    Returns:
-        tuple: A tuple containing three dictionaries:
-            - train_data: Dictionary containing "data_paths" for training data.
-            - val_data: Dictionary containing "data_paths" for validation data (if applicable).
-            - test_data: Dictionary containing "data_paths" for testing data.
+#     Returns:
+#         tuple: A tuple containing three dictionaries:
+#             - train_data: Dictionary containing "data_paths" for training data.
+#             - val_data: Dictionary containing "data_paths" for validation data (if applicable).
+#             - test_data: Dictionary containing "data_paths" for testing data.
 
-    Raises:
-        ValueError: If the sum of ratios exceeds 1.
-    """
+#     Raises:
+#         ValueError: If the sum of ratios exceeds 1.
+#     """
 
-    if train_ratio + val_ratio + test_ratio != 1.0:
-        raise ValueError("Sum of train, validation, and test ratios must equal 1.0.")
+#     if train_ratio + val_ratio + test_ratio != 1.0:
+#         raise ValueError("Sum of train, validation, and test ratios must equal 1.0.")
 
-    if seed is not None:
-        random.seed(seed)
-    random.shuffle(data_paths)
+#     if seed is not None:
+#         random.seed(seed)
+#     random.shuffle(data_paths)
 
-    num_data = len(data_paths)
-    train_size = int(num_data * train_ratio)
-    val_size = int(num_data * val_ratio)  # Optional validation set
-    test_size = num_data - train_size - val_size
+#     num_data = len(data_paths)
+#     train_size = int(num_data * train_ratio)
+#     val_size = int(num_data * val_ratio)  # Optional validation set
+#     test_size = num_data - train_size - val_size
 
-    train_data = {"data_paths": data_paths[:train_size]}
-    val_data = {"data_paths": []}  # Optional validation set
-    test_data = {"data_paths": data_paths[train_size+val_size:]}
+#     train_data = {"data_paths": data_paths[:train_size]}
+#     val_data = {"data_paths": []}  # Optional validation set
+#     test_data = {"data_paths": data_paths[train_size+val_size:]}
 
-    if val_size > 0:
-        val_data = {"data_paths": data_paths[train_size:train_size+val_size]}
+#     if val_size > 0:
+#         val_data = {"data_paths": data_paths[train_size:train_size+val_size]}
 
-    return train_data, val_data, test_data
+#     return train_data, val_data, test_data
 
 
-def split_data_paths_to_dict(data_paths, rois_list, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1):
+def split_data_paths_to_dict(data_paths, rois_dict, train_ratio=0.8, val_ratio=0.2, test_ratio=0.0):
     """
     Splits data paths and ROIs into training, validation, and testing sets without shuffling.
 
     Args:
         data_paths (list): List of paths to all HDF5 files.
-        rois_list (list): List of ROIs corresponding to each data path.
+        rois_dict (dict): Dictionary mapping data paths (or indices) to corresponding ROIs.
         train_ratio (float, optional): Proportion of data for training (0.0-1.0) (default: 0.8).
         val_ratio (float, optional): Proportion of data for validation (0.0-1.0) (default: 0.1).
         test_ratio (float, optional): Proportion of data for testing (0.0-1.0) (default: 0.1).
@@ -144,16 +182,15 @@ def split_data_paths_to_dict(data_paths, rois_list, train_ratio=0.8, val_ratio=0
             - rois_split: Dictionary containing "train", "val", and "test" keys with corresponding ROIs.
 
     Raises:
-        ValueError: If the sum of ratios exceeds 1 or the length of data paths and ROIs don't match.
+        ValueError: If the sum of ratios exceeds 1 or the length of data paths and number of ROIs don't match.
     """
 
     if train_ratio + val_ratio + test_ratio != 1.0:
         raise ValueError("Sum of train, validation, and test ratios must equal 1.0.")
-
-    if len(data_paths) != len(rois_list):
-        raise ValueError("Length of data paths and ROIs must be the same.")
-
     num_data = len(data_paths)
+    if len(rois_dict) != num_data:
+        raise ValueError(f"Length of data paths and number of ROIs in the dictionary must match: len rois {len(rois_dict)}, len data_paths {len(data_paths)}")
+
     train_size = int(num_data * train_ratio)
     val_size = int(num_data * val_ratio)  # Optional validation set
     test_size = num_data - train_size - val_size
@@ -163,10 +200,11 @@ def split_data_paths_to_dict(data_paths, rois_list, train_ratio=0.8, val_ratio=0
         "val": data_paths[train_size:train_size+val_size],
         "test": data_paths[train_size+val_size:]
     }
+
     rois_split = {
-        "train": rois_list[:train_size],
-        "val": rois_list[train_size:train_size+val_size],
-        "test": rois_list[train_size+val_size:]
+        "train": tuple((rois_dict[path]) for path in data_paths[:train_size]),
+        "val": tuple((rois_dict[path]) for path in data_paths[train_size:train_size+val_size]) if val_size > 0 else (),
+        "test": tuple((path, rois_dict[path]) for path in data_paths[train_size+val_size:])
     }
 
     if val_size == 0:
@@ -266,53 +304,34 @@ def get_data_paths_and_keys(data_dir, data_format="*.h5", image_key="raw", label
     return data_paths, key_dicts
 
 
-def extract_data(data_list, train_ratio, test_ratio, label_key="mitochondria"):
+def visualize_data_napari(data):
     """
-    Extracts images and labels for training, validation, and testing from a data list.
+    Visualizes the 3D raw data and all labels using napari.
 
     Args:
-        data_list (list): List of dictionaries containing loaded data from HDF5 files.
-        train_ratio (float): Proportion of data for training (0.0-1.0).
-        test_ratio (float): Proportion of data for testing (0.0-1.0).
-        label_key (str, optional): Key for label data within the dictionary (default: "mitochondria").
-
-    Returns:
-        tuple: A tuple containing three dictionaries:
-            - train_data: Dictionary containing training images and labels.
-            - val_data: Dictionary containing validation images and labels (if applicable).
-            - test_data: Dictionary containing testing images and labels.
+        data (dict): Dictionary containing loaded raw data ("raw" key) 
+                    and labels ("labels" dictionary with loaded labels).
     """
-
-    num_images = len(data_list)
-    train_size = int(num_images * train_ratio)
-    val_size = int(num_images * (1 - train_ratio - test_ratio))  # Optional validation set
-    test_size = num_images - train_size - val_size
-
-    train_images, train_labels = [], []
-    val_images, val_labels = [], []  # Optional validation set
-    test_images, test_labels = [], []
-
-    for i in range(num_images):
-        data_dict = data_list[i]
-        image = data_dict["raw"]
-        label = data_dict["labels"][label_key]
-
-    # Efficiently distribute data based on pre-calculated sizes
-    if i < train_size:
-        train_images.append(image)
-        train_labels.append(label)
-    elif i < train_size + val_size:  # Optional validation set
-        val_images.append(image)
-        val_labels.append(label)
+    if isinstance(data["raw"], torch.Tensor):
+        raw_data = data["raw"].cpu().detach().numpy()
     else:
-        test_images.append(image)
-        test_labels.append(label)
+        raw_data = data["raw"]
 
-    return {
-        "train_data": {"images": train_images, "labels": train_labels},
-        "val_data": {"images": val_images, "labels": val_labels} if val_size > 0 else None,  # Optional validation set
-        "test_data": {"images": test_images, "labels": test_labels}
-    }
+    # Create a napari viewer
+    viewer = napari.Viewer()
+
+    # Add raw data as a volume
+    viewer.add_image(raw_data, name="Raw Data")
+
+    if isinstance(data["label"], torch.Tensor):
+        label_data = data["label"].cpu().detach().numpy()
+    else:
+        label_data = data["label"]
+
+    viewer.add_labels(label_data.astype(int), name="Label")  # Ensure labels are integers
+
+    # Show the napari viewer
+    napari.run()
 
 
 def get_loss_function(loss_name, affinities=False):
@@ -334,72 +353,6 @@ def get_loss_function(loss_name, affinities=False):
             loss_function, transform=torch_em.loss.ApplyAndRemoveMask()
         )
     return loss_function
-
-
-def load_all_hdf5_data(data_dir, data_format="*.h5", amount=None):
-    """
-    Loads all HDF5 data files from a directory and its subdirectories.
-
-    Args:
-        data_dir (str): Path to the directory containing HDF5 files.
-        data_format (str, optional): File format to search for (default: "*.h5").
-
-    Returns:
-        list: A list of dictionaries containing loaded data (raw and labels) 
-                from each HDF5 file in the directory and its subdirectories.
-    """
-
-    # Get all file paths matching the format in the main directory and subdirectories
-    data_paths = glob(os.path.join(data_dir, "**", data_format), recursive=True)
-
-    # List to store loaded data information
-    all_data = []
-
-    for data_path in tqdm(data_paths):
-        # Load data from each file (unchanged logic)
-        data = load_single_hdf5_data(data_path)
-
-        if data is not None:  # Check if data loaded successfully
-            # Extract filename without extension
-            filename = data_path.split("/")[-1].split(".")[0]
-            all_data.append({"filename": filename, **data})  # Unpack data dictionary
-        if amount is not None and amount == len(all_data):
-            return all_data
-    return all_data
-
-
-def load_single_hdf5_data(data_path):
-    """
-    Loads raw data and available labels from a single HDF5 file.
-
-    Args:
-        data_path (str): Path to the HDF5 file.
-
-    Returns:
-        dict: A dictionary containing loaded raw data and all available labels 
-            (or None if error).
-    """
-
-    # Open the HDF5 file in read-only mode
-    with h5py.File(data_path, "r") as f:
-
-        # Check for existence of datasets
-        if "raw" not in f:
-            print(f"Error: 'raw' dataset not found in {data_path}")
-            return None  # Indicate error
-
-        # Get the raw data as a NumPy array
-        raw_data = f["raw"][()]
-
-        # Load all datasets within the "labels" group (if it exists)
-        labels_data = {}
-        if "labels" in f:
-            labels_group = f["labels"]
-            for key in labels_group.keys():
-                labels_data[key] = labels_group[key][()]
-
-        # Return data as a dictionary
-        return {"raw": raw_data, "labels": labels_data}
 
 
 def get_all_metadata(data_dir, data_format="*.h5"):
@@ -566,79 +519,67 @@ def load_metadata(data_path):
     return metadata
 
 
-def visualize_data_napari(data):
-    """
-    Visualizes the 3D raw data and all labels using napari.
-
-    Args:
-        data (dict): Dictionary containing loaded raw data ("raw" key) 
-                    and labels ("labels" dictionary with loaded labels).
-    """
-    if isinstance(data["raw"], torch.Tensor):
-        raw_data = data["raw"].cpu().detach().numpy()
-    else:
-        raw_data = data["raw"]
-
-    # Create a napari viewer
-    viewer = napari.Viewer()
-
-    # Add raw data as a volume
-    viewer.add_image(raw_data, name="Raw Data")
-    
-    if isinstance(data["label"], torch.Tensor):
-        label_data = data["label"].cpu().detach().numpy()
-    else:
-        label_data = data["label"]
-
-    viewer.add_labels(label_data.astype(int), name="Label")  # Ensure labels are integers
-            
-
-    # Show the napari viewer
-    napari.run()
-# def visualize_data_napari(data):
+# def load_all_hdf5_data(data_dir, data_format="*.h5", amount=None):
 #     """
-#     Visualizes the 3D raw data and available labels using napari.
+#     Loads all HDF5 data files from a directory and its subdirectories.
 
 #     Args:
-#         data (dict): Dictionary containing loaded raw data ("raw" key) 
-#                     and labels ("labels" dictionary with loaded labels).
+#         data_dir (str): Path to the directory containing HDF5 files.
+#         data_format (str, optional): File format to search for (default: "*.h5").
+
+#     Returns:
+#         list: A list of dictionaries containing loaded data (raw and labels) 
+#                 from each HDF5 file in the directory and its subdirectories.
 #     """
-#     if isinstance(data, torch.Tensor):
-#         raw_data = data.cpu().detach().numpy()
-#     else:
-#         raw_data = data
-#     #print(raw_data)
-#     # # Extract the raw data
-#     raw_data = data["raw"].cpu().detach().numpy()
 
-#     # Create a napari viewer
-#     viewer = napari.Viewer()
+#     # Get all file paths matching the format in the main directory and subdirectories
+#     data_paths = glob(os.path.join(data_dir, "**", data_format), recursive=True)
 
-#     # Add raw data as a volume
-#     viewer.add_image(raw_data, name="Raw Data")
+#     # List to store loaded data information
+#     all_data = []
 
-#     # Add all available labels from "labels" data
-#     # for label_name, label_data in data["labels"].items():
-#     #     viewer.add_labels(label_data, name=label_name)
-    
-#     label = data["label"].cpu().detach().numpy()
-#     #print(label.shape)
-#     viewer.add_labels(label.astype(int), name="Label")
-    
+#     for data_path in tqdm(data_paths):
+#         # Load data from each file (unchanged logic)
+#         data = load_single_hdf5_data(data_path)
 
-#     # Show the napari viewer
-#     napari.run()
+#         if data is not None:  # Check if data loaded successfully
+#             # Extract filename without extension
+#             filename = data_path.split("/")[-1].split(".")[0]
+#             all_data.append({"filename": filename, **data})  # Unpack data dictionary
+#         if amount is not None and amount == len(all_data):
+#             return all_data
+#     return all_data
 
 
-# Example usage (assuming util.py is in the same directory as your main script)
-# data_dir = "/scratch-grete/projects/nim00007/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt"
-# all_data = load_all_hdf5_data(data_dir)
+# def load_single_hdf5_data(data_path):
+#     """
+#     Loads raw data and available labels from a single HDF5 file.
 
-# if all_data:
-#     # Process all loaded data (access raw data and labels from each dictionary in all_data)
-#     for entry in all_data:
-#         data = entry["raw"]
-#         labels = entry["labels"]
-#         filename = entry["filename"]
-# else:
-#     print("No HDF5 data files found in the specified directory.")
+#     Args:
+#         data_path (str): Path to the HDF5 file.
+
+#     Returns:
+#         dict: A dictionary containing loaded raw data and all available labels 
+#             (or None if error).
+#     """
+
+#     # Open the HDF5 file in read-only mode
+#     with h5py.File(data_path, "r") as f:
+
+#         # Check for existence of datasets
+#         if "raw" not in f:
+#             print(f"Error: 'raw' dataset not found in {data_path}")
+#             return None  # Indicate error
+
+#         # Get the raw data as a NumPy array
+#         raw_data = f["raw"][()]
+
+#         # Load all datasets within the "labels" group (if it exists)
+#         labels_data = {}
+#         if "labels" in f:
+#             labels_group = f["labels"]
+#             for key in labels_group.keys():
+#                 labels_data[key] = labels_group[key][()]
+
+#         # Return data as a dictionary
+#         return {"raw": raw_data, "labels": labels_data}
