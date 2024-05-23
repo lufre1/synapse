@@ -25,8 +25,6 @@ def main():
     data_dir = DATA_DIR
     lucchi_data_dir = TEST_DATA_DIR
     #all_data = util.load_all_hdf5_data(data_dir, amount=None) # None
-    data_paths, rois_dict = util.get_data_paths_and_rois(data_dir)#util.get_data_paths_and_keys(data_dir)
-    data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.5, val_ratio=0.5, test_ratio=0)
     # split_data_paths(data_paths, key_dicts, train_ratio=0.5, val_ratio=0.5, test_ratio=0, seed=None)
     visualize = False
     
@@ -74,6 +72,10 @@ def main():
     final_activation = None
     if final_activation is None and loss_name == "dice":
         final_activation = "Sigmoid"
+        
+    # load data paths etc.
+    data_paths, rois_dict = util.get_data_paths_and_rois(data_dir, min_shape=patch_shape)
+    data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.5, val_ratio=0.5, test_ratio=0)
 
     print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
     model = UNet3d(
@@ -123,7 +125,7 @@ def main():
     )
     #check_loader(train_loader, n_samples=1)
     #check_trainer(trainer, n_samples=1)
-    trainer.fit(n_iterations)
+    #trainer.fit(n_iterations)
 
 
 if __name__ == "__main__":

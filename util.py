@@ -15,19 +15,21 @@ import random
 # data_format = "*.h5"
 
 
-def get_rois_coordinates(label_data, num_labels=2):
+def get_rois_coordinates(label_data, min_shape, num_labels=2):
     """
     Calculates the average coordinates for each unique label in a 3D label image.
 
     Args:
         label_data (np.ndarray): A 3D array representing the label data.
             - Assumed to use integer values to represent unique labels (adjust as needed).
+        minimum_shape (tuple): A tuple representing the minimum size for each dimension of the ROI.
+        num_labels (int, optional): The maximum number of labels to return (default: 2).
 
     Returns:
         dict: A dictionary mapping unique labels to lists of average coordinates
             for each dimension.
     """
-
+    label_shape = label_data.shape
     # Find unique labels
     unique_labels = np.unique(label_data[label_data > 0])  # Assuming non-zero values are labels
     counter = 0
@@ -40,14 +42,54 @@ def get_rois_coordinates(label_data, num_labels=2):
         # Calculate min and max coordinates across all dimensions (assuming row-major order)
         min_coords = np.min(label_coords, axis=1)
         max_coords = np.max(label_coords, axis=1) + 1  # +1 for inclusive upper bound
-        roi_extents = tuple(slice(min_value, max_value + 1) for min_value, max_value in zip(min_coords, max_coords))
+
+        # Clip coordinates to minimum shape (ensure they don't go beyond label_data boundaries)
+        clipped_min_coords = np.clip(min_coords, 0, label_shape[0] - min_shape[0])
+        clipped_max_coords = np.clip(max_coords, min_shape[1], label_shape[1])
+
+        # Create ROI extents with clipped coordinates and minimum shape
+        roi_extents = tuple(slice(min_val, min_val + min_shape[dim]) for dim, (min_val, max_val) in enumerate(zip(clipped_min_coords, clipped_max_coords)))
 
         label_extents[label] = roi_extents
-        #print("content", roi_extents)
+        # print("content", roi_extents)
         if num_labels and counter == num_labels:
             return label_extents
         counter += 1
     return label_extents
+
+# def get_rois_coordinates(label_data, minimum_shape, num_labels=2):
+#     """
+#     Calculates the average coordinates for each unique label in a 3D label image.
+
+#     Args:
+#         label_data (np.ndarray): A 3D array representing the label data.
+#             - Assumed to use integer values to represent unique labels (adjust as needed).
+
+#     Returns:
+#         dict: A dictionary mapping unique labels to lists of average coordinates
+#             for each dimension.
+#     """
+#     label_shape = label_data.shape
+#     # Find unique labels
+#     unique_labels = np.unique(label_data[label_data > 0])  # Assuming non-zero values are labels
+#     counter = 0
+#     # Initialize lists to store results
+#     label_extents = {}
+#     for label in unique_labels:
+#         # Get all coordinates for the current label
+#         label_coords = np.where(label_data == label)
+
+#         # Calculate min and max coordinates across all dimensions (assuming row-major order)
+#         min_coords = np.min(label_coords, axis=1)
+#         max_coords = np.max(label_coords, axis=1) + 1  # +1 for inclusive upper bound
+#         roi_extents = tuple(slice(min_value, max_value + 1) for min_value, max_value in zip(min_coords, max_coords))
+
+#         label_extents[label] = roi_extents
+#         #print("content", roi_extents)
+#         if num_labels and counter == num_labels:
+#             return label_extents
+#         counter += 1
+#     return label_extents
 
 
 def get_rois_coordinates_label_agnostic(label_data, num_labels=2):
@@ -70,11 +112,11 @@ def get_rois_coordinates_label_agnostic(label_data, num_labels=2):
     return roi
 
 
-def get_data_paths_and_rois(data_dir, data_format="*.h5",
+def get_data_paths_and_rois(data_dir, min_shape,
+                            data_format="*.h5",
                             image_key="raw",
                             label_key_mito="labels/mitochondria",
-                            label_key_cristae="labels/cristae",
-                            roi_halo=(2, 3, 1)):  # Fixed halo radius for now
+                            label_key_cristae="labels/cristae",):
     """
     Retrieves all HDF5 data paths, their corresponding image and label data keys,
     and extracts Regions of Interest (ROIs) for labels.
@@ -95,7 +137,7 @@ def get_data_paths_and_rois(data_dir, data_format="*.h5",
     """
 
     data_paths = glob(os.path.join(data_dir, "**", data_format), recursive=True)
-    rois_dict = {}
+    rois_list = []
     new_data_paths = [] # one data path for each ROI
 
     for data_path in data_paths:
@@ -113,59 +155,18 @@ def get_data_paths_and_rois(data_dir, data_format="*.h5",
                 # Extract ROIs (assuming ndim of label data is the same as image data)
                 if label_data_mito is not None:
                     # Calculate centroid using skimage.measure.centroid
-                    roi = get_rois_coordinates_label_agnostic(label_data_mito)
-                    rois_dict[data_path] = roi
-                    new_data_paths.append(data_path)
+                    rois = get_rois_coordinates(label_data_mito, min_shape)
+                    for label_id, roi in rois.items():
+                        rois_list.append(roi)
+                        new_data_paths.append(data_path)
         except OSError:
             print(f"Error accessing file: {data_path}. Skipping...")
 
-    return new_data_paths, rois_dict
+    return new_data_paths, rois_list
 
 
-# def split_data_paths_without_key_dicts(data_paths, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, seed=None):
-#     """
-#     Splits data paths into training, validation, and testing sets.
 
-#     Args:
-#         data_paths (list): List of paths to all HDF5 files.
-#         train_ratio (float, optional): Proportion of data for training (0.0-1.0) (default: 0.8).
-#         val_ratio (float, optional): Proportion of data for validation (0.0-1.0) (default: 0.1).
-#         test_ratio (float, optional): Proportion of data for testing (0.0-1.0) (default: 0.1).
-#         seed (int, optional): Random seed for shuffling data paths (default: None).
-
-#     Returns:
-#         tuple: A tuple containing three dictionaries:
-#             - train_data: Dictionary containing "data_paths" for training data.
-#             - val_data: Dictionary containing "data_paths" for validation data (if applicable).
-#             - test_data: Dictionary containing "data_paths" for testing data.
-
-#     Raises:
-#         ValueError: If the sum of ratios exceeds 1.
-#     """
-
-#     if train_ratio + val_ratio + test_ratio != 1.0:
-#         raise ValueError("Sum of train, validation, and test ratios must equal 1.0.")
-
-#     if seed is not None:
-#         random.seed(seed)
-#     random.shuffle(data_paths)
-
-#     num_data = len(data_paths)
-#     train_size = int(num_data * train_ratio)
-#     val_size = int(num_data * val_ratio)  # Optional validation set
-#     test_size = num_data - train_size - val_size
-
-#     train_data = {"data_paths": data_paths[:train_size]}
-#     val_data = {"data_paths": []}  # Optional validation set
-#     test_data = {"data_paths": data_paths[train_size+val_size:]}
-
-#     if val_size > 0:
-#         val_data = {"data_paths": data_paths[train_size:train_size+val_size]}
-
-#     return train_data, val_data, test_data
-
-
-def split_data_paths_to_dict(data_paths, rois_dict, train_ratio=0.8, val_ratio=0.2, test_ratio=0.0):
+def split_data_paths_to_dict(data_paths, rois_list, train_ratio=0.8, val_ratio=0.2, test_ratio=0.0):
     """
     Splits data paths and ROIs into training, validation, and testing sets without shuffling.
 
@@ -188,8 +189,8 @@ def split_data_paths_to_dict(data_paths, rois_dict, train_ratio=0.8, val_ratio=0
     if train_ratio + val_ratio + test_ratio != 1.0:
         raise ValueError("Sum of train, validation, and test ratios must equal 1.0.")
     num_data = len(data_paths)
-    if len(rois_dict) != num_data:
-        raise ValueError(f"Length of data paths and number of ROIs in the dictionary must match: len rois {len(rois_dict)}, len data_paths {len(data_paths)}")
+    if len(rois_list) != num_data:
+        raise ValueError(f"Length of data paths and number of ROIs in the dictionary must match: len rois {len(rois_list)}, len data_paths {len(data_paths)}")
 
     train_size = int(num_data * train_ratio)
     val_size = int(num_data * val_ratio)  # Optional validation set
@@ -202,9 +203,9 @@ def split_data_paths_to_dict(data_paths, rois_dict, train_ratio=0.8, val_ratio=0
     }
 
     rois_split = {
-        "train": tuple((rois_dict[path]) for path in data_paths[:train_size]),
-        "val": tuple((rois_dict[path]) for path in data_paths[train_size:train_size+val_size]) if val_size > 0 else (),
-        "test": tuple((path, rois_dict[path]) for path in data_paths[train_size+val_size:])
+        "train": rois_list[:train_size],
+        "val": rois_list[train_size:train_size+val_size],
+        "test": rois_list[train_size+val_size:]
     }
 
     if val_size == 0:
