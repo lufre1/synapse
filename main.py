@@ -63,7 +63,7 @@ def main():
     loss_name = "dice"
     metric_name = "dice"
     ndim = 3
-    n_iterations = 1
+    n_iterations = 100
     learning_rate = 1.0e-4
     loss_function = util.get_loss_function(loss_name)
     metric_function = util.get_loss_function(metric_name)
@@ -111,7 +111,7 @@ def main():
         "raw": image,
         "label": label
     }
-    util.visualize_data_napari(vis_data)
+    #util.visualize_data_napari(vis_data)
 
     trainer = torch_em.default_segmentation_trainer(
         name=experiment_name, model=model,
@@ -125,7 +125,7 @@ def main():
     )
     #check_loader(train_loader, n_samples=1)
     #check_trainer(trainer, n_samples=1)
-    #trainer.fit(n_iterations)
+    trainer.fit(n_iterations)
 
 
 if __name__ == "__main__":
