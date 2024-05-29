@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 import yaml
 import os
 import random
+import argparse
 
 import torch_em
 import torch_em.data.datasets as torchem_data
@@ -21,16 +22,29 @@ from unet import UNet3D as MyUnet3d
 
 
 def main():
-    # Load data from the specified path (assuming util.py handles single file)
-    data_dir = DATA_DIR
-    lucchi_data_dir = TEST_DATA_DIR
-    #all_data = util.load_all_hdf5_data(data_dir, amount=None) # None
-    # split_data_paths(data_paths, key_dicts, train_ratio=0.5, val_ratio=0.5, test_ratio=0, seed=None)
-    visualize = False
+    parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
+    parser.add_argument("--data_dir", type=str, default=DATA_DIR, help="Path to the data directory")
+    parser.add_argument("--lucchi_data_dir", type=str, default=TEST_DATA_DIR, help="Path to the lucchi data directory (optional)")
+    parser.add_argument("--visualize", action="store_true", default=False, help="Visualize data with napari")
+    parser.add_argument("--patch_shape", type=int, nargs=3, default=(32, 256, 256), help="Patch shape for data loading (3D tuple)")
+    parser.add_argument("--n_iterations", type=int, default=10000, help="Number of training iterations")
+    parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate")
+    parser.add_argument("--checkpoint_path", type=str, default="", help="Path to checkpoint used to load model's state_dict")
+    parser.add_argument("--experiment_name", type=str, default="default-mito-net", help="Name that is used for the experiment and store the model's weights")
+    parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
     
-    #util.check_h5_data_correctness(data_dir)
-    
-    
+    # Parse arguments
+    args = parser.parse_args()
+    checkpoint_path = args.checkpoint_path
+    n_iterations = args.n_iterations
+    learning_rate = args.learning_rate
+    data_dir = args.data_dir
+    lucchi_data_dir = args.lucchi_data_dir
+    visualize = args.visualize
+    experiment_name = args.experiment_name
+    batch_size = args.batch_size
+    patch_shape = args.patch_shape
+
     # if all_data and visualize:
     #     # Assuming there's at least one entry (modify if needed)
     #     for i in range(min(len(all_data), 3)):
@@ -51,20 +65,20 @@ def main():
     #util.load_metadata(data_dir)
 
     # Define experiment and model parameters
-    experiment_name = "cristae-and-mito-net"
-    batch_size = 1
+    #experiment_name = "mito-net-bs1-ps32"
+    #batch_size = 1
     n_workers = 4 if torch.cuda.is_available() else 1
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {device} with {n_workers} workers.")
     label_transform = None
-    patch_shape = (32, 256, 256)
+    #patch_shape = (32, 256, 256)
     #patch_shape = (64, 512, 512)
     #patch_shape = (128, 1024, 1024)
     loss_name = "dice"
     metric_name = "dice"
     ndim = 3
-    n_iterations = 100
-    learning_rate = 1.0e-4
+    #n_iterations = 10000
+    #learning_rate = 1.0e-4
     loss_function = util.get_loss_function(loss_name)
     metric_function = util.get_loss_function(metric_name)
     in_channels, out_channels = 1, 1
@@ -82,6 +96,10 @@ def main():
         in_channels=in_channels, out_channels=out_channels, initial_features=initial_features,
         final_activation=final_activation
     )
+    if checkpoint_path:
+        state_dict = torch.load(checkpoint_path, map_location=torch.device("cpu"))["model_state"]
+        model.load_state_dict(state_dict)
+        model.to("cuda")
 
     #print(data["train"])
     with_channels = False
@@ -105,12 +123,12 @@ def main():
         with_channels=with_channels, with_label_channels=with_label_channels,
         rois=rois_dict["val"]
     )
-    image, label = next(iter(train_loader))
+    # image, label = next(iter(train_loader))
 
-    vis_data = {
-        "raw": image,
-        "label": label
-    }
+    # vis_data = {
+    #     "raw": image,
+    #     "label": label
+    # }
     #util.visualize_data_napari(vis_data)
 
     trainer = torch_em.default_segmentation_trainer(
