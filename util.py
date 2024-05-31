@@ -9,6 +9,7 @@ import torch.nn as nn
 import numpy as np
 import yaml
 import random
+from skimage.measure import regionprops
 
 # Define the data path and filename
 # data_path = "/scratch-grete/projects/nim00007/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt/170_2_rec.h5"
@@ -58,7 +59,7 @@ def get_rois_coordinates(label_data, min_shape, num_labels=None):
     return label_extents
 
 
-def get_rois_coordinates_vectorized(label_data, min_shape):
+def get_rois_coordinates_vectorized(file, label_key_mito, min_shape):
     """
     Calculates the average coordinates for each unique label in a 3D label image.
 
@@ -72,29 +73,35 @@ def get_rois_coordinates_vectorized(label_data, min_shape):
         dict: A dictionary mapping unique labels to lists of average coordinates
             for each dimension.
     """
+    label_data = file[label_key_mito]
     label_shape = label_data.shape
     # Find unique labels (avoiding unnecessary computation)
     unique_labels = np.unique(label_data)
 
-    # Boolean indexing for each unique label
-    label_masks = [label_data == label for label in unique_labels]
+    # Create a single boolean mask indicating all label occurrences
+    all_label_masks = np.isin(label_data, unique_labels)
 
-    # Calculate min and max coordinates using broadcasting and boolean indexing
-    min_coords = np.min(label_masks, axis=(1, 2))
-    max_coords = np.max(label_masks, axis=(1, 2)) + 1  # +1 for inclusive upper bound
+    # Enumerate through unique labels and calculate coordinates
+    label_extents = {}
+    for label in unique_labels:
+        # Extract relevant mask for the current label using boolean indexing
+        label_mask = all_label_masks & (label_data == label)  # Efficient AND operation
 
-    # Clip coordinates to minimum shape using broadcasting
-    clipped_min_coords = np.clip(min_coords, 0, label_shape[0] - min_shape[0])
-    clipped_max_coords = np.clip(max_coords, min_shape[1], label_shape[1])
+        # Calculate min and max coordinates using broadcasting and boolean indexing
+        # min_coords = np.min(label_mask, axis=(1, 2))
+        # max_coords = np.max(label_mask, axis=(1, 2)) + 1  # +1 for inclusive upper bound
+        min_coords = np.min(label_mask, axis=0, keepdims=True)  # Minimum along each dimension (0)
+        max_coords = np.max(label_mask, axis=0, keepdims=True) + 1
 
-    # Combine clipped coordinates and minimum shape into ROI extents using zip
-    label_extents = {label: tuple(slice(min_val, min_val + min_shape[dim]) for dim, (min_val, max_val) in enumerate(zip(clipped_min_coords[i], clipped_max_coords[i])))
-                     for i, label in enumerate(unique_labels)}
+        # Clip coordinates and create ROI extent (same as before)
+        clipped_min_coords = np.clip(min_coords, 0, label_shape[0] - min_shape[0])
+        clipped_max_coords = np.clip(max_coords, min_shape[1], label_shape[1])
+        label_extents[label] = tuple(slice(min_val, min_val + min_shape[dim]) for dim, (min_val, max_val) in enumerate(zip(clipped_min_coords, clipped_max_coords)))
 
     return label_extents
 
 
-def get_rois_coordinates_label_agnostic(label_data, num_labels=2):
+def get_rois_coordinates_label_agnostic(file, label_key_mito, min_shape):
     """
     Calculates the average coordinates for each unique label in a 3D label image.
 
@@ -106,12 +113,55 @@ def get_rois_coordinates_label_agnostic(label_data, num_labels=2):
         dict: A dictionary mapping unique labels to lists of average coordinates
             for each dimension.
     """
-
+    label_data = file[label_key_mito]
     # Find unique labels
     valid_coordinates = np.where(label_data[label_data > 0])  # Assuming non-zero values are labels
     roi = tuple(slice(
                 int(coord.min()), int(coord.max()) + 1) for coord in valid_coordinates)
     return roi
+
+
+def get_rois_coordinates_skimage(file, label_key, min_shape):
+    """
+    Calculates the average coordinates for each unique label in a 3D label image using skimage.regionprops.
+
+    Args:
+        file (h5py.File): Handle to the open HDF5 file.
+        label_key (str): Key for the label data within the HDF5 file.
+        min_shape (tuple): A tuple representing the minimum size for each dimension of the ROI.
+
+    Returns:
+        dict: A dictionary mapping unique labels to lists of average coordinates
+            for each dimension, or None if no labels are found.
+    """
+
+    label_data = file[label_key]
+    label_shape = label_data.shape
+
+    # Ensure data type is suitable for regionprops (usually uint labels)
+    # if label_data.dtype != np.uint:
+    #     label_data = label_data.astype(np.uint).value
+
+    # Find connected regions (objects) using regionprops
+    regions = regionprops(label_data)
+
+    # Check if any regions were found
+    if not regions:
+        return None
+
+    label_extents = {}
+    for region in regions:
+        # Extract relevant information for ROI calculation
+        label = region.label  # Get the label value
+        min_coords = region.bbox[:3]  # Minimum coordinates (excluding intensity channel)
+        max_coords = region.bbox[3:6]  # Maximum coordinates (excluding intensity channel)
+
+        # Clip coordinates and create ROI extent (similar to previous approach)
+        clipped_min_coords = np.clip(min_coords, 0, label_shape[0] - min_shape[0])
+        clipped_max_coords = np.clip(max_coords, min_shape[1], label_shape[1])
+        label_extents[label] = tuple(slice(min_val, min_val + min_shape[dim]) for dim, (min_val, max_val) in enumerate(zip(clipped_min_coords, clipped_max_coords)))
+
+    return label_extents 
 
 
 def get_data_paths_and_rois(data_dir, min_shape,
@@ -151,16 +201,13 @@ def get_data_paths_and_rois(data_dir, min_shape,
                     print(f"Warning: Key(s) missing in {data_path}. Skipping {image_key}")
                     continue
 
-                # Get image and label data (assuming labels are boolean or 1/0 for True/False)
-                label_data_mito = f[label_key_mito][()] if label_key_mito is not None else None
+                #label_data_mito = f[label_key_mito][()] if label_key_mito is not None else None
 
                 # Extract ROIs (assuming ndim of label data is the same as image data)
-                if label_data_mito is not None:
-                    # Calculate centroid using skimage.measure.centroid
-                    rois = get_rois_coordinates_vectorized(label_data_mito, min_shape)
-                    for label_id, roi in rois.items():
-                        rois_list.append(roi)
-                        new_data_paths.append(data_path)
+                rois = get_rois_coordinates_skimage(f, label_key_mito, min_shape)
+                for label_id, roi in rois.items():
+                    rois_list.append(roi)
+                    new_data_paths.append(data_path)
         except OSError:
             print(f"Error accessing file: {data_path}. Skipping...")
 

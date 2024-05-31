@@ -8,7 +8,7 @@ import yaml
 import os
 import random
 import argparse
-
+import time
 import torch_em
 import torch_em.data.datasets as torchem_data
 from torch_em.model import UNet3d
@@ -88,9 +88,16 @@ def main():
         final_activation = "Sigmoid"
         
     # load data paths etc.
+    start_time = time.time()
+    print(F"Start time {time.ctime()}")
+
     data_paths, rois_dict = util.get_data_paths_and_rois(data_dir, min_shape=patch_shape)
     data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.1, test_ratio=0.1)
-    #print(f"len train {len(data['train'])}, val {len(data['val'])}, test {len(data['test'])}")
+
+    end_time = time.time()
+    # Calculate execution time in seconds
+    execution_time = end_time - start_time
+    print(f"Data and ROI preprocessing execution time: {execution_time:.6f} seconds")
 
     print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
     model = UNet3d(
@@ -124,13 +131,13 @@ def main():
         with_channels=with_channels, with_label_channels=with_label_channels,
         rois=rois_dict["val"]
     )
-    # image, label = next(iter(train_loader))
-
-    # vis_data = {
-    #     "raw": image,
-    #     "label": label
-    # }
-    #util.visualize_data_napari(vis_data)
+    for i in range(10):
+        image, label = next(iter(train_loader))
+        vis_data = {
+            "raw": image,
+            "label": label
+        }
+        util.visualize_data_napari(vis_data)
 
     trainer = torch_em.default_segmentation_trainer(
         name=experiment_name, model=model,
@@ -144,7 +151,7 @@ def main():
     )
     #check_loader(train_loader, n_samples=1)
     #check_trainer(trainer, n_samples=1)
-    trainer.fit(n_iterations)
+    #trainer.fit(n_iterations)
 
 
 if __name__ == "__main__":
