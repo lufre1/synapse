@@ -89,7 +89,8 @@ def main():
         
     # load data paths etc.
     data_paths, rois_dict = util.get_data_paths_and_rois(data_dir, min_shape=patch_shape)
-    data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.5, val_ratio=0.5, test_ratio=0)
+    data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.1, test_ratio=0.1)
+    #print(f"len train {len(data['train'])}, val {len(data['val'])}, test {len(data['test'])}")
 
     print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
     model = UNet3d(
