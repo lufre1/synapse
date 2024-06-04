@@ -11,14 +11,14 @@ import argparse
 import time
 import torch_em
 import torch_em.data.datasets as torchem_data
-from torch_em.model import UNet3d
+from torch_em.model import UNet3d, AnisotropicUNet
 from torch_em.util.debug import check_loader, check_trainer
 
 # Import your util.py for data loading
 import util
 import data_classes
 from config import *
-from unet import UNet3D as MyUnet3d
+#from unet import UNet3D
 
 
 def main():
@@ -69,8 +69,9 @@ def main():
     #batch_size = 1
     n_workers = 4 if torch.cuda.is_available() else 1
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"\n Experiment: {experiment_name}\n")
     print(f"Using {device} with {n_workers} workers.")
-    label_transform = None
+    label_transform = torch_em.transform.label.BoundaryTransform(add_binary_target=True) #util.get_label_transform
     #patch_shape = (32, 256, 256)
     #patch_shape = (64, 512, 512)
     #patch_shape = (128, 1024, 1024)
@@ -81,8 +82,17 @@ def main():
     #learning_rate = 1.0e-4
     loss_function = util.get_loss_function(loss_name)
     metric_function = util.get_loss_function(metric_name)
-    in_channels, out_channels = 1, 1
-    initial_features = 32
+    in_channels, out_channels = 1, 2
+    initial_features = 64
+    depth = 4
+    gain = 2
+    scale_factors = [
+        [1, 2, 2],
+        [1, 2, 2],
+        [2, 2, 2],
+        [2, 2, 2],
+        [2, 2, 2]
+    ]
     final_activation = None
     if final_activation is None and loss_name == "dice":
         final_activation = "Sigmoid"
@@ -92,7 +102,7 @@ def main():
     print(F"Start time {time.ctime()}")
 
     data_paths, rois_dict = util.get_data_paths_and_rois(data_dir, min_shape=patch_shape)
-    data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.1, test_ratio=0.1)
+    data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
 
     end_time = time.time()
     # Calculate execution time in seconds
@@ -100,10 +110,12 @@ def main():
     print(f"Data and ROI preprocessing execution time: {execution_time:.6f} seconds")
 
     print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
-    model = UNet3d(
+    #UNet3d
+    model = AnisotropicUNet(
         in_channels=in_channels, out_channels=out_channels, initial_features=initial_features,
-        final_activation=final_activation
+        final_activation=final_activation, gain=gain, scale_factors=scale_factors
     )
+    print(model)
     if checkpoint_path:
         state_dict = torch.load(checkpoint_path, map_location=torch.device("cpu"))["model_state"]
         model.load_state_dict(state_dict)
@@ -131,13 +143,13 @@ def main():
         with_channels=with_channels, with_label_channels=with_label_channels,
         rois=rois_dict["val"]
     )
-    for i in range(10):
-        image, label = next(iter(train_loader))
-        vis_data = {
-            "raw": image,
-            "label": label
-        }
-        util.visualize_data_napari(vis_data)
+    # for i in range(10):
+    #     image, label = next(iter(train_loader))
+    #     vis_data = {
+    #         "raw": image,
+    #         "label": label
+    #     }
+    #     util.visualize_data_napari(vis_data)
 
     trainer = torch_em.default_segmentation_trainer(
         name=experiment_name, model=model,
@@ -151,7 +163,7 @@ def main():
     )
     #check_loader(train_loader, n_samples=1)
     #check_trainer(trainer, n_samples=1)
-    #trainer.fit(n_iterations)
+    trainer.fit(n_iterations)
 
 
 if __name__ == "__main__":

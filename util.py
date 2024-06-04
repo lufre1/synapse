@@ -383,6 +383,19 @@ def visualize_data_napari(data):
     napari.run()
 
 
+def get_label_transform(label_data):
+    """
+    Transforms all the label ids in a label image to ones.
+    Args:
+        label_data (np.ndarray): A 3D array representing the label data.
+            - Assumed to use integer values to represent unique labels (adjust as needed).
+
+    Returns:
+        np.ndarray: A 3D array with all label ids replaced by ones.
+    """
+    return np.where(label_data != 0, 1, label_data)
+
+
 def get_loss_function(loss_name, affinities=False):
     loss_names = ["bce", "ce", "dice"]
     if isinstance(loss_name, str):
