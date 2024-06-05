@@ -1,0 +1,113 @@
+import torch
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D  # Import for 3D plotting
+from torch.utils.tensorboard import SummaryWriter
+from torch.utils.data import DataLoader
+import yaml
+import os
+import random
+import argparse
+import time
+import torch_em
+import torch_em.data.datasets as torchem_data
+from torch_em.model import UNet3d, AnisotropicUNet
+from torch_em.util.debug import check_loader, check_trainer
+
+# Import your util.py for data loading
+import util
+import data_classes
+from config import *
+
+def test():
+    parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
+    parser.add_argument("--data_dir", type=str, default=DATA_DIR, help="Path to the data directory")
+    parser.add_argument("--lucchi_data_dir", type=str, default=TEST_DATA_DIR, help="Path to the lucchi data directory (optional)")
+    parser.add_argument("--visualize", action="store_true", default=False, help="Visualize data with napari")
+    parser.add_argument("--patch_shape", type=int, nargs=3, default=(32, 256, 256), help="Patch shape for data loading (3D tuple)")
+    parser.add_argument("--n_iterations", type=int, default=10000, help="Number of training iterations")
+    parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate")
+    parser.add_argument("--checkpoint_path", type=str, default="", help="Path to checkpoint used to load model's state_dict")
+    parser.add_argument("--experiment_name", type=str, default="default-mito-net", help="Name that is used for the experiment and store the model's weights")
+    parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
+    parser.add_argument("--feature_size", type=int, default=64, help="Initial feature size of the 3D UNet")
+    
+    # Parse arguments
+    args = parser.parse_args()
+    checkpoint_path = args.checkpoint_path
+    n_iterations = args.n_iterations
+    learning_rate = args.learning_rate
+    data_dir = args.data_dir
+    lucchi_data_dir = args.lucchi_data_dir
+    visualize = args.visualize
+    experiment_name = args.experiment_name
+    batch_size = args.batch_size
+    patch_shape = args.patch_shape
+    initial_features = args.feature_size
+
+    n_workers = 4 if torch.cuda.is_available() else 1
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"\n Experiment: {experiment_name}\n")
+    print(f"Using {device} with {n_workers} workers.")
+    label_transform = torch_em.transform.label.BoundaryTransform(add_binary_target=True) #util.get_label_transform
+    #patch_shape = (32, 256, 256)
+    #patch_shape = (64, 512, 512)
+    #patch_shape = (128, 1024, 1024)
+    loss_name = "dice"
+    metric_name = "dice"
+    ndim = 3
+    #n_iterations = 10000
+    #learning_rate = 1.0e-4
+    loss_function = util.get_loss_function(loss_name)
+    metric_function = util.get_loss_function(metric_name)
+    in_channels, out_channels = 1, 2
+    depth = 4
+    gain = 2
+    #scale_factors = [[2, 2, 2]] * depth
+    scale_factors = [
+        [1, 2, 2],
+        [1, 2, 2],
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1]
+    ]
+    final_activation = None
+    if final_activation is None and loss_name == "dice":
+        final_activation = "Sigmoid"
+    
+    model = AnisotropicUNet(
+        in_channels=in_channels, out_channels=out_channels, initial_features=initial_features,
+        final_activation=final_activation, scale_factors=scale_factors, gain=gain
+    )
+    
+    if checkpoint_path:
+        state_dict = torch.load(checkpoint_path, map_location=torch.device("cpu"))["model_state"]
+        print(state_dict.keys())
+        model.load_state_dict(state_dict)
+        model.to("cuda")
+        
+    print(model)
+    
+    ### load data
+    data_paths, rois_dict = util.get_data_paths_and_rois(data_dir, min_shape=patch_shape)
+    data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
+    
+    test_loader = torch_em.default_segmentation_loader(
+        raw_paths=data["train"], raw_key="raw",
+        label_paths=data["train"], label_key="labels/mitochondria",
+        patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+        label_transform=label_transform, num_workers=n_workers,
+        rois=rois_dict["train"]
+    )
+    
+    for i in range(10):
+        image, label = next(iter(test_loader))
+        vis_data = {
+            "raw": image,
+            "label": label
+        }
+        util.visualize_data_napari(vis_data)
+
+
+if __name__ == "__main__":
+    test()
