@@ -32,6 +32,7 @@ def main():
     parser.add_argument("--checkpoint_path", type=str, default="", help="Path to checkpoint used to load model's state_dict")
     parser.add_argument("--experiment_name", type=str, default="default-mito-net", help="Name that is used for the experiment and store the model's weights")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
+    parser.add_argument("--feature_size", type=int, default=64, help="Initial feature size of the 3D UNet")
     
     # Parse arguments
     args = parser.parse_args()
@@ -44,6 +45,7 @@ def main():
     experiment_name = args.experiment_name
     batch_size = args.batch_size
     patch_shape = args.patch_shape
+    initial_features = args.feature_size
 
     # if all_data and visualize:
     #     # Assuming there's at least one entry (modify if needed)
@@ -83,16 +85,23 @@ def main():
     loss_function = util.get_loss_function(loss_name)
     metric_function = util.get_loss_function(metric_name)
     in_channels, out_channels = 1, 2
-    initial_features = 64
     depth = 4
     gain = 2
-    scale_factors = [
-        [1, 2, 2],
-        [1, 2, 2],
-        [2, 2, 2],
-        [2, 2, 2],
-        [2, 2, 2]
-    ]
+    # scale_factors = [
+    #     [1, 2, 2],
+    #     [1, 2, 2],
+    #     [2, 2, 2],
+    #     [2, 2, 2],
+    #     [2, 2, 2]
+    # ]
+    # scale_factors = [
+    #     [1, 2, 2],
+    #     [1, 2, 2],
+    #     [1, 1, 1],
+    #     [1, 1, 1],
+    #     [1, 1, 1]
+    # ]
+    scale_factors = 4*[[2, 2, 2]]
     final_activation = None
     if final_activation is None and loss_name == "dice":
         final_activation = "Sigmoid"

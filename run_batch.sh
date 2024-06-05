@@ -12,10 +12,11 @@ source /home/nimlufre/.bashrc
 conda activate synapse
 
 python /home/nimlufre/synapse/main.py \
-  --experiment_name "mito-net64-bs2-ps32448-lr1e-3" \
-  --patch_shape 32 448 448 \
-  --batch_size 2 \
-  --learning_rate 1e-3
+  --experiment_name "mito-net32-bs1-ps32256-lr1e-3-isotropicscaling" \
+  --patch_shape 32 256 256 \
+  --batch_size 1 \
+  --learning_rate 1e-3 \
+  --feature_size 32
 #  --checkpoint_path /home/nimlufre/synapse \  # use only if weights are to be loaded
 
 
