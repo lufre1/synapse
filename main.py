@@ -168,9 +168,11 @@ def main():
         mixed_precision=True,
         log_image_interval=50,
         device=device,
+        compile_model=False,
+        save_root=SAVE_DIR,
         # logger=None
     )
-    check_loader(train_loader, n_samples=2)
+    #check_loader(train_loader, n_samples=2)
     #check_trainer(trainer, n_samples=1)
     trainer.fit(n_iterations)
 

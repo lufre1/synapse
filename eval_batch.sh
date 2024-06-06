@@ -11,14 +11,13 @@
 source /home/nimlufre/.bashrc
 conda activate synapse
 
-python /home/nimlufre/synapse/main.py \
-  --experiment_name "mito-net32-bs2-ps32448-lr1e-3-isotropicscaling-labelthreshold" \
-  --n_iterations 100000 \
+python /home/nimlufre/synapse/test.py \
+  --experiment_name "mito-net32-bs2-ps32448-lr1e-3-isotropicscaling" \
   --patch_shape 32 448 448 \
-  --batch_size 2 \
+  --batch_size 1 \
   --learning_rate 1e-3 \
-  --feature_size 32
-
+  --feature_size 32 \
+  --checkpoint_path /home/nimlufre/synapse/checkpoints/mito-net32-bs2-ps32448-lr1e-3-isotropicscaling/best.pt
 
 
 
@@ -27,3 +26,4 @@ python /home/nimlufre/synapse/main.py \
 #   --patch_shape 48 384 384 \ 448 also possible as well as 480
 #   --batch_size 1 \
 # 
+
