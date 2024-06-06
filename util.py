@@ -145,7 +145,7 @@ def get_rois_coordinates_label_agnostic(file, label_key_mito, min_shape):
     return roi
 
 
-def get_rois_coordinates_skimage(file, label_key, min_shape):
+def get_rois_coordinates_skimage(file, label_key, min_shape, euler_threshold=1):
     """
     Calculates the average coordinates for each unique label in a 3D label image using skimage.regionprops.
 
@@ -175,6 +175,8 @@ def get_rois_coordinates_skimage(file, label_key, min_shape):
 
     label_extents = {}
     for region in regions:
+        if region.euler_number != euler_threshold:
+            continue
         # Extract relevant information for ROI calculation
         label = region.label  # Get the label value
         min_coords = region.bbox[:3]  # Minimum coordinates (excluding intensity channel)
@@ -396,32 +398,33 @@ def visualize_data_napari(data):
         data (dict): Dictionary containing loaded raw data ("raw" key) 
                     and labels ("labels" dictionary with loaded labels).
     """
-    if isinstance(data["raw"], torch.Tensor):
-        raw_data = data["raw"].cpu().detach().numpy()
-    else:
-        raw_data = data["raw"]
-
     # Create a napari viewer
     viewer = napari.Viewer()
+    
+    if "raw" in data.keys():
+        if isinstance(data["raw"], torch.Tensor):
+            raw_data = data["raw"].cpu().detach().numpy()
+        else:
+            raw_data = data["raw"]
 
-    # Add raw data as a volume
-    viewer.add_image(raw_data, name="Raw Data")
+        viewer.add_image(raw_data, name="Raw")
 
-    if isinstance(data["label"], torch.Tensor):
-        label_data = data["label"].cpu().detach().numpy()
-    else:
-        label_data = data["label"]
+    if "label" in data.keys():
+        if isinstance(data["label"], torch.Tensor):
+            label_data = data["label"].cpu().detach().numpy()
+        else:
+            label_data = data["label"]
 
-    viewer.add_labels(label_data.astype(int), name="Label")  # Ensure labels are integers
+        viewer.add_labels(label_data.astype(int), name="Label")  # Ensure labels are integers
 
-    if data["pred1"] is not None:
+    if "pred1" in data.keys():
         if isinstance(data["pred1"], torch.Tensor):
             label_data = data["pred1"].cpu().detach().numpy()
         else:
             label_data = data["pred1"]
 
         viewer.add_labels(label_data.astype(int), name="Foreground Prediction")
-    if data["pred2"] is not None:
+    if "pred2" in data.keys():
         if isinstance(data["pred2"], torch.Tensor):
             label_data = data["pred2"].cpu().detach().numpy()
         else:

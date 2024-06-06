@@ -170,7 +170,7 @@ def main():
         device=device,
         # logger=None
     )
-    #check_loader(train_loader, n_samples=1)
+    check_loader(train_loader, n_samples=2)
     #check_trainer(trainer, n_samples=1)
     trainer.fit(n_iterations)
 
