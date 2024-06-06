@@ -5,6 +5,7 @@ from tqdm import tqdm
 import napari
 import torch
 import torch_em
+from torch_em.util.prediction import predict_with_halo
 import torch.nn as nn
 import numpy as np
 import yaml
@@ -14,6 +15,29 @@ from skimage.measure import regionprops
 # Define the data path and filename
 # data_path = "/scratch-grete/projects/nim00007/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt/170_2_rec.h5"
 # data_format = "*.h5"
+
+
+def remove_prefix_from_keys(state_dict, prefix="_orig_mod."):
+    """
+    Removes the specified prefix from the beginning of all keys in a dictionary.
+
+    Args:
+        state_dict (dict): The dictionary containing keys with the prefix to remove.
+        prefix (str): The string prefix to remove from the beginning of keys.
+
+    Returns:
+        dict: A new dictionary with the prefix removed from all keys.
+    """
+    filtered_state_dict = {}
+    for key, value in state_dict.items():
+        if key.startswith(prefix):
+            # Remove the prefix and store the value in the new dictionary with the modified key
+            new_key = key[len(prefix):]
+            filtered_state_dict[new_key] = value
+        else:
+            # If the key doesn't start with the prefix, keep it as is
+            filtered_state_dict[key] = value
+    return filtered_state_dict
 
 
 def get_rois_coordinates(label_data, min_shape, num_labels=None):
@@ -353,6 +377,17 @@ def get_data_paths_and_keys(data_dir, data_format="*.h5", image_key="raw", label
     return data_paths, key_dicts
 
 
+def create_directory(directory):
+    """
+    Creates a directory if it doesn't already exist.
+
+    Args:
+        directory (str): The path to the directory to create.
+    """
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+
 def visualize_data_napari(data):
     """
     Visualizes the 3D raw data and all labels using napari.
@@ -379,8 +414,48 @@ def visualize_data_napari(data):
 
     viewer.add_labels(label_data.astype(int), name="Label")  # Ensure labels are integers
 
+    if data["pred1"] is not None:
+        if isinstance(data["pred1"], torch.Tensor):
+            label_data = data["pred1"].cpu().detach().numpy()
+        else:
+            label_data = data["pred1"]
+
+        viewer.add_labels(label_data.astype(int), name="Foreground Prediction")
+    if data["pred2"] is not None:
+        if isinstance(data["pred2"], torch.Tensor):
+            label_data = data["pred2"].cpu().detach().numpy()
+        else:
+            label_data = data["pred2"]
+
+        viewer.add_labels(label_data.astype(int), name="Boundary Prediction")
+
     # Show the napari viewer
     napari.run()
+
+
+def run_prediction(data, model, block_shape=[32, 256, 256], halo=[8, 32, 32]):
+    """
+    Run a prediction using a trained model on the given data.
+
+    Args:
+        data (array-like): The input data on which predictions are to be made.
+        model (torch.nn.Module): The loaded model.
+        block_shape (List[int], optional): The block shape to use for prediction.
+            Defaults to [32, 256, 256].
+        halo (List[int], optional): The halo shape to use for prediction.
+            Defaults to [8, 32, 32].
+
+    Returns:
+        array-like: The predicted output from the model.
+    """
+
+    gpu_ids = ["cuda"] if torch.cuda.is_available() else ["cpu"]
+
+    pred = predict_with_halo(
+        data, model, gpu_ids=gpu_ids,
+        block_shape=block_shape, halo=halo,
+    )
+    return pred
 
 
 def get_label_transform(label_data):

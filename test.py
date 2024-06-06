@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # Import for 3D plotting
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
+import h5py
 import yaml
 import os
 import random
@@ -49,28 +50,24 @@ def test():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"\n Experiment: {experiment_name}\n")
     print(f"Using {device} with {n_workers} workers.")
-    label_transform = torch_em.transform.label.BoundaryTransform(add_binary_target=True) #util.get_label_transform
-    #patch_shape = (32, 256, 256)
-    #patch_shape = (64, 512, 512)
-    #patch_shape = (128, 1024, 1024)
+    label_transform = torch_em.transform.label.BoundaryTransform(add_binary_target=True)
     loss_name = "dice"
     metric_name = "dice"
     ndim = 3
-    #n_iterations = 10000
-    #learning_rate = 1.0e-4
+
     loss_function = util.get_loss_function(loss_name)
     metric_function = util.get_loss_function(metric_name)
     in_channels, out_channels = 1, 2
     depth = 4
     gain = 2
-    #scale_factors = [[2, 2, 2]] * depth
-    scale_factors = [
-        [1, 2, 2],
-        [1, 2, 2],
-        [1, 1, 1],
-        [1, 1, 1],
-        [1, 1, 1]
-    ]
+    scale_factors = [[2, 2, 2]] * depth
+    # scale_factors = [
+    #     [1, 2, 2],
+    #     [1, 2, 2],
+    #     [1, 1, 1],
+    #     [1, 1, 1],
+    #     [1, 1, 1]
+    # ]
     final_activation = None
     if final_activation is None and loss_name == "dice":
         final_activation = "Sigmoid"
@@ -79,12 +76,13 @@ def test():
         in_channels=in_channels, out_channels=out_channels, initial_features=initial_features,
         final_activation=final_activation, scale_factors=scale_factors, gain=gain
     )
-    
+
     if checkpoint_path:
-        state_dict = torch.load(checkpoint_path, map_location=torch.device("cpu"))["model_state"]
-        print(state_dict.keys())
+        state_dict = torch.load(checkpoint_path, map_location="cpu")["model_state"] #torch.device("cpu")
+        state_dict = util.remove_prefix_from_keys(state_dict)
+        print("\n", state_dict.keys(), "\n")
         model.load_state_dict(state_dict)
-        model.to("cuda")
+        model.to(device)
         
     print(model)
     
@@ -100,13 +98,33 @@ def test():
         rois=rois_dict["train"]
     )
     
-    for i in range(10):
-        image, label = next(iter(test_loader))
-        vis_data = {
-            "raw": image,
-            "label": label
-        }
-        util.visualize_data_napari(vis_data)
+    # Create the "predictions" directory inside DATA_DIR
+    predictions_dir = os.path.join(DATA_DIR, "predictions")
+    util.create_directory(predictions_dir)
+    
+    for i in range(1):
+        # image, label = next(iter(test_loader))
+        # pred = model(image)
+        # pred_foreground = pred[:, 0, :, :]
+        # pred_boundaries = pred[:, 1, :, :]
+        with h5py.File(data_paths[i], "r") as f:
+            image = f["raw"]
+            # label = label["labels/mitochondria"]
+            pred = util.run_prediction(image, model)
+            print(pred.shape)
+            prediction_filename = os.path.join(predictions_dir, f"prediction_{i}.h5")
+            with h5py.File(prediction_filename, "w") as prediction_file:
+                prediction_file.create_dataset("prediction", data=pred)
+        # pred_foreground = pred[:, 0, :, :]
+        # pred_boundaries = pred[:, 1, :, :]
+
+        # vis_data = {
+        #     "raw": image,
+        #     "label": label,
+        #     "pred1": pred_foreground,
+        #     "pred2": pred_boundaries
+        # }
+        # util.visualize_data_napari(vis_data)
 
 
 if __name__ == "__main__":
