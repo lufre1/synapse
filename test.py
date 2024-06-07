@@ -24,6 +24,7 @@ def test():
     parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
     parser.add_argument("--data_dir", type=str, default=DATA_DIR, help="Path to the data directory")
     parser.add_argument("--lucchi_data_dir", type=str, default=TEST_DATA_DIR, help="Path to the lucchi data directory (optional)")
+    parser.add_argument("--save_dir", type=str, default=SAVE_DIR, help="Path to save data")
     parser.add_argument("--visualize", action="store_true", default=False, help="Visualize data with napari")
     parser.add_argument("--patch_shape", type=int, nargs=3, default=(32, 256, 256), help="Patch shape for data loading (3D tuple)")
     parser.add_argument("--n_iterations", type=int, default=10000, help="Number of training iterations")
@@ -45,6 +46,7 @@ def test():
     batch_size = args.batch_size
     patch_shape = args.patch_shape
     initial_features = args.feature_size
+    save_dir = args.save_dir
 
     n_workers = 4 if torch.cuda.is_available() else 1
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -88,18 +90,18 @@ def test():
     
     ### load data
     data_paths, rois_dict = util.get_data_paths_and_rois(data_dir, min_shape=patch_shape)
-    data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
+    #data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
     
-    test_loader = torch_em.default_segmentation_loader(
-        raw_paths=data["train"], raw_key="raw",
-        label_paths=data["train"], label_key="labels/mitochondria",
-        patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
-        label_transform=label_transform, num_workers=n_workers,
-        rois=rois_dict["train"]
-    )
+    # test_loader = torch_em.default_segmentation_loader(
+    #     raw_paths=data["train"], raw_key="raw",
+    #     label_paths=data["train"], label_key="labels/mitochondria",
+    #     patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+    #     label_transform=label_transform, num_workers=n_workers,
+    #     rois=rois_dict["train"]
+    # )
     
     # Create the "predictions" directory inside DATA_DIR
-    predictions_dir = os.path.join(DATA_DIR, "predictions")
+    predictions_dir = os.path.join(save_dir, "predictions")
     util.create_directory(predictions_dir)
     
     for i in range(1):
@@ -111,7 +113,6 @@ def test():
             image = f["raw"]
             # label = label["labels/mitochondria"]
             pred = util.run_prediction(image, model)
-            print(pred.shape)
             prediction_filename = os.path.join(predictions_dir, f"prediction_{i}.h5")
             with h5py.File(prediction_filename, "w") as prediction_file:
                 prediction_file.create_dataset("prediction", data=pred)

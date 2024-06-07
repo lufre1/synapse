@@ -32,7 +32,7 @@ def main():
     parser.add_argument("--checkpoint_path", type=str, default="", help="Path to checkpoint used to load model's state_dict")
     parser.add_argument("--experiment_name", type=str, default="default-mito-net", help="Name that is used for the experiment and store the model's weights")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
-    parser.add_argument("--feature_size", type=int, default=64, help="Initial feature size of the 3D UNet")
+    parser.add_argument("--feature_size", type=int, default=32, help="Initial feature size of the 3D UNet")
     
     # Parse arguments
     args = parser.parse_args()
@@ -47,60 +47,22 @@ def main():
     patch_shape = args.patch_shape
     initial_features = args.feature_size
 
-    # if all_data and visualize:
-    #     # Assuming there's at least one entry (modify if needed)
-    #     for i in range(min(len(all_data), 3)):
-    #         data = all_data[i]
-    #         util.visualize_data_napari(data)
-
-    # else:
-    #     print("No visualization with napari.")
-
-    # metadata_list = util.get_all_metadata(data_dir, data_format="*.h5")
-    # # Save metadata to YAML file
-    # metadata_file = os.path.join(data_dir, "metadata.yaml")
-    # with open(metadata_file, "w") as f:
-    #     yaml.dump(metadata_list, f, default_flow_style=False)
-
-    # print(f"Metadata saved to: {metadata_file}")
-
-    #util.load_metadata(data_dir)
-
-    # Define experiment and model parameters
-    #experiment_name = "mito-net-bs1-ps32"
-    #batch_size = 1
     n_workers = 4 if torch.cuda.is_available() else 1
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"\n Experiment: {experiment_name}\n")
     print(f"Using {device} with {n_workers} workers.")
     label_transform = torch_em.transform.label.BoundaryTransform(add_binary_target=True) #util.get_label_transform
-    #patch_shape = (32, 256, 256)
-    #patch_shape = (64, 512, 512)
-    #patch_shape = (128, 1024, 1024)
+
     loss_name = "dice"
     metric_name = "dice"
     ndim = 3
-    #n_iterations = 10000
-    #learning_rate = 1.0e-4
+
     loss_function = util.get_loss_function(loss_name)
     metric_function = util.get_loss_function(metric_name)
     in_channels, out_channels = 1, 2
     depth = 4
     gain = 2
-    # scale_factors = [
-    #     [1, 2, 2],
-    #     [1, 2, 2],
-    #     [2, 2, 2],
-    #     [2, 2, 2],
-    #     [2, 2, 2]
-    # ]
-    # scale_factors = [
-    #     [1, 2, 2],
-    #     [1, 2, 2],
-    #     [1, 1, 1],
-    #     [1, 1, 1],
-    #     [1, 1, 1]
-    # ]
+
     scale_factors = 4*[[2, 2, 2]]
     final_activation = None
     if final_activation is None and loss_name == "dice":
@@ -110,7 +72,7 @@ def main():
     start_time = time.time()
     print(F"Start time {time.ctime()}")
 
-    data_paths, rois_dict = util.get_data_paths_and_rois(data_dir, min_shape=patch_shape)
+    data_paths, rois_dict = util.get_data_paths_and_rois(data_dir, min_shape=patch_shape, with_thresholds=False)
     data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
 
     end_time = time.time()

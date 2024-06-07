@@ -145,7 +145,7 @@ def get_rois_coordinates_label_agnostic(file, label_key_mito, min_shape):
     return roi
 
 
-def get_rois_coordinates_skimage(file, label_key, min_shape, euler_threshold=1):
+def get_rois_coordinates_skimage(file, label_key, min_shape, euler_threshold=1, min_amount_pixels=100):
     """
     Calculates the average coordinates for each unique label in a 3D label image using skimage.regionprops.
 
@@ -175,8 +175,12 @@ def get_rois_coordinates_skimage(file, label_key, min_shape, euler_threshold=1):
 
     label_extents = {}
     for region in regions:
-        if region.euler_number != euler_threshold:
-            continue
+        if euler_threshold is not None:
+            if region.euler_number != euler_threshold:
+                continue
+        if min_amount_pixels is not None:
+            if region["area_filled"] < min_amount_pixels:
+                continue
         # Extract relevant information for ROI calculation
         label = region.label  # Get the label value
         min_coords = region.bbox[:3]  # Minimum coordinates (excluding intensity channel)
@@ -194,7 +198,8 @@ def get_data_paths_and_rois(data_dir, min_shape,
                             data_format="*.h5",
                             image_key="raw",
                             label_key_mito="labels/mitochondria",
-                            label_key_cristae="labels/cristae",):
+                            label_key_cristae="labels/cristae",
+                            with_thresholds=True):
     """
     Retrieves all HDF5 data paths, their corresponding image and label data keys,
     and extracts Regions of Interest (ROIs) for labels.
@@ -230,7 +235,10 @@ def get_data_paths_and_rois(data_dir, min_shape,
                 #label_data_mito = f[label_key_mito][()] if label_key_mito is not None else None
 
                 # Extract ROIs (assuming ndim of label data is the same as image data)
-                rois = get_rois_coordinates_skimage(f, label_key_mito, min_shape)
+                if with_thresholds:
+                    rois = get_rois_coordinates_skimage(f, label_key_mito, min_shape)
+                else:
+                    rois = get_rois_coordinates_skimage(f, label_key_mito, min_shape, euler_threshold=None, min_amount_pixels=None)
                 for label_id, roi in rois.items():
                     rois_list.append(roi)
                     new_data_paths.append(data_path)
@@ -436,7 +444,7 @@ def visualize_data_napari(data):
     napari.run()
 
 
-def run_prediction(data, model, block_shape=[32, 256, 256], halo=[8, 32, 32]):
+def run_prediction(data, model, block_shape=[32, 448, 448], halo=[8, 32, 32]):
     """
     Run a prediction using a trained model on the given data.
 

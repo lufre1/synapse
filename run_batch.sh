@@ -12,7 +12,8 @@ source /home/nimlufre/.bashrc
 conda activate synapse
 
 python /home/nimlufre/synapse/main.py \
-  --experiment_name "mito-net32-bs2-ps32448-lr1e-3-isotropicscaling-labelthreshold" \
+  --experiment_name "mito-net32-bs2-ps32448-lr1e-3-isotropicscaling-labelthresholdextreme-mitotomo" \
+  --data_dir "/scratch-grete/projects/nim00007/data/mitochondria/cooper/mito_tomo/" \
   --n_iterations 100000 \
   --patch_shape 32 448 448 \
   --batch_size 2 \
