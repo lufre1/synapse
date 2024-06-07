@@ -33,7 +33,7 @@ def main():
     parser.add_argument("--experiment_name", type=str, default="default-mito-net", help="Name that is used for the experiment and store the model's weights")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
     parser.add_argument("--feature_size", type=int, default=32, help="Initial feature size of the 3D UNet")
-    parser.add_argument("--with_rois", type=bool, default=True, help="Train with Regions Of Interest or not")
+    parser.add_argument("--without_rois", type=bool, default=False, help="Train without Regions Of Interest (ROI)")
     
     
     # Parse arguments
@@ -48,7 +48,8 @@ def main():
     batch_size = args.batch_size
     patch_shape = args.patch_shape
     initial_features = args.feature_size
-    with_rois = args.with_rois 
+    with_rois = not args.without_rois
+    print(with_rois)
 
     n_workers = 4 if torch.cuda.is_available() else 1
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -80,7 +81,7 @@ def main():
         data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
     else:
         data_paths = util.get_data_paths(data_dir)
-        data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.8, val_ratio=0.2, test_ratio=0)
+        data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.5, val_ratio=0.5, test_ratio=0)
 
     end_time = time.time()
     # Calculate execution time in seconds
@@ -105,22 +106,37 @@ def main():
 
     print("train", len(data["train"]), "val", len(data["val"]))
 
-    train_loader = torch_em.default_segmentation_loader(
-        raw_paths=data["train"], raw_key="raw", # raw_key=train_data["key_dicts"][0]["image_key"],
-        label_paths=data["train"], label_key="labels/mitochondria", # label_key=train_data["key_dicts"][0]["label_key"],
-        patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
-        label_transform=label_transform, num_workers=n_workers,
-        with_channels=with_channels, with_label_channels=with_label_channels,
-        rois=rois_dict["train"]
-    )
-    val_loader = torch_em.default_segmentation_loader(
-        raw_paths=data["val"], raw_key="raw", #raw_key=val_data["key_dicts"][0]["image_key"],
-        label_paths=data["val"], label_key="labels/mitochondria", #label_key=val_data["key_dicts"][0]["label_key"],
-        patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
-        label_transform=label_transform, num_workers=n_workers,
-        with_channels=with_channels, with_label_channels=with_label_channels,
-        rois=rois_dict["val"]
-    )
+    if with_rois:
+        train_loader = torch_em.default_segmentation_loader(
+            raw_paths=data["train"], raw_key="raw",
+            label_paths=data["train"], label_key="labels/mitochondria",
+            patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+            label_transform=label_transform, num_workers=n_workers,
+            with_channels=with_channels, with_label_channels=with_label_channels,
+            rois=rois_dict["train"]
+        )
+        val_loader = torch_em.default_segmentation_loader(
+            raw_paths=data["val"], raw_key="raw",
+            label_paths=data["val"], label_key="labels/mitochondria",
+            patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+            label_transform=label_transform, num_workers=n_workers,
+            with_channels=with_channels, with_label_channels=with_label_channels,
+        )
+    else:
+        train_loader = torch_em.default_segmentation_loader(
+            raw_paths=data["train"], raw_key="raw",
+            label_paths=data["train"], label_key="labels/mitochondria",
+            patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+            label_transform=label_transform, num_workers=n_workers,
+            with_channels=with_channels, with_label_channels=with_label_channels,
+        )
+        val_loader = torch_em.default_segmentation_loader(
+            raw_paths=data["train"], raw_key="raw",
+            label_paths=data["val"], label_key="labels/mitochondria",
+            patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+            label_transform=label_transform, num_workers=n_workers,
+            with_channels=with_channels, with_label_channels=with_label_channels,
+        )
     # for i in range(10):
     #     image, label = next(iter(train_loader))
     #     vis_data = {
