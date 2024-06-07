@@ -33,6 +33,8 @@ def main():
     parser.add_argument("--experiment_name", type=str, default="default-mito-net", help="Name that is used for the experiment and store the model's weights")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
     parser.add_argument("--feature_size", type=int, default=32, help="Initial feature size of the 3D UNet")
+    parser.add_argument("--with_rois", type=bool, default=True, help="Train with Regions Of Interest or not")
+    
     
     # Parse arguments
     args = parser.parse_args()
@@ -46,6 +48,7 @@ def main():
     batch_size = args.batch_size
     patch_shape = args.patch_shape
     initial_features = args.feature_size
+    with_rois = args.with_rois 
 
     n_workers = 4 if torch.cuda.is_available() else 1
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -72,8 +75,12 @@ def main():
     start_time = time.time()
     print(F"Start time {time.ctime()}")
 
-    data_paths, rois_dict = util.get_data_paths_and_rois(data_dir, min_shape=patch_shape, with_thresholds=False)
-    data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
+    if with_rois:
+        data_paths, rois_dict = util.get_data_paths_and_rois(data_dir, min_shape=patch_shape, with_thresholds=False)
+        data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
+    else:
+        data_paths = util.get_data_paths(data_dir)
+        data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.8, val_ratio=0.2, test_ratio=0)
 
     end_time = time.time()
     # Calculate execution time in seconds

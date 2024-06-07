@@ -40,111 +40,6 @@ def remove_prefix_from_keys(state_dict, prefix="_orig_mod."):
     return filtered_state_dict
 
 
-def get_rois_coordinates(label_data, min_shape, num_labels=None):
-    """
-    Calculates the average coordinates for each unique label in a 3D label image.
-
-    Args:
-        label_data (np.ndarray): A 3D array representing the label data.
-            - Assumed to use integer values to represent unique labels (adjust as needed).
-        minimum_shape (tuple): A tuple representing the minimum size for each dimension of the ROI.
-        num_labels (int, optional): The maximum number of labels to return (default: 2).
-
-    Returns:
-        dict: A dictionary mapping unique labels to lists of average coordinates
-            for each dimension.
-    """
-    label_shape = label_data.shape
-    # Find unique labels
-    unique_labels = np.unique(label_data[label_data > 0])  # Assuming non-zero values are labels
-    counter = 0
-    # Initialize lists to store results
-    label_extents = {}
-    for label in unique_labels:
-        # Get all coordinates for the current label
-        label_coords = np.where(label_data == label)
-
-        # Calculate min and max coordinates across all dimensions (assuming row-major order)
-        min_coords = np.min(label_coords, axis=1)
-        max_coords = np.max(label_coords, axis=1) + 1  # +1 for inclusive upper bound
-
-        # Clip coordinates to minimum shape (ensure they don't go beyond label_data boundaries)
-        clipped_min_coords = np.clip(min_coords, 0, label_shape[0] - min_shape[0])
-        clipped_max_coords = np.clip(max_coords, min_shape[1], label_shape[1])
-
-        # Create ROI extents with clipped coordinates and minimum shape
-        roi_extents = tuple(slice(min_val, min_val + min_shape[dim]) for dim, (min_val, max_val) in enumerate(zip(clipped_min_coords, clipped_max_coords)))
-
-        label_extents[label] = roi_extents
-        # print("content", roi_extents)
-        if num_labels and counter == num_labels:
-            return label_extents
-        counter += 1
-    return label_extents
-
-
-def get_rois_coordinates_vectorized(file, label_key_mito, min_shape):
-    """
-    Calculates the average coordinates for each unique label in a 3D label image.
-
-    Args:
-        label_data (np.ndarray): A 3D array representing the label data.
-            - Assumed to use integer values to represent unique labels (adjust as needed).
-        minimum_shape (tuple): A tuple representing the minimum size for each dimension of the ROI.
-        num_labels (int, optional): The maximum number of labels to return (default: 2).
-
-    Returns:
-        dict: A dictionary mapping unique labels to lists of average coordinates
-            for each dimension.
-    """
-    label_data = file[label_key_mito]
-    label_shape = label_data.shape
-    # Find unique labels (avoiding unnecessary computation)
-    unique_labels = np.unique(label_data)
-
-    # Create a single boolean mask indicating all label occurrences
-    all_label_masks = np.isin(label_data, unique_labels)
-
-    # Enumerate through unique labels and calculate coordinates
-    label_extents = {}
-    for label in unique_labels:
-        # Extract relevant mask for the current label using boolean indexing
-        label_mask = all_label_masks & (label_data == label)  # Efficient AND operation
-
-        # Calculate min and max coordinates using broadcasting and boolean indexing
-        # min_coords = np.min(label_mask, axis=(1, 2))
-        # max_coords = np.max(label_mask, axis=(1, 2)) + 1  # +1 for inclusive upper bound
-        min_coords = np.min(label_mask, axis=0, keepdims=True)  # Minimum along each dimension (0)
-        max_coords = np.max(label_mask, axis=0, keepdims=True) + 1
-
-        # Clip coordinates and create ROI extent (same as before)
-        clipped_min_coords = np.clip(min_coords, 0, label_shape[0] - min_shape[0])
-        clipped_max_coords = np.clip(max_coords, min_shape[1], label_shape[1])
-        label_extents[label] = tuple(slice(min_val, min_val + min_shape[dim]) for dim, (min_val, max_val) in enumerate(zip(clipped_min_coords, clipped_max_coords)))
-
-    return label_extents
-
-
-def get_rois_coordinates_label_agnostic(file, label_key_mito, min_shape):
-    """
-    Calculates the average coordinates for each unique label in a 3D label image.
-
-    Args:
-        label_data (np.ndarray): A 3D array representing the label data.
-            - Assumed to use integer values to represent unique labels (adjust as needed).
-
-    Returns:
-        dict: A dictionary mapping unique labels to lists of average coordinates
-            for each dimension.
-    """
-    label_data = file[label_key_mito]
-    # Find unique labels
-    valid_coordinates = np.where(label_data[label_data > 0])  # Assuming non-zero values are labels
-    roi = tuple(slice(
-                int(coord.min()), int(coord.max()) + 1) for coord in valid_coordinates)
-    return roi
-
-
 def get_rois_coordinates_skimage(file, label_key, min_shape, euler_threshold=1, min_amount_pixels=100):
     """
     Calculates the average coordinates for each unique label in a 3D label image using skimage.regionprops.
@@ -192,6 +87,11 @@ def get_rois_coordinates_skimage(file, label_key, min_shape, euler_threshold=1, 
         label_extents[label] = tuple(slice(min_val, min_val + min_shape[dim]) for dim, (min_val, max_val) in enumerate(zip(clipped_min_coords, clipped_max_coords)))
 
     return label_extents 
+
+
+def get_data_paths(data_dir, data_format="*.h5"):
+    data_paths = glob(os.path.join(data_dir, "**", data_format), recursive=True)
+    return data_paths
 
 
 def get_data_paths_and_rois(data_dir, min_shape,
@@ -284,18 +184,16 @@ def split_data_paths_to_dict(data_paths, rois_list, train_ratio=0.8, val_ratio=0
         "test": data_paths[train_size+val_size:]
     }
 
-    rois_split = {
-        "train": rois_list[:train_size],
-        "val": rois_list[train_size:train_size+val_size],
-        "test": rois_list[train_size+val_size:]
-    }
+    if rois_list is not None:
+        rois_split = {
+            "train": rois_list[:train_size],
+            "val": rois_list[train_size:train_size+val_size],
+            "test": rois_list[train_size+val_size:]
+        }
 
-    if val_size == 0:
-        # Remove empty val key if validation is not used
-        del data_split["val"]
-        del rois_split["val"]
-
-    return data_split, rois_split
+        return data_split, rois_split
+    else:
+        return data_split
 
 
 def split_data_paths(data_paths, key_dicts, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, seed=None):
