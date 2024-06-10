@@ -74,10 +74,11 @@ def main():
         
     # load data paths etc.
     start_time = time.time()
-    print(F"Start time {time.ctime()}")
+    print(f"Start time {time.ctime()}")
+    print(f"Loading Data paths and ROIs if with_rois={with_rois}...")
 
     if with_rois:
-        data_paths, rois_dict = util.get_data_paths_and_rois(data_dir, min_shape=patch_shape, with_thresholds=False)
+        data_paths, rois_dict = util.get_data_paths_and_rois(data_dir, min_shape=patch_shape, with_thresholds=True)
         data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
     else:
         data_paths = util.get_data_paths(data_dir)
@@ -121,6 +122,7 @@ def main():
             patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
+            rois=rois_dict["val"]
         )
     else:
         train_loader = torch_em.default_segmentation_loader(

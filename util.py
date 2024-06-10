@@ -40,7 +40,7 @@ def remove_prefix_from_keys(state_dict, prefix="_orig_mod."):
     return filtered_state_dict
 
 
-def get_rois_coordinates_skimage(file, label_key, min_shape, euler_threshold=1, min_amount_pixels=100):
+def get_rois_coordinates_skimage(file, label_key, min_shape, euler_threshold=None, min_amount_pixels=None):
     """
     Calculates the average coordinates for each unique label in a 3D label image using skimage.regionprops.
 
@@ -136,7 +136,7 @@ def get_data_paths_and_rois(data_dir, min_shape,
 
                 # Extract ROIs (assuming ndim of label data is the same as image data)
                 if with_thresholds:
-                    rois = get_rois_coordinates_skimage(f, label_key_mito, min_shape)
+                    rois = get_rois_coordinates_skimage(f, label_key_mito, min_shape, euler_threshold=1, min_amount_pixels=100)
                 else:
                     rois = get_rois_coordinates_skimage(f, label_key_mito, min_shape, euler_threshold=None, min_amount_pixels=None)
                 for label_id, roi in rois.items():
