@@ -1,11 +1,11 @@
 #!/bin/bash
 
 #SBATCH --partition=grete:shared
-#SBATCH --gres=gpu:A100:1
+#SBATCH -G A100:1
 #SBATCH --time=2-00:00:00
 #SBATCH --account=nim00007
 #SBATCH --job-name=mito-net64
-#SBATCH -c 16
+#SBATCH -c 64
 #SBATCH --ntasks=1
 
 source /home/nimlufre/.bashrc
@@ -25,5 +25,5 @@ python /home/nimlufre/synapse/test.py \
 #   --experiment_name mito-net-bs1-ps-48 \
 #   --patch_shape 48 384 384 \ 448 also possible as well as 480
 #   --batch_size 1 \
-# 
+#  #SBATCH --gres=gpu:A100:1
 

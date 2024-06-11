@@ -49,13 +49,12 @@ def main():
     patch_shape = args.patch_shape
     initial_features = args.feature_size
     with_rois = not args.without_rois
-    print(with_rois)
 
     n_workers = 4 if torch.cuda.is_available() else 1
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"\n Experiment: {experiment_name}\n")
     print(f"Using {device} with {n_workers} workers.")
-    label_transform = torch_em.transform.label.BoundaryTransform(add_binary_target=True) #util.get_label_transform
+    label_transform = torch_em.transform.label.BoundaryTransform(add_binary_target=True)
 
     loss_name = "dice"
     metric_name = "dice"
@@ -101,7 +100,6 @@ def main():
         model.load_state_dict(state_dict)
         model.to("cuda")
 
-    #print(data["train"])
     with_channels = False
     with_label_channels = False
 
