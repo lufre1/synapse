@@ -18,7 +18,7 @@ def visualize():
     pred_dir = args.pred_dir
     if args.file_path:
         data_paths = []
-        data_paths[0] = args.file_path
+        data_paths.append(args.file_path)
     else:
         data_paths = glob(os.path.join(pred_dir, "**", "*.h5"), recursive=True)
     raw_data_paths = glob(os.path.join(raw_data_path, "**", "*.h5"), recursive=True)
