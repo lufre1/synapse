@@ -360,11 +360,11 @@ def run_prediction(data, model, block_shape=[32, 448, 448], halo=[8, 32, 32]):
     """
 
     gpu_ids = ["cuda"] if torch.cuda.is_available() else ["cpu"]
-
-    pred = predict_with_halo(
-        data, model, gpu_ids=gpu_ids,
-        block_shape=block_shape, halo=halo,
-    )
+    with torch.no_grad():
+        pred = predict_with_halo(
+            data, model, gpu_ids=gpu_ids,
+            block_shape=block_shape, halo=halo,
+        )
     return pred
 
 

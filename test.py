@@ -33,6 +33,7 @@ def test():
     parser.add_argument("--experiment_name", type=str, default="default-mito-net", help="Name that is used for the experiment and store the model's weights")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
     parser.add_argument("--feature_size", type=int, default=64, help="Initial feature size of the 3D UNet")
+    parser.add_argument("--file_path", type=str, default="", help="File path to a specific file to segment")
     
     # Parse arguments
     args = parser.parse_args()
@@ -47,6 +48,7 @@ def test():
     patch_shape = args.patch_shape
     initial_features = args.feature_size
     save_dir = args.save_dir
+    file_path = args.file_path
 
     n_workers = 4 if torch.cuda.is_available() else 1
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -87,9 +89,12 @@ def test():
         model.to(device)
         
     print(model)
-    
+    data_paths = []
     ### load data
-    data_paths, rois_dict = util.get_data_paths_and_rois(data_dir, min_shape=patch_shape)
+    if file_path is None:
+        data_paths, rois_dict = util.get_data_paths_and_rois(data_dir, min_shape=patch_shape)
+    else:
+        data_paths.append(file_path)
     #data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
     
     # test_loader = torch_em.default_segmentation_loader(
@@ -110,10 +115,11 @@ def test():
         # pred_foreground = pred[:, 0, :, :]
         # pred_boundaries = pred[:, 1, :, :]
         with h5py.File(data_paths[i], "r") as f:
+            print("file number and file path:", i, data_paths[i])
             image = f["raw"]
             # label = label["labels/mitochondria"]
             pred = util.run_prediction(image, model)
-            prediction_filename = os.path.join(predictions_dir, f"prediction_{i}.h5")
+            prediction_filename = os.path.join(predictions_dir, f"{experiment_name}_prediction_{i}.h5")
             with h5py.File(prediction_filename, "w") as prediction_file:
                 prediction_file.create_dataset("prediction", data=pred)
         # pred_foreground = pred[:, 0, :, :]

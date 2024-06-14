@@ -6,21 +6,21 @@
 #SBATCH --nodes=1
 #SBATCH -c 32
 #SBATCH --mem 128G
-#SBATCH --job-name=mito-net64
+#SBATCH --job-name=mito-net
 
 
 source /home/nimlufre/.bashrc
 conda activate synapse
 
 python /home/nimlufre/synapse/main.py \
-  --experiment_name "mito-net32-bs2-ps32448-lr1e-3-isotropicscaling" \
+  --experiment_name "mito-net32-bs2-ps32448-lr1e-3-isotropicscaling-labelthreshold-50-50" \
   --data_dir /scratch-grete/projects/nim00007/data/mitochondria/moebius/volume_em/training_blocks_v1/ \
   --n_iterations 100000 \
   --patch_shape 32 448 448 \
   --batch_size 2 \
   --learning_rate 1e-3 \
   --feature_size 32 \
-  --without_rois True
+ # --without_rois True
 
 
 # /scratch-grete/projects/nim00007/data/mitochondria/cooper/mito_tomo/ 
