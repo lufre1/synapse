@@ -26,13 +26,13 @@ def test():
     parser.add_argument("--lucchi_data_dir", type=str, default=TEST_DATA_DIR, help="Path to the lucchi data directory (optional)")
     parser.add_argument("--save_dir", type=str, default=SAVE_DIR, help="Path to save data")
     parser.add_argument("--visualize", action="store_true", default=False, help="Visualize data with napari")
-    parser.add_argument("--patch_shape", type=int, nargs=3, default=(32, 256, 256), help="Patch shape for data loading (3D tuple)")
+    parser.add_argument("--patch_shape", type=int, nargs=3, default=(32, 448, 448), help="Patch shape for data loading (3D tuple)")
     parser.add_argument("--n_iterations", type=int, default=10000, help="Number of training iterations")
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate")
     parser.add_argument("--checkpoint_path", type=str, default="", help="Path to checkpoint used to load model's state_dict")
     parser.add_argument("--experiment_name", type=str, default="default-mito-net", help="Name that is used for the experiment and store the model's weights")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
-    parser.add_argument("--feature_size", type=int, default=64, help="Initial feature size of the 3D UNet")
+    parser.add_argument("--feature_size", type=int, default=32, help="Initial feature size of the 3D UNet")
     parser.add_argument("--file_path", type=str, default="", help="File path to a specific file to segment")
     
     # Parse arguments
@@ -91,8 +91,8 @@ def test():
     print(model)
     data_paths = []
     ### load data
-    if file_path is None:
-        data_paths, rois_dict = util.get_data_paths_and_rois(data_dir, min_shape=patch_shape)
+    if file_path is None or file_path == "":
+        data_paths = util.get_data_paths(data_dir)
     else:
         data_paths.append(file_path)
     #data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
@@ -108,19 +108,19 @@ def test():
     # Create the "predictions" directory inside DATA_DIR
     predictions_dir = os.path.join(save_dir, "predictions")
     util.create_directory(predictions_dir)
-    
-    for i in range(1):
+    print(f"Using {device} with {n_workers} workers.")
+    for i, data_path in enumerate(data_paths):
         # image, label = next(iter(test_loader))
         # pred = model(image)
         # pred_foreground = pred[:, 0, :, :]
         # pred_boundaries = pred[:, 1, :, :]
-        with h5py.File(data_paths[i], "r") as f:
-            print("file number and file path:", i, data_paths[i])
+        with h5py.File(data_path, "r") as f:
+            print("file number and file path:", i, data_path)
             image = f["raw"]
             # label = label["labels/mitochondria"]
             pred = util.run_prediction(image, model)
-            prediction_filename = os.path.join(predictions_dir, f"{experiment_name}_prediction_{i}.h5")
-            with h5py.File(prediction_filename, "w") as prediction_file:
+            prediction_filepath = os.path.join(predictions_dir, f"{experiment_name}_prediction_{util.get_filename_from_path(data_path)}")
+            with h5py.File(prediction_filepath, "w") as prediction_file:
                 prediction_file.create_dataset("prediction", data=pred)
         # pred_foreground = pred[:, 0, :, :]
         # pred_boundaries = pred[:, 1, :, :]

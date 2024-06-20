@@ -197,6 +197,19 @@ def split_data_paths_to_dict(data_paths, rois_list, train_ratio=0.8, val_ratio=0
         return data_split
 
 
+def get_filename_from_path(path):
+    """
+    Extracts the filename from a given path by splitting on the last '/'.
+
+    Args:
+        path: The path string.
+
+    Returns:
+        The filename portion of the path.
+    """
+    return path.split("/")[-1]
+
+
 def split_data_paths(data_paths, key_dicts, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, seed=None):
     """
     Splits data paths and key information into training, validation, and testing sets.
