@@ -5,6 +5,7 @@ from mpl_toolkits.mplot3d import Axes3D  # Import for 3D plotting
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
 import h5py
+import torch_em.transform
 import yaml
 import os
 import random
@@ -118,6 +119,7 @@ def test():
             print("file number and file path:", i, data_path)
             image = f["raw"]
             # label = label["labels/mitochondria"]
+            image = torch_em.transform.raw.standardize(image)
             pred = util.run_prediction(image, model)
             prediction_filepath = os.path.join(predictions_dir, f"{experiment_name}_prediction_{util.get_filename_from_path(data_path)}")
             with h5py.File(prediction_filepath, "w") as prediction_file:
