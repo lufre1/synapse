@@ -13,10 +13,10 @@ source /home/nimlufre/.bashrc
 conda activate synapse
 
 python /home/nimlufre/synapse/main.py \
-  --experiment_name "mitotomo-net32-bs2-ps32448-lr1e-3-isotropicscaling-withrois" \
+  --experiment_name "mitotomo-net32-bs2-ps64256-lr1e-3-isotropicscaling-withrois" \
   --data_dir /scratch-grete/projects/nim00007/data/mitochondria/cooper/mito_tomo/ \
   --n_iterations 100000 \
-  --patch_shape 32 448 448 \
+  --patch_shape 64 256 256 \
   --batch_size 2 \
   --learning_rate 1e-3 \
   --feature_size 32 \
