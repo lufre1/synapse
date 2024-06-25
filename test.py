@@ -110,6 +110,7 @@ def test():
     predictions_dir = os.path.join(save_dir, "predictions")
     util.create_directory(predictions_dir)
     print(f"Using {device} with {n_workers} workers.")
+    down_scale_factor = 2
     for i, data_path in enumerate(data_paths):
         # image, label = next(iter(test_loader))
         # pred = model(image)
@@ -117,13 +118,13 @@ def test():
         # pred_boundaries = pred[:, 1, :, :]
         with h5py.File(data_path, "r") as f:
             print("file number and file path:", i, data_path)
-            image = f["raw"]
+            image = f["raw"][:]
             # label = label["labels/mitochondria"]
-            image = torch_em.transform.raw.standardize(image)
+            image = torch_em.transform.raw.standardize(image, mean=np.mean(image), std=np.std(image))
             pred = util.run_prediction(image, model)
             prediction_filepath = os.path.join(predictions_dir, f"{experiment_name}_prediction_{util.get_filename_from_path(data_path)}")
             with h5py.File(prediction_filepath, "w") as prediction_file:
-                prediction_file.create_dataset("prediction", data=pred)
+                prediction_file.create_dataset("prediction", data=pred[:, :, ::down_scale_factor, ::down_scale_factor])
         # pred_foreground = pred[:, 0, :, :]
         # pred_boundaries = pred[:, 1, :, :]
 

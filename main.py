@@ -66,7 +66,14 @@ def main():
     depth = 4
     gain = 2
 
-    scale_factors = 4*[[2, 2, 2]]
+    #scale_factors = 4*[[2, 2, 2]]
+    scale_factors = [
+        [2, 1, 1],
+        [2, 1, 1],
+        [2, 2, 2],
+        [2, 2, 2]
+    ]
+    
     final_activation = None
     if final_activation is None and loss_name == "dice":
         final_activation = "Sigmoid"
@@ -77,7 +84,7 @@ def main():
     print(f"Loading Data paths and ROIs if with_rois={with_rois}...")
 
     if with_rois:
-        data_paths, rois_dict = util.get_data_paths_and_rois(data_dir, min_shape=patch_shape, with_thresholds=True)
+        data_paths, rois_dict = util.get_data_paths_and_rois(data_dir, min_shape=patch_shape, with_thresholds=False)
         data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
     else:
         data_paths = util.get_data_paths(data_dir)
