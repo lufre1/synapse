@@ -76,7 +76,8 @@ def get_rois_coordinates_skimage(file, label_key, min_shape, euler_threshold=Non
         if min_amount_pixels is not None:
             if region["area_filled"] < min_amount_pixels:
                 continue
-        # Extract relevant information for ROI calculation
+        
+        # # Extract relevant information for ROI calculation
         label = region.label  # Get the label value
         min_coords = region.bbox[:3]  # Minimum coordinates (excluding intensity channel)
         max_coords = region.bbox[3:6]  # Maximum coordinates (excluding intensity channel)
@@ -84,9 +85,17 @@ def get_rois_coordinates_skimage(file, label_key, min_shape, euler_threshold=Non
         # Clip coordinates and create ROI extent (similar to previous approach)
         clipped_min_coords = np.clip(min_coords, 0, label_shape[0] - min_shape[0])
         clipped_max_coords = np.clip(max_coords, min_shape[1], label_shape[1])
-        label_extents[label] = tuple(slice(min_val, min_val + min_shape[dim]) for dim, (min_val, max_val) in enumerate(zip(clipped_min_coords, clipped_max_coords)))
+        roi_extent = tuple(slice(min_val, min_val + min_shape[dim]) for dim, (min_val, max_val) in enumerate(zip(clipped_min_coords, clipped_max_coords)))
 
-    return label_extents 
+        # Check for labels within the ROI extent (new part)
+        roi_data = file[label_key][roi_extent]
+        amount_label_pixels = np.count_nonzero(roi_data)
+        if amount_label_pixels < min_amount_pixels:  # Check for any non-zero values (labels)
+            continue  # Skip this ROI if no labels present
+
+        label_extents[label] = roi_extent
+
+    return label_extents
 
 
 def get_data_paths(data_dir, data_format="*.h5"):
@@ -136,10 +145,11 @@ def get_data_paths_and_rois(data_dir, min_shape,
 
                 # Extract ROIs (assuming ndim of label data is the same as image data)
                 if with_thresholds:
-                    rois = get_rois_coordinates_skimage(f, label_key_mito, min_shape, euler_threshold=1, min_amount_pixels=100)
+                    rois = get_rois_coordinates_skimage(f, label_key_mito, min_shape, min_amount_pixels=100) # euler_threshold=1,
                 else:
                     rois = get_rois_coordinates_skimage(f, label_key_mito, min_shape, euler_threshold=None, min_amount_pixels=None)
                 for label_id, roi in rois.items():
+                    print(roi)
                     rois_list.append(roi)
                     new_data_paths.append(data_path)
         except OSError:
