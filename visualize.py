@@ -6,6 +6,7 @@ import argparse
 import os
 from glob import glob
 import numpy as np
+import torch_em
 
 
 def visualize():
@@ -14,6 +15,7 @@ def visualize():
     parser.add_argument("--pred_dir", type=str, default=SAVE_DIR, help="Path to the predictions' directory")    
     parser.add_argument("--file_path", type=str, default="", help="Path to a specific .h5 file to visualize")
     parser.add_argument("--pred_path", type=str, default="", help="Path to the prediction's file")
+    parser.add_argument("--single_file_path", type=str, default="", help="Path singe file to visualize")
     
     args = parser.parse_args()
     raw_data_path = args.data_dir
@@ -21,8 +23,26 @@ def visualize():
     pred_path = args.pred_path
     raw_file_path = args.file_path
 
-    scale_factor = 3
+    scale_factor = 4
+    if args.single_file_path:
+        image = None
+        label = None
+        with h5py.File(args.single_file_path, "r") as f:
+            if "raw" in f:
+                print("Raw data shape", f["raw"].shape)
+                image = f["raw"][:, ::scale_factor, ::scale_factor]
+                print("Raw data shape after downsampling", image.shape)
 
+            if "labels/mitochondria" in f:
+               label = f["labels/mitochondria"][:, ::scale_factor, ::scale_factor]
+        mean = np.mean(image)
+        image1 = torch_em.transform.raw.standardize(image, mean)
+        vis_data = {
+            "raw": image1,
+            "label": label,
+        }
+        util.visualize_data_napari(vis_data)
+        
     if args.file_path:
         data_paths = []
         data_paths.append(args.file_path)
@@ -37,11 +57,11 @@ def visualize():
         print(f"Visualizing {data_path}...")
         with h5py.File(data_path, "r") as f:
             print("Prediction shape:", f["prediction"].shape)
-            pred = f["prediction"][:, :, ::scale_factor, ::scale_factor]
+            pred = f["prediction"][:, :, ::int(scale_factor/2), ::int(scale_factor/2)]
             print("Prediction shape after downsampling:", pred.shape)
-            threshold = .75
+            threshold = .95
             pred_foreground = (pred[0, :, :, :] > threshold).astype(np.uint8)
-            pred_boundaries = (pred[1, :, :, :] > (threshold-.2)).astype(np.uint8)
+            pred_boundaries = (pred[1, :, :, :] > (threshold-.6)).astype(np.uint8)
         # breakpoint()
         with h5py.File(raw_data_paths[i], "r") as f:
             if "raw" in f:
