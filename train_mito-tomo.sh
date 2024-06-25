@@ -13,7 +13,7 @@ source /home/nimlufre/.bashrc
 conda activate synapse
 
 python /home/nimlufre/synapse/main.py \
-  --experiment_name "mitotomo-net32-bs1-ps64256-lr1e-4-scaling211-withrois-withoutthresholds" \
+  --experiment_name "mitotomo-net32-bs1-ps64256-lr1e-4-scaling211-withrois-newthresholds" \
   --data_dir /scratch-grete/projects/nim00007/data/mitochondria/cooper/mito_tomo/ \
   --n_iterations 100000 \
   --patch_shape 64 256 256 \

@@ -90,7 +90,7 @@ def get_rois_coordinates_skimage(file, label_key, min_shape, euler_threshold=Non
         # Check for labels within the ROI extent (new part)
         roi_data = file[label_key][roi_extent]
         amount_label_pixels = np.count_nonzero(roi_data)
-        if amount_label_pixels < min_amount_pixels:  # Check for any non-zero values (labels)
+        if amount_label_pixels < 100 or amount_label_pixels < min_amount_pixels:  # Check for any non-zero values (labels)
             continue  # Skip this ROI if no labels present
 
         label_extents[label] = roi_extent
@@ -149,7 +149,6 @@ def get_data_paths_and_rois(data_dir, min_shape,
                 else:
                     rois = get_rois_coordinates_skimage(f, label_key_mito, min_shape, euler_threshold=None, min_amount_pixels=None)
                 for label_id, roi in rois.items():
-                    print(roi)
                     rois_list.append(roi)
                     new_data_paths.append(data_path)
         except OSError:
