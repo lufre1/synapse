@@ -103,9 +103,11 @@ def main():
     )
     print(model)
     if checkpoint_path:
-        state_dict = torch.load(checkpoint_path, map_location=torch.device("cpu"))["model_state"]
-        model.load_state_dict(state_dict)
-        model.to("cuda")
+        model = torch_em.util.load_model(checkpoint=checkpoint_path, device=device)
+        # state_dict = torch.load(checkpoint_path, map_location=torch.device("cpu"))["model_state"]
+        # model.load_state_dict(state_dict)
+        
+        model.to(device)
 
     with_channels = False
     with_label_channels = False
@@ -164,7 +166,7 @@ def main():
         save_root=SAVE_DIR,
         # logger=None
     )
-    #check_loader(train_loader, n_samples=2)
+    # check_loader(train_loader, n_samples=10)
     #check_trainer(trainer, n_samples=1)
     trainer.fit(n_iterations)
 
