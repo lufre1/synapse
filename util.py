@@ -74,7 +74,7 @@ def get_rois_coordinates_skimage(file, label_key, min_shape, euler_threshold=Non
             if region.euler_number != euler_threshold:
                 continue
         if min_amount_pixels is not None:
-            if region["area_filled"] < min_amount_pixels:
+            if region["area"] < min_amount_pixels:
                 continue
         
         # # Extract relevant information for ROI calculation

@@ -59,7 +59,7 @@ def visualize():
             print("Prediction shape:", f["prediction"].shape)
             pred = f["prediction"][:, :, ::int(scale_factor/2), ::int(scale_factor/2)]
             print("Prediction shape after downsampling:", pred.shape)
-            threshold = .95
+            threshold = .85
             pred_foreground = (pred[0, :, :, :] > threshold).astype(np.uint8)
             pred_boundaries = (pred[1, :, :, :] > (threshold-.6)).astype(np.uint8)
         # breakpoint()
