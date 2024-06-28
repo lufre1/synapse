@@ -66,13 +66,12 @@ def test():
     depth = 4
     gain = 2
     scale_factors = [[2, 2, 2]] * depth
-    # scale_factors = [
-    #     [1, 2, 2],
-    #     [1, 2, 2],
-    #     [1, 1, 1],
-    #     [1, 1, 1],
-    #     [1, 1, 1]
-    # ]
+    scale_factors = [
+        [1, 2, 2],
+        [1, 2, 2],
+        [2, 2, 2],
+        [2, 2, 2]
+    ]
     final_activation = None
     if final_activation is None and loss_name == "dice":
         final_activation = "Sigmoid"
