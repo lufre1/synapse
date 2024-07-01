@@ -34,7 +34,7 @@ def visualize():
                 print("Raw data shape after downsampling", image.shape)
 
             if "labels/mitochondria" in f:
-               label = f["labels/mitochondria"][:, ::scale_factor, ::scale_factor]
+                label = f["labels/mitochondria"][:, ::scale_factor, ::scale_factor]
         mean = np.mean(image)
         image1 = torch_em.transform.raw.standardize(image, mean)
         vis_data = {
