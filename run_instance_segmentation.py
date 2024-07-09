@@ -1,8 +1,10 @@
 import h5py
 import napari
+import tifffile
 
 from skimage.measure import label
 from skimage.segmentation import watershed
+import numpy as np
 
 
 def check_predictions(raw, fg, bd, seg=None):
@@ -32,16 +34,25 @@ def run_watershed(fg, bd):
 
 
 def main():
-    raw_file = "36859_J1_STEM750_66K_SP_01_rec_2kb1dawbp_crop.h5"
+    raw_file = "/home/freckmann15/data/lucchi/lucchi_test.h5"#"36859_J1_STEM750_66K_SP_01_rec_2kb1dawbp_crop.h5"
     print("Load raw ...")
     with h5py.File(raw_file, "r") as f:
         raw = f["raw"][:]
 
-    pred_file = "mito-net_latest_02-07-24_prediction_36859_J1_STEM750_66K_SP_01_rec_2kb1dawbp_crop.h5"
+    pred_file = "/home/freckmann15/data/predictions/micro_sam_3d/lucchi_test.tif"#"mito-net_latest_02-07-24_prediction_36859_J1_STEM750_66K_SP_01_rec_2kb1dawbp_crop.h5"
     print("Load pred ...")
-    with h5py.File(pred_file, "r") as f:
-        pred = f["prediction"][:]
-    fg, bd = pred
+    pred = tifffile.imread(pred_file)
+    print(pred.shape, "np.unique(pred)", np.unique(pred))
+    v = napari.Viewer()
+    v.add_image(pred)
+    napari.run()
+        #pred = f["prediction"][:]
+    fg = np.where(pred == 1, 1, 0)
+    bd = np.where(pred == 2, 1, 0)
+    # fg = pred == 1
+    # bd = pred == 2
+    
+    print("fg and bd shape and dtype", fg.shape, fg.dtype, bd.shape, bd.dtype)
 
     print("Run segmentation ...")
     seg = run_watershed(fg, bd)
