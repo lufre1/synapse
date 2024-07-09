@@ -17,6 +17,64 @@ from skimage.measure import regionprops
 # data_format = "*.h5"
 
 
+# not in use atm
+def get_loaders(
+        data, patch_shape, ndim=3, batch_size=1, n_workers=16, 
+        label_transform=None, with_channels=True, with_label_channels=True, 
+        rois_dict=None):
+    """
+    Generates data loaders for training and validation using the given data, patch shape, and other parameters.
+
+    Args:
+        data (dict): A dictionary containing the paths to the training and validation data.
+        patch_shape (tuple): The shape of the patches to be extracted from the data.
+        ndim (int, optional): The number of dimensions of the data. Defaults to 3.
+        batch_size (int, optional): The batch size for the data loaders. Defaults to 1.
+        n_workers (int, optional): The number of workers for data loading. Defaults to 16.
+        label_transform (callable, optional): A callable that transforms the labels. Defaults to None.
+        with_channels (bool, optional): Whether to include the channels in the data. Defaults to True.
+        with_label_channels (bool, optional): Whether to include the label channels in the data. Defaults to True.
+        rois_dict (dict, optional): A dictionary containing the regions of interest (ROIs) for training and validation. Defaults to None.
+
+    Returns:
+        tuple: A tuple containing the training data loader and the validation data loader.
+    """
+    if rois_dict is not None:
+        train_loader = torch_em.default_segmentation_loader(
+            raw_paths=data["train"], raw_key="raw",
+            label_paths=data["train"], label_key="labels/mitochondria",
+            patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+            label_transform=label_transform, num_workers=n_workers,
+            with_channels=with_channels, with_label_channels=with_label_channels,
+            rois=rois_dict["train"]
+        )
+        val_loader = torch_em.default_segmentation_loader(
+            raw_paths=data["val"], raw_key="raw",
+            label_paths=data["val"], label_key="labels/mitochondria",
+            patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+            label_transform=label_transform, num_workers=n_workers,
+            with_channels=with_channels, with_label_channels=with_label_channels,
+            rois=rois_dict["val"]
+        )
+    else:
+        train_loader = torch_em.default_segmentation_loader(
+            raw_paths=data["train"], raw_key="raw",
+            label_paths=data["train"], label_key="labels/mitochondria",
+            patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+            label_transform=label_transform, num_workers=n_workers,
+            with_channels=with_channels, with_label_channels=with_label_channels,
+        )
+        val_loader = torch_em.default_segmentation_loader(
+            raw_paths=data["train"], raw_key="raw",
+            label_paths=data["val"], label_key="labels/mitochondria",
+            patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+            label_transform=label_transform, num_workers=n_workers,
+            with_channels=with_channels, with_label_channels=with_label_channels,
+        )
+    
+    return train_loader, val_loader
+
+
 def remove_prefix_from_keys(state_dict, prefix="_orig_mod."):
     """
     Removes the specified prefix from the beginning of all keys in a dictionary.
@@ -365,7 +423,7 @@ def visualize_data_napari(data):
     napari.run()
 
 
-def run_prediction(data, model, block_shape=[32, 448, 448], halo=[8, 32, 32]):
+def run_prediction(data, model, block_shape=[32, 512, 512], halo=[8, 32, 32]):
     """
     Run a prediction using a trained model on the given data.
 

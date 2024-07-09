@@ -82,11 +82,12 @@ def test():
     )
 
     if checkpoint_path:
-        state_dict = torch.load(checkpoint_path, map_location="cpu")["model_state"] #torch.device("cpu")
-        state_dict = util.remove_prefix_from_keys(state_dict)
-        print("\n", state_dict.keys(), "\n")
-        model.load_state_dict(state_dict)
-        model.to(device)
+        model = torch_em.util.load_model(checkpoint=checkpoint_path, device=device)
+        # state_dict = torch.load(checkpoint_path, map_location="cpu")["model_state"] #torch.device("cpu")
+        # state_dict = util.remove_prefix_from_keys(state_dict)
+        # print("\n", state_dict.keys(), "\n")
+        # model.load_state_dict(state_dict)
+        # model.to(device)
         
     print(model)
     data_paths = []
@@ -109,7 +110,7 @@ def test():
     predictions_dir = os.path.join(save_dir, "predictions")
     util.create_directory(predictions_dir)
     print(f"Using {device} with {n_workers} workers.")
-    down_scale_factor = 2
+    down_scale_factor = 1
     for i, data_path in enumerate(data_paths):
         # image, label = next(iter(test_loader))
         # pred = model(image)
