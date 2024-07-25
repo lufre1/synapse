@@ -195,7 +195,7 @@ def get_data_paths_and_rois(data_dir, min_shape,
             # Open the HDF5 file in read-only mode
             with h5py.File(data_path, "r") as f:
                 # Check for existence of image and label datasets (considering key flexibility)
-                if image_key not in f or (label_key_mito is not None and label_key_mito not in f):
+                if image_key not in f:
                     print(f"Warning: Key(s) missing in {data_path}. Skipping {image_key}")
                     continue
 

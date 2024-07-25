@@ -13,10 +13,10 @@ source /home/nimlufre/.bashrc
 conda activate synapse
 
 python /home/nimlufre/synapse/main.py \
-  --experiment_name "mitotomo-net32-bs1-ps64256-lr1e-4-scaling122-withrois-newthresholds" \
-  --data_dir /scratch-grete/projects/nim00007/data/mitochondria/cooper/mito_tomo/ \
+  --experiment_name "mitotomo-net32-bs2-ps64256-lr1e-4-scaling122-withrois-fididata" \
+  --data_dir /scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi \
   --n_iterations 100000 \
   --patch_shape 64 256 256 \
-  --batch_size 1 \
+  --batch_size 2 \
   --learning_rate 1e-4 \
   --feature_size 32 \
