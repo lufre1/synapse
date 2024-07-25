@@ -2,6 +2,8 @@ import h5py
 import os
 from glob import glob
 from tqdm import tqdm
+from skimage import measure
+import numpy as np
 
 
 def rename_h5_key(file_path, old_key, new_key):
@@ -26,7 +28,15 @@ def correct_mito_labels(file_path, key="labels/mitochondria"):
         if key in hdf5_file:
             mitochondria_data = hdf5_file[key][:]
             mitochondria_data[mitochondria_data != 0] = 1
-            hdf5_file["labels/mitochondria"][:] = mitochondria_data
+            hdf5_file[key][:] = mitochondria_data
+
+
+def convert_mask_to_labels(file_path, key):
+    with h5py.File(file_path, 'r+') as hdf5_file:
+        if key in hdf5_file:
+            label_data = hdf5_file[key][:]
+            label_data = measure.label(label_data)
+            hdf5_file[key][:] = label_data
 
 
 def process_h5_files(base_path, old_key, new_key):
@@ -43,7 +53,7 @@ def process_h5_files(base_path, old_key, new_key):
     for h5_file in tqdm(h5_files):
         file_path = os.path.join(base_path, h5_file)
         #rename_h5_key(file_path, old_key, new_key)
-        correct_mito_labels(file_path)
+        convert_mask_to_labels(file_path, "labels/cristae")
 
 
 def main():

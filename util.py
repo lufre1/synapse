@@ -148,8 +148,11 @@ def get_rois_coordinates_skimage(file, label_key, min_shape, euler_threshold=Non
         # Check for labels within the ROI extent (new part)
         roi_data = file[label_key][roi_extent]
         amount_label_pixels = np.count_nonzero(roi_data)
-        if amount_label_pixels < 100 or amount_label_pixels < min_amount_pixels:  # Check for any non-zero values (labels)
+        if amount_label_pixels < 100:  # Check for any non-zero values (labels)
             continue  # Skip this ROI if no labels present
+        if min_amount_pixels is not None:
+            if amount_label_pixels < min_amount_pixels:
+                continue
 
         label_extents[label] = roi_extent
 

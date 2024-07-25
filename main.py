@@ -88,7 +88,7 @@ def main():
         data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
     else:
         data_paths = util.get_data_paths(data_dir)
-        data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.5, val_ratio=0.5, test_ratio=0)
+        data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.8, val_ratio=0.2, test_ratio=0)
 
     end_time = time.time()
     # Calculate execution time in seconds
@@ -140,7 +140,7 @@ def main():
             with_channels=with_channels, with_label_channels=with_label_channels,
         )
         val_loader = torch_em.default_segmentation_loader(
-            raw_paths=data["train"], raw_key="raw",
+            raw_paths=data["val"], raw_key="raw",
             label_paths=data["val"], label_key="labels/mitochondria",
             patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
             label_transform=label_transform, num_workers=n_workers,
