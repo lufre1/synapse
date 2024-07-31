@@ -406,7 +406,13 @@ def visualize_data_napari(data):
             label_data = data["label"]
 
         viewer.add_labels(label_data.astype(int), name="Label")  # Ensure labels are integers
+    if "label2" in data.keys():
+        if isinstance(data["label"], torch.Tensor):
+            label_data = data["label2"].cpu().detach().numpy()
+        else:
+            label_data = data["label2"]
 
+        viewer.add_labels(label_data.astype(int), name="Label2") 
     if "pred1" in data.keys():
         if isinstance(data["pred1"], torch.Tensor):
             label_data = data["pred1"].cpu().detach().numpy()
