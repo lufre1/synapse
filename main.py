@@ -11,6 +11,7 @@ import argparse
 import time
 import torch_em
 import torch_em.data.datasets as torchem_data
+from torch_em.data import MinInstanceSampler
 from torch_em.model import UNet3d, AnisotropicUNet
 from torch_em.util.debug import check_loader, check_trainer
 
@@ -111,6 +112,7 @@ def main():
 
     with_channels = False
     with_label_channels = False
+    sampler = MinInstanceSampler(p_reject=0.95)
 
     print("train", len(data["train"]), "val", len(data["val"]))
 
@@ -138,6 +140,7 @@ def main():
             patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
+            sampler=sampler
         )
         val_loader = torch_em.default_segmentation_loader(
             raw_paths=data["val"], raw_key="raw",
@@ -145,6 +148,7 @@ def main():
             patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
+            sampler=sampler
         )
     # for i in range(10):
     #     image, label = next(iter(train_loader))
