@@ -3,12 +3,12 @@ import os
 from glob import glob
 from tqdm import tqdm
 from skimage import measure
-import numpy as np
+# import numpy as np
 import mrcfile
-from tqdm import tqdm
-import util
+
 
 SAVE_DIR = "/home/freckmann15/data/mitochondria/corrected_mito_h5"
+
 
 def rename_h5_key(file_path, old_key, new_key):
     """
@@ -56,7 +56,7 @@ def process_h5_files(base_path, old_key, new_key):
     h5_files = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
     for h5_file in tqdm(h5_files):
         file_path = os.path.join(base_path, h5_file)
-        #rename_h5_key(file_path, old_key, new_key)
+        # rename_h5_key(file_path, old_key, new_key)
         convert_mask_to_labels(file_path, "labels/mitochondria")
 
 
@@ -75,13 +75,13 @@ def separate_cristae(h5_file_path):
         h5_file_path: Path to the HDF5 file.
     """
     scale_factor = 1
-    cristae = None
+    # cristae = None
     with h5py.File(h5_file_path, 'r+') as h5f:
         # raw = h5f['raw'][:, ::scale_factor, ::scale_factor]
         mitochondria = h5f['labels/mitochondria'][:, ::scale_factor, ::scale_factor]
-        #cristae = (mitochondria == 2).astype(np.uint8)
+        # cristae = (mitochondria == 2).astype(np.uint8)
         mitochondria[mitochondria == 2] = 1
-        #print("any other value than 0 and 1 in mitochondria?", len(np.unique(mitochondria)))
+        # print("any other value than 0 and 1 in mitochondria?", len(np.unique(mitochondria)))
         mito_ds = h5f['labels/mitochondria']
         mito_ds[...] = mitochondria
         # if np.any(cristae != 0):
@@ -99,13 +99,13 @@ def separate_cristae(h5_file_path):
 def main():
     
     # Example usage
-    base_path = "/home/freckmann15/data/mitochondria/fidi_orig/"
+    # base_path = "/home/freckmann15/data/mitochondria/fidi_orig/"
     label_base_path = "/home/freckmann15/data/mitochondria/corrected_mito_h5_label_split/"
-    bu_path = "/home/freckmann15/data/mitochondria/fidi_h5/fidi"
-    old_key = "labels/mitchondria"
-    new_key = "labels/mitochondria"  
-    raw_file_paths = sorted(glob(os.path.join(base_path, "**/*raw.mrc")),key=lambda x: os.path.basename(x))
-    label_h5_file_paths = sorted(glob(os.path.join(label_base_path, "*.h5")),key=lambda x: os.path.basename(x))
+    # bu_path = "/home/freckmann15/data/mitochondria/fidi_h5/fidi"
+    # old_key = "labels/mitchondria"
+    # new_key = "labels/mitochondria"  
+    # raw_file_paths = sorted(glob(os.path.join(base_path, "**/*raw.mrc")),key=lambda x: os.path.basename(x))
+    label_h5_file_paths = sorted(glob(os.path.join(label_base_path, "*.h5")), key=lambda x: os.path.basename(x))
     cristaefolder = "/home/freckmann15/data/mitochondria/corrected_mito_h5_label_split/with_cistae"
 
     for path in label_h5_file_paths:

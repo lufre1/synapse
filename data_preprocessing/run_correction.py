@@ -7,10 +7,10 @@ import napari
 import argparse
 from magicgui import magicgui
 from skimage.measure import label
-from scipy import ndimage
+# from scipy import ndimage
 from napari.utils.notifications import show_info
 from tqdm import tqdm
-from skimage.measure import label, regionprops
+from skimage.measure import regionprops
 
 SAVE_DIR = "/home/freckmann15/data/mitochondria/corrected_mito_h5"
 BASE_PATH = "/home/freckmann15/data/mitochondria/20240722_Mito_cristae_segmentation/"
@@ -52,8 +52,8 @@ def extend_corner_regions(labels):
     """
 
     label_image = label_image_in_chunks(labels, 512)
-    #label_image = label(labels)        # if iteration == 1:
-        #     continue
+    # label_image = label(labels)        # if iteration == 1:
+    #         continue
     regions = regionprops(label_image)
 
     for prop in regions:
@@ -138,7 +138,7 @@ def run_correction(raw_input_path, label_input_path, output_path, fname, orig_la
         os.makedirs(os.path.split(output_path)[0], exist_ok=True)
         labels = v.layers["labels"].data
         raw = v.layers["raw"].data
-        #labels = labels #label(labels)
+        # labels = labels #label(labels)
         with h5py.File(output_path, "a") as f:
             ds = f.require_dataset(
                 "labels/mitochondria", shape=labels.shape, dtype=labels.dtype, compression="gzip"
@@ -185,14 +185,14 @@ def correct_mitochondria(args):
         fname, _ = os.path.splitext(fname)
         fname = fname.replace("_raw", "")
         fname = fname + ".h5"
-        #print("\nfname: ", fname)
+        # print("\nfname: ", fname)
         output_path = os.path.join(save_dir, fname)
         if iteration <= 0:
             continue
 
         if os.path.exists(output_path):
-            #continue
-            #orig_label_path = label_path
+            # continue
+            # orig_label_path = label_path
             label_path = output_path
         print(f"Loading: \n{raw_path} \n{label_path}\n")
 
@@ -215,7 +215,7 @@ def main():
     args = parser.parse_args()
 
     correct_mitochondria(args)
-    #refine_mitochondria(args)
+    # refine_mitochondria(args)
 
 
 if __name__ == "__main__":

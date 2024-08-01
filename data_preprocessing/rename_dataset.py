@@ -59,7 +59,7 @@ def process_h5_files(base_path, old_key, new_key):
     h5_files = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
     for h5_file in tqdm(h5_files):
         file_path = os.path.join(base_path, h5_file)
-        #rename_h5_key(file_path, old_key, new_key)
+        # rename_h5_key(file_path, old_key, new_key)
         # convert_mask_to_labels(file_path, "labels/mitochondria")
         # convert_mask_to_labels(file_path, "labels/cristae")
         check_labels(file_path, "labels/mitochondria")

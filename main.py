@@ -10,16 +10,16 @@ import random
 import argparse
 import time
 import torch_em
-import torch_em.data.datasets as torchem_data
+# import torch_em.data.datasets as torchem_data
 from torch_em.data import MinInstanceSampler
-from torch_em.model import UNet3d, AnisotropicUNet
+from torch_em.model import AnisotropicUNet
 from torch_em.util.debug import check_loader, check_trainer
 
 # Import your util.py for data loading
 import util
-import data_classes
-from config import *
-#from unet import UNet3D
+# import data_classes
+from config import DATA_DIR, TEST_DATA_DIR
+# from unet import UNet3D
 
 
 def main():
@@ -35,16 +35,15 @@ def main():
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
     parser.add_argument("--feature_size", type=int, default=32, help="Initial feature size of the 3D UNet")
     parser.add_argument("--without_rois", type=bool, default=False, help="Train without Regions Of Interest (ROI)")
-    
-    
+
     # Parse arguments
     args = parser.parse_args()
     checkpoint_path = args.checkpoint_path
     n_iterations = args.n_iterations
     learning_rate = args.learning_rate
     data_dir = args.data_dir
-    lucchi_data_dir = args.lucchi_data_dir
-    visualize = args.visualize
+    # lucchi_data_dir = args.lucchi_data_dir
+    # visualize = args.visualize
     experiment_name = args.experiment_name
     batch_size = args.batch_size
     patch_shape = args.patch_shape
@@ -64,7 +63,7 @@ def main():
     loss_function = util.get_loss_function(loss_name)
     metric_function = util.get_loss_function(metric_name)
     in_channels, out_channels = 1, 2
-    depth = 4
+    # depth = 4
     gain = 2
 
     #scale_factors = 4*[[2, 2, 2]]
