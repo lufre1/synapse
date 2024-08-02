@@ -62,7 +62,7 @@ def main():
 
     loss_function = util.get_loss_function(loss_name)
     metric_function = util.get_loss_function(metric_name)
-    in_channels, out_channels = 1, 2
+    in_channels, out_channels = 2, 2
     # depth = 4
     gain = 2
 
@@ -112,43 +112,52 @@ def main():
     with_channels = False
     with_label_channels = False
     sampler = MinInstanceSampler(p_reject=0.95)
+    raw2_transform = torch_em.transform.label.labels_to_binary
 
     print("train", len(data["train"]), "val", len(data["val"]))
 
     if with_rois:
-        train_loader = torch_em.default_segmentation_loader(
-            raw_paths=data["train"], raw_key="raw",
-            label_paths=data["train"], label_key="labels/mitochondria",
+        train_ds = util.combined_datasets(
+            raw_paths=data["train"], raw_key="raw", raw2_key="labels/mitochondria",
+            label_paths=data["train"], label_key="labels/cristae",
             patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+            raw2_transform=raw2_transform,
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
             rois=rois_dict["train"]
         )
-        val_loader = torch_em.default_segmentation_loader(
-            raw_paths=data["val"], raw_key="raw",
-            label_paths=data["val"], label_key="labels/mitochondria",
+        train_loader = torch_em.segmentation.get_data_loader(train_ds, batch_size)
+        val_ds = util.combined_datasets(
+            raw_paths=data["val"], raw_key="raw", raw2_key="labels/mitochondria",
+            label_paths=data["val"], label_key="labels/cristae",
             patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+            raw2_transform=raw2_transform,
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
             rois=rois_dict["val"]
         )
+        val_loader = torch_em.segmentation.get_data_loader(val_ds, batch_size)
     else:
-        train_loader = torch_em.default_segmentation_loader(
-            raw_paths=data["train"], raw_key="raw",
-            label_paths=data["train"], label_key="labels/mitochondria",
+        train_ds = util.combined_datasets(
+            raw_paths=data["train"], raw_key="raw", raw2_key="labels/mitochondria",
+            label_paths=data["train"], label_key="labels/cristae",
             patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+            raw2_transform=raw2_transform,
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
             sampler=sampler
         )
-        val_loader = torch_em.default_segmentation_loader(
-            raw_paths=data["val"], raw_key="raw",
-            label_paths=data["val"], label_key="labels/mitochondria",
+        train_loader = torch_em.segmentation.get_data_loader(train_ds, batch_size)
+        val_ds = util.combined_datasets(
+            raw_paths=data["val"], raw_key="raw", raw2_key="labels/mitochondria",
+            label_paths=data["val"], label_key="labels/cristae",
             patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+            raw2_transform=raw2_transform,
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
             sampler=sampler
         )
+        val_loader = torch_em.segmentation.get_data_loader(val_ds, batch_size)
     # for i in range(10):
     #     image, label = next(iter(train_loader))
     #     vis_data = {

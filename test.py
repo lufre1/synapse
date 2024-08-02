@@ -35,6 +35,7 @@ def test():
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
     parser.add_argument("--feature_size", type=int, default=32, help="Initial feature size of the 3D UNet")
     parser.add_argument("--file_path", type=str, default="", help="File path to a specific file to segment")
+    parser.add_argument("--down_scale_factor", type=int, default=1, help="Factor to down sample the prediction: reduce size of data")
     
     # Parse arguments
     args = parser.parse_args()
@@ -110,7 +111,7 @@ def test():
     predictions_dir = os.path.join(save_dir, "predictions")
     util.create_directory(predictions_dir)
     print(f"Using {device} with {n_workers} workers.")
-    down_scale_factor = 1
+    down_scale_factor = args.down_scale_factor
     for i, data_path in enumerate(data_paths):
         # image, label = next(iter(test_loader))
         # pred = model(image)
@@ -125,6 +126,7 @@ def test():
             prediction_filepath = os.path.join(predictions_dir, f"{experiment_name}_prediction_{util.get_filename_from_path(data_path)}")
             with h5py.File(prediction_filepath, "w") as prediction_file:
                 prediction_file.create_dataset("prediction", data=pred[:, :, ::down_scale_factor, ::down_scale_factor])
+            print(f"\nPrediction file path:\n{prediction_filepath}")
         # pred_foreground = pred[:, 0, :, :]
         # pred_boundaries = pred[:, 1, :, :]
 

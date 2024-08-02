@@ -12,9 +12,91 @@ import yaml
 import random
 from skimage.measure import regionprops
 
+
+# used for combined_datasets
+from typing import List, Union, Tuple, Optional, Any
+
 # Define the data path and filename
 # data_path = "/scratch-grete/projects/nim00007/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt/170_2_rec.h5"
 # data_format = "*.h5"
+
+
+class combined_datasets(torch.utils.data.Dataset):
+    def __init__(
+        self,
+        raw_path: Union[List[Any], str, os.PathLike],
+        raw_key: str,
+        raw2_key: str,
+        label_path: Union[List[Any], str, os.PathLike],
+        label_key: str,
+        patch_shape: Tuple[int, ...],
+        raw_transform=None,
+        raw2_transform=None,
+        label_transform=None,
+        label_transform2=None,
+        transform=None,
+        roi: Optional[dict] = None,
+        dtype: torch.dtype = torch.float32,
+        label_dtype: torch.dtype = torch.float32,
+        n_samples: Optional[int] = None,
+        sampler=None,
+        ndim: Optional[int] = None,
+        with_channels: bool = False,
+        with_label_channels: bool = False,
+        with_padding: bool = True,
+    ):
+        self.ds1 = torch_em.data.segmentation_dataset(
+            raw_path,
+            raw_key,
+            label_path,
+            label_key,
+            patch_shape=patch_shape,
+            raw_transform=raw_transform,
+            label_transform=label_transform,
+            label_transform2=label_transform2,
+            transform=transform,
+            roi=roi,
+            n_samples=n_samples,
+            sampler=sampler,
+            ndim=ndim,
+            dtype=dtype,
+            label_dtype=label_dtype,
+            with_channels=with_channels,
+            with_label_channels=with_label_channels,
+            with_padding=with_padding,
+        )
+        # Additional raw data key for the second dataset
+        self.ds2 = torch_em.data.segmentation_dataset(
+            raw_path,
+            raw2_key,
+            label_path,
+            label_key,
+            patch_shape=patch_shape,
+            raw_transform=raw2_transform,
+            transform=transform,
+            roi=roi,
+            n_samples=n_samples,
+            sampler=sampler,
+            ndim=ndim,
+            dtype=dtype,
+            label_dtype=label_dtype,
+            with_channels=with_channels,
+            with_label_channels=with_label_channels,
+            with_padding=with_padding,
+        )
+
+    def __len__(self):
+        return len(self.ds1)
+
+    def __getitem__(self, index):
+        data1 = self.ds1.super().__getitem__(index)
+        raw1, labels = data1[0], data1[1]
+
+        data2 = self.ds2.super().__getitem__(index)
+        raw2 = data2[0]
+
+        # Return the combined result (raw1, raw2, labels)
+        return (raw1, raw2), labels
 
 
 # not in use atm
