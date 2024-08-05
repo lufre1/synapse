@@ -33,17 +33,27 @@ def process_h5_files(base_path, raw_key, mito_key, cristae_key):
         cristae = None
         base, file_name = os.path.split(path)
         fname, _ = os.path.splitext(file_name)
-        cristae = _read_h5(path, cristae_key)
-        if cristae is None:
-            continue
-        raw = _read_h5(path, raw_key)
-        mitos = _read_h5(path, mito_key)
+        
+        # cristae = _read_h5(path, cristae_key)
+        # if cristae is None:
+        #     continue
+        # raw = _read_h5(path, raw_key)
+        # mitos = _read_h5(path, mito_key)
         new_path = os.path.join(base, fname + "_combined.h5")
 
-        combined = np.stack([raw, mitos], axis=0)
+        # combined = np.stack([raw, mitos], axis=0)
 
-        _write_h5(new_path, "raw_mitos_combined", combined)
-        _write_h5(new_path, "labels/cristae", cristae)
+        # _write_h5(new_path, "raw_mitos_combined", combined)
+        # _write_h5(new_path, "labels/cristae", cristae)
+        combined = None
+        combined = _read_h5(new_path, "raw_mitos_combined")
+        if combined is None:
+            continue
+        print("combined shape: ", combined.shape)
+        raw, mitos = combined[0], combined[1]
+        print("mitos unique", np.unique(mitos))
+        
+        
 
 
 def main():
