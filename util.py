@@ -21,7 +21,7 @@ from typing import List, Union, Tuple, Optional, Any
 # data_format = "*.h5"
 
 
-class combined_datasets(torch.utils.data.Dataset):
+class CombinedDatasets(torch.utils.data.Dataset):
     def __init__(
         self,
         raw_path: Union[List[Any], str, os.PathLike],
@@ -45,7 +45,7 @@ class combined_datasets(torch.utils.data.Dataset):
         with_label_channels: bool = False,
         with_padding: bool = True,
     ):
-        self.ds1 = torch_em.data.segmentation_dataset(
+        self.ds1 = torch_em.data.SegmentationDataset(
             raw_path,
             raw_key,
             label_path,
@@ -66,7 +66,7 @@ class combined_datasets(torch.utils.data.Dataset):
             with_padding=with_padding,
         )
         # Additional raw data key for the second dataset
-        self.ds2 = torch_em.data.segmentation_dataset(
+        self.ds2 = torch_em.data.SegmentationDataset(
             raw_path,
             raw2_key,
             label_path,

@@ -14,6 +14,7 @@ import torch_em
 from torch_em.data import MinInstanceSampler
 from torch_em.model import AnisotropicUNet
 from torch_em.util.debug import check_loader, check_trainer
+from tqdm import tqdm
 
 # Import your util.py for data loading
 import util
@@ -149,12 +150,14 @@ def main():
             with_channels=with_channels, with_label_channels=with_label_channels,
             sampler=sampler
         )
-    # for i in range(10):
-    #     image, label = next(iter(train_loader))
-    #     vis_data = {
-    #         "raw": image,
-    #         "label": label
-    #     }
+    for i in tqdm(range(100)):
+        image, label = next(iter(train_loader))
+        if image.shape is not None:
+            print("image shape and label shape", image.shape, label.shape)
+        # vis_data = {
+        #     "raw": image,
+        #     "label": label
+        # }
     #     util.visualize_data_napari(vis_data)
 
     trainer = torch_em.default_segmentation_trainer(
@@ -169,7 +172,7 @@ def main():
         save_root=SAVE_DIR,
         # logger=None
     )
-    # check_loader(train_loader, n_samples=10)
+    #check_loader(train_loader, n_samples=10)
     #check_trainer(trainer, n_samples=1)
     trainer.fit(n_iterations)
 
