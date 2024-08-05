@@ -28,15 +28,6 @@ def _write_h5(path, key, image):
 
 
 def process_h5_files(base_path, raw_key, mito_key, cristae_key):
-    """
-    Processes h5 files in a directory, renaming specified keys.
-
-    Args:
-        base_path (str): Path to the directory containing h5 files.
-        old_key (str): The old key name.
-        new_key (str): The new key name.
-    """
-
     h5_files = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
     for path in tqdm(h5_files):
         cristae = None
@@ -58,8 +49,8 @@ def process_h5_files(base_path, raw_key, mito_key, cristae_key):
 def main():
     
     # Example usage
-    #base_path = "/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi/"
-    base_path = "/home/freckmann15/data/mitochondria/corrected_mitos/"
+    base_path = "/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi/"
+    #base_path = "/home/freckmann15/data/mitochondria/corrected_mitos/"
     cristae_key = "labels/cristae"
     mito_key = "labels/mitochondria"
     raw_key = "raw"
