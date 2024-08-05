@@ -319,7 +319,6 @@ def split_data_paths_to_dict(data_paths, rois_list, train_ratio=0.8, val_ratio=0
     Raises:
         ValueError: If the sum of ratios exceeds 1 or the length of data paths and number of ROIs don't match.
     """
-
     if train_ratio + val_ratio + test_ratio != 1.0:
         raise ValueError("Sum of train, validation, and test ratios must equal 1.0.")
     num_data = len(data_paths)
@@ -330,6 +329,9 @@ def split_data_paths_to_dict(data_paths, rois_list, train_ratio=0.8, val_ratio=0
     train_size = int(num_data * train_ratio)
     val_size = int(num_data * val_ratio)  # Optional validation set
     test_size = num_data - train_size - val_size
+    remaining = num_data - (train_size + val_size + test_size)
+    if remaining > 0:
+        test_size += remaining
 
     data_split = {
         "train": data_paths[:train_size],

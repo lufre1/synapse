@@ -90,7 +90,8 @@ def main():
         data_paths = util.get_data_paths(data_dir)
         substring = "_combined.h5"
         data_paths = [s for s in data_paths if substring in s]
-        data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.7, val_ratio=0.3, test_ratio=0)
+        print("len data paths", len(data_paths))
+        data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.75, val_ratio=0.25, test_ratio=0)
 
     end_time = time.time()
     # Calculate execution time in seconds
@@ -152,9 +153,10 @@ def main():
             with_channels=with_channels, with_label_channels=with_label_channels,
             sampler=sampler
         )
-    # for i in range(10):
-    #     image, label = next(iter(train_loader))
-    #     print(image.shape)
+    for i in range(50):
+        image, label = next(iter(train_loader))
+        tmp = image.squeeze()
+        print(tmp[0].shape, tmp[1].shape)
         # vis_data = {
         #     "raw": image[0],
         #     "pred1": image[1],
