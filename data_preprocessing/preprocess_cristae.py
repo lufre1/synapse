@@ -27,45 +27,45 @@ def _write_h5(path, key, image):
         f.create_dataset(key, data=image, dtype=image.dtype)
 
 
-def process_h5_files(base_path, raw_key, mito_key, cristae_key):
+def create_combined(base_path, raw_key, mito_key, cristae_key):
     h5_files = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
     for path in tqdm(h5_files):
         cristae = None
         base, file_name = os.path.split(path)
         fname, _ = os.path.splitext(file_name)
         
-        # cristae = _read_h5(path, cristae_key)
-        # if cristae is None:
-        #     continue
-        # raw = _read_h5(path, raw_key)
-        # mitos = _read_h5(path, mito_key)
+        cristae = _read_h5(path, cristae_key)
+        if cristae is None:
+            continue
+        raw = _read_h5(path, raw_key)
+        mitos = _read_h5(path, mito_key)
         new_path = os.path.join(base, fname + "_combined.h5")
 
-        # combined = np.stack([raw, mitos], axis=0)
+        combined = np.stack([raw, mitos], axis=0)
 
-        # _write_h5(new_path, "raw_mitos_combined", combined)
-        # _write_h5(new_path, "labels/cristae", cristae)
-        combined = None
-        combined = _read_h5(new_path, "raw_mitos_combined")
-        if combined is None:
-            continue
+        _write_h5(new_path, "raw_mitos_combined", combined)
+        _write_h5(new_path, "labels/cristae", cristae)
+
+
+def mitos_to_mask(base_path, combined_key="raw_mitos_combined"):
+    combined_h5_files = sorted(glob(os.path.join(base_path, "**", "*combined.h5"), recursive=True))
+    for path in tqdm(combined_h5_files):
+        combined = _read_h5(path, combined_key)
         print("combined shape: ", combined.shape)
         raw, mitos = combined[0], combined[1]
         print("mitos unique", np.unique(mitos))
-        
-        
-
+        #print("raw unique", np.unique(raw))
 
 def main():
     
     # Example usage
-    base_path = "/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi/"
-    #base_path = "/home/freckmann15/data/mitochondria/corrected_mitos/"
+    #base_path = "/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi/"
+    base_path = "/home/freckmann15/data/mitochondria/corrected_mitos/"
     cristae_key = "labels/cristae"
     mito_key = "labels/mitochondria"
     raw_key = "raw"
 
-    process_h5_files(base_path, raw_key, mito_key, cristae_key)
+    mitos_to_mask(base_path)
 
 
 if __name__ == "__main__":
