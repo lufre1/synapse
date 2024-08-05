@@ -8,7 +8,7 @@
 #SBATCH -c 64
 #SBATCH --ntasks=1
 
-exp_name="mitotomo-net32-bs1-ps32512-lr1e-4-scaling122-withrois-fididata-worois"
+exp_name="mitotomo-net32-bs1-ps56512-lr1e-4-fididata"
 
 source /home/nimlufre/.bashrc
 conda activate synapse
