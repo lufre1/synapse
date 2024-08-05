@@ -18,13 +18,13 @@ from torch_em.util.debug import check_loader, check_trainer
 # Import your util.py for data loading
 import util
 # import data_classes
-from config import DATA_DIR, SAVE_DIR, TEST_DATA_DIR
+from config import DATA_DIR, SAVE_DIR, TEST_DATA_DIR, CRISTAE_DIR
 # from unet import UNet3D
 
 
 def main():
     parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
-    parser.add_argument("--data_dir", type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi/", help="Path to the data directory")
+    parser.add_argument("--data_dir", type=str, default=CRISTAE_DIR, help="Path to the data directory")
     parser.add_argument("--lucchi_data_dir", type=str, default=TEST_DATA_DIR, help="Path to the lucchi data directory (optional)")
     parser.add_argument("--visualize", action="store_true", default=False, help="Visualize data with napari")
     parser.add_argument("--patch_shape", type=int, nargs=3, default=(64, 512, 512), help="Patch shape for data loading (3D tuple)")
