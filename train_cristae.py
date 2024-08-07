@@ -153,10 +153,10 @@ def main():
             with_channels=with_channels, with_label_channels=with_label_channels,
             sampler=sampler
         )
-    for i in range(50):
-        image, label = next(iter(train_loader))
-        tmp = image.squeeze()
-        print(tmp[0].shape, tmp[1].shape)
+    # for i in range(50):
+    #     image, label = next(iter(train_loader))
+    #     tmp = image.squeeze()
+    #     print(tmp[0].shape, tmp[1].shape)
         # vis_data = {
         #     "raw": image[0],
         #     "pred1": image[1],

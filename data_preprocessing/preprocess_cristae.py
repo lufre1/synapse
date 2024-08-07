@@ -27,7 +27,7 @@ def _write_h5(path, key, image):
         f.create_dataset(key, data=image, dtype=image.dtype)
 
 
-def create_combined(base_path, raw_key, mito_key, cristae_key):
+def create_combined(base_path, raw_key="raw", mito_key="labels/mitochondria", cristae_key="labels/cristae"):
     h5_files = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
     for path in tqdm(h5_files):
         cristae = None
@@ -39,6 +39,7 @@ def create_combined(base_path, raw_key, mito_key, cristae_key):
             continue
         raw = _read_h5(path, raw_key)
         mitos = _read_h5(path, mito_key)
+        mitos = np.where(mitos > 0, 1, 0)
         new_path = os.path.join(base, fname + "_combined.h5")
 
         combined = np.stack([raw, mitos], axis=0)
@@ -53,19 +54,19 @@ def mitos_to_mask(base_path, combined_key="raw_mitos_combined"):
         combined = _read_h5(path, combined_key)
         print("combined shape: ", combined.shape)
         raw, mitos = combined[0], combined[1]
-        print("mitos unique", np.unique(mitos))
-        #print("raw unique", np.unique(raw))
+        _write_h5(path, combined_key, np.stack([raw, np.where(mitos > 0, 1, 0)], axis=0))
+
 
 def main():
     
     # Example usage
-    #base_path = "/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi/"
-    base_path = "/home/freckmann15/data/mitochondria/corrected_mitos/"
+    base_path = "/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi/"
+    #base_path = "/home/freckmann15/data/mitochondria/corrected_mitos/"
     cristae_key = "labels/cristae"
     mito_key = "labels/mitochondria"
     raw_key = "raw"
 
-    mitos_to_mask(base_path)
+    create_combined(base_path)
 
 
 if __name__ == "__main__":
