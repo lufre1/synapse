@@ -1,0 +1,79 @@
+import util
+import data_classes
+from config import *
+import h5py
+import argparse
+import os
+from glob import glob
+import numpy as np
+import torch_em
+import napari
+
+
+def _read_h5(path, key, scale_factor):
+    with h5py.File(path, "r") as f:
+        try:
+            print(f"{key} data shape", f[key].shape)
+            image = f[key][:, ::scale_factor, ::scale_factor]
+            print(f"{key} data shape after downsampling", image.shape)
+            # if not key == "raw":
+            #     print(np.unique(image))
+
+        except KeyError:
+            print(f"Error: {key} dataset not found in {path}")
+            return None  # Indicate error
+
+        return image
+
+
+def get_all_keys_from_h5(file_path):
+    keys = []
+    with h5py.File(file_path, 'r') as h5file:
+        def collect_keys(name, obj):
+            if isinstance(obj, h5py.Dataset):
+                keys.append(name)  # Add each key (path) to the list
+        h5file.visititems(collect_keys)  # Visit all groups and datasets
+    return keys
+
+
+def get_file_paths(path):
+    if os.path.isfile(path):
+        return [path]
+    else:
+        paths = sorted(glob(os.path.join(path, "**", "*.h5"), recursive=True))
+        print(f"Found {len(paths)} files:")
+        return paths
+
+
+def visualize_data(data):
+    viewer = napari.Viewer()
+    for key, value in data.items():
+        if key == "raw":
+            viewer.add_image(value, name="Raw")
+        else:
+            viewer.add_labels(value, name=key)
+
+    napari.run()
+
+
+def visualize():
+    parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
+    parser.add_argument("--path", "-p", type=str, required=True, help="Path to the data directory or single file")
+    parser.add_argument("--scale_factor", "-s", type=int, default=1, help="Scale factor for the data")
+    args = parser.parse_args()
+
+    paths = get_file_paths(args.path)
+
+    for path in paths:
+        keys = get_all_keys_from_h5(path)
+        print("data keys", keys)
+        data = {}
+        for key in keys:
+            data[key] = _read_h5(path, key, args.scale_factor)
+
+        if data:
+            visualize_data(data)
+
+
+if __name__ == "__main__":
+    visualize()
