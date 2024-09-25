@@ -1,6 +1,7 @@
 import argparse
 import mrcfile
-import imodmodel as imod
+#import imodmodel as imod
+from tqdm import tqdm
 import napari
 import os
 from glob import glob
@@ -16,8 +17,17 @@ from synaptic_reconstruction.imod.export import get_label_names
 
 
 def _write_h5(path, key, image):
+    if os.path.exists(path):
+        keys = get_all_keys_from_h5(path)
+        if key in keys:
+            print(f"{key} already exists in {path}")
+            return
     with h5py.File(path, "a") as f:
-        f.create_dataset(key, data=image, dtype=image.dtype)
+        if "label" in key:
+            f.create_dataset(key, data=image, dtype=np.uint8, compression="gzip")
+        else:
+            f.create_dataset(key, data=image, dtype=image.dtype)
+    print(f"Saved {key} to \n{path}")
 
 
 def reconstruct_label_mask(imod_data, shape):
@@ -79,16 +89,20 @@ def reconstruct_label_mask(imod_data, shape):
     return label_mask
 
 
-def get_filename_without_extension(file_path):
+def get_filename_and_inter_dirs(file_path, base_path):
     # Extract the base name (filename with extension)
     base_name = os.path.basename(file_path)
-    # Split the base name into name and extension, and return the name
+    # Split the base name into name and extension to get the filename
     file_name = os.path.splitext(base_name)[0]
-    return file_name
+    # Get the relative path of file_path from base_path
+    relative_path = os.path.relpath(file_path, base_path)
+    # Get the intermediate directories by removing the filename from the relative path
+    inter_dirs = os.path.dirname(relative_path)
+    return file_name, inter_dirs
 
 
 def get_segmentation(imod_path, mrc_path, object_id=None, output_path=None, require_object=True):
-    cmd = "imodmop"
+    cmd = "/home/freckmann15/u12103/imod/IMOD/bin/imodmop"#"imodmop"
     cmd_path = shutil.which(cmd)
     assert cmd_path is not None, f"Could not find the {cmd} imod command."
 
@@ -123,12 +137,22 @@ def close_mask(labels, structuring_element_shape=(3, 1, 1), iterations=None):
         return binary_closing(labels, structuring_element)
 
 
-def extract_common_substring(filepath):
+def get_all_keys_from_h5(file_path):
+    keys = []
+    with h5py.File(file_path, 'r') as h5file:
+        def collect_keys(name, obj):
+            if isinstance(obj, h5py.Dataset):
+                keys.append(name)  # Add each key (path) to the list
+        h5file.visititems(collect_keys)  # Visit all groups and datasets
+    return keys
+
+
+def extract_common_substring(filepath, split='_mtk'):
     # Get the filename from the full filepath (in case a path is provided)
     filename = os.path.basename(filepath)
     
     # Split the filename at "mtk" and take the part before it
-    common_substring = filename.split('_mtk')[0]
+    common_substring = filename.split(split)[0]
     
     return common_substring
 
@@ -154,23 +178,37 @@ def _get_bounding_box(label_volume):
     return bbox
 
 
+def create_directories_if_not_exists(base_path, inter_dirs):
+    # Construct the full path from base_path and inter_dirs
+    full_path = os.path.join(base_path, inter_dirs)
+    
+    # Check if the path exists
+    if not os.path.exists(full_path):
+        # If it doesn't exist, create the directories
+        os.makedirs(full_path)
+        print(f"\nCreated directories: {full_path}")
+    else:
+        print(f"\nDirectories already exist: {full_path}")
+
+
 def main(visualize=False):
     parser = argparse.ArgumentParser()
+    # /mnt/lustre-emmy-hdd/projects/nim00007/data/synaptic-reconstruction/cooper/original_imod_data/20240909_cp_datatransfer
     parser.add_argument("--base_path", "-b",  type=str, default="/home/freckmann15/data/mitochondria/cooper/new_mitos", help="Path to the root data directory")
     parser.add_argument("--export_path", "-e",  type=str, default="/home/freckmann15/data/mitochondria/cooper/exported_mitos", help="Path to the root data directory")
     #parser.add_argument("--save_dir", type=str, default="", help="Path to save the data to")
     args = parser.parse_args()
+    print(args.base_path)
 
-    #base_path = "/home/freckmann15/data/mitochondria/fidi_orig/20240722_WT"
     mod_paths = sorted(glob(os.path.join(args.base_path, "**", "*.mod"), recursive=True))#, reverse=True)
     mrc_paths = sorted(glob(os.path.join(args.base_path, "**", "*.rec"), recursive=True))#, reverse=True)
     # use this for 06
-    mod_paths = sorted(glob(os.path.join(args.base_path, "*.mod")), reverse=True)
-    mrc_paths = sorted(glob(os.path.join(args.base_path, "*.mrc")), reverse=True)
-    for mod_path, mrc_path in zip(mod_paths, mrc_paths):
+    # mod_paths = sorted(glob(os.path.join(args.base_path, "*.mod")), reverse=True)
+    # mrc_paths = sorted(glob(os.path.join(args.base_path, "*.mrc")), reverse=True)
+    for mod_path, mrc_path in tqdm(zip(mod_paths, mrc_paths)):
         scale_down = False
         if ".rec" in mrc_path:
-            common_substring = extract_common_substring(mod_path)
+            common_substring = extract_common_substring(mod_path, split='.mod')
             if common_substring not in mrc_path:
                 print("\nlooking for correct rec file", common_substring, "\n")
                 mrc_path = next((path for path in mrc_paths if common_substring in os.path.basename(path)), None)
@@ -178,20 +216,26 @@ def main(visualize=False):
         elif ".mrc" in mrc_path:
             scale_down = False
         label_names = get_label_names(mod_path)
-        print(label_names)
+        #print(label_names)
 
         mito_keys = [key for key, value in label_names.items() if "mito" in value.lower()]
         if not mito_keys:
+            print("\nNo mito labels found in", mod_path)
             continue
+        else:
+            print("\nFound mito labels in", mod_path, mito_keys)
         if visualize:
             print(f"Visualizing \n{mod_path} and \n{mrc_path}")
+        if mrc_path is None:
+            print("Could not find a mrc or rec file for", mod_path)
+            continue
         raw = mrcfile.open(mrc_path)
         shape = raw.data.shape
 
         # mean = np.mean(raw.data)
         # print("Min and Max values: ", raw.data.min(), raw.data.max())
         # print("mean and np.unique mit count", mean ) # np.unique(raw.data, return_counts=True))
-        labels = imod.read(mod_path).to_numpy("float")
+        #labels = imod.read(mod_path).to_numpy("float")
 
         if visualize:
             v = napari.Viewer()
@@ -214,7 +258,13 @@ def main(visualize=False):
         #         continue
         #     labels = np.flip(labels, axis=1)
         #     v.add_labels(labels, name="mv_" + str(key))
-        export_file_name = get_filename_without_extension(mod_path)
+        export_file_name, rel_path = get_filename_and_inter_dirs(mod_path, args.base_path)
+        create_directories_if_not_exists(args.export_path, rel_path)
+        export_file_path = os.path.join(args.export_path, rel_path, export_file_name + ".h5")
+        # if os.path.isfile(export_file_path):
+        #     print(f"\nPath already exists: {export_file_path}")
+        #     continue
+        print("\nexporting to", export_file_path)
         bbox = None
         for key in mito_keys:
             labels_raw = get_segmentation(mod_path, mrc_path, require_object=False, object_id=key)
@@ -235,7 +285,7 @@ def main(visualize=False):
             if visualize:
                 v.add_labels(labels, name="mito_" + str(key))
             else:
-                _write_h5(os.path.join(args.export_path, export_file_name + ".h5"), "labels/mitochondria", labels)
+                _write_h5(export_file_path, "labels/mitochondria", labels)
         if scale_down:
             raw_data = raw.data[::scale_down, ::scale_down, ::scale_down]
         else:
@@ -246,7 +296,7 @@ def main(visualize=False):
             v.add_image(raw_data)
             napari.run()
         else:
-            _write_h5(os.path.join(args.export_path, export_file_name + ".h5"), "raw", raw_data)
+            _write_h5(export_file_path, "raw", raw_data)
 
 
 if __name__ == "__main__":
