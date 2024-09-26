@@ -89,6 +89,9 @@ def main():
         data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
     else:
         data_paths = util.get_data_paths(data_dir)
+        for path in data_paths:
+            if "combined" in path:
+                data_paths.remove(path)
         data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.8, val_ratio=0.2, test_ratio=0)
 
     end_time = time.time()
@@ -150,10 +153,10 @@ def main():
             with_channels=with_channels, with_label_channels=with_label_channels,
             sampler=sampler
         )
-    for i in tqdm(range(100)):
-        image, label = next(iter(train_loader))
-        if image.shape is not None:
-            print("image shape and label shape", image.shape, label.shape)
+    # for i in tqdm(range(100)):
+    #     image, label = next(iter(train_loader))
+    #     if image.shape is not None:
+    #         print("image shape and label shape", image.shape, label.shape)
         # vis_data = {
         #     "raw": image,
         #     "label": label

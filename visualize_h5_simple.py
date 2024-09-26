@@ -60,11 +60,15 @@ def visualize():
     parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
     parser.add_argument("--path", "-p", type=str, required=True, help="Path to the data directory or single file")
     parser.add_argument("--scale_factor", "-s", type=int, default=1, help="Scale factor for the data")
+    parser.add_argument("--no_visualize", "-nv", action="store_true", default=False, help="Don't visualize data with napari")
     args = parser.parse_args()
 
     paths = get_file_paths(args.path)
 
     for path in paths:
+        print(path)
+        if path == "/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi/36859_J1_66K_TS_CA3_MF_18_rec_2Kb1dawbp_crop.h5":
+            continue
         keys = get_all_keys_from_h5(path)
         keys.sort(reverse=True)
         print("data keys", keys)
@@ -73,7 +77,7 @@ def visualize():
         for key in keys:
             data[key] = _read_h5(path, key, args.scale_factor)
 
-        if data:
+        if data and not args.no_visualize:
             visualize_data(data)
 
 
