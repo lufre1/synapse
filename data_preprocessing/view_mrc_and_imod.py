@@ -147,6 +147,28 @@ def get_all_keys_from_h5(file_path):
     return keys
 
 
+def find_matching_rec_file(mod_file, rec_files):
+    # Extract base name of the mod file (without extension)
+    mod_name = os.path.basename(mod_file)
+    
+    # Remove 'mtk_' and '.mod' parts from the mod file name to get the identifier
+    mod_base = mod_name.replace('mtk_', '').replace('.mod', '')
+
+    # Now loop over rec files to find a match
+    for rec_file in rec_files:
+        rec_name = os.path.basename(rec_file)
+        
+        # Normalize rec file name: remove '_SP.rec' or '.rec'
+        rec_base = rec_name.replace('_SP.rec', '').replace('.rec', '')
+        
+        # Check if the relevant part of mod file name is in the rec file name
+        if mod_base in rec_base:
+            return rec_file
+    
+    # If no exact match is found, return None (or raise an error)
+    return None
+
+
 def extract_common_substring(filepath, split='_mtk'):
     # Get the filename from the full filepath (in case a path is provided)
     filename = os.path.basename(filepath)
@@ -208,11 +230,13 @@ def main(visualize=False):
     for mod_path, mrc_path in tqdm(zip(mod_paths, mrc_paths)):
         scale_down = False
         if ".rec" in mrc_path:
-            common_substring = extract_common_substring(mod_path, split='.mod')
-            if common_substring not in mrc_path:
-                print("\nlooking for correct rec file", common_substring, "\n")
-                mrc_path = next((path for path in mrc_paths if common_substring in os.path.basename(path)), None)
-                print(mrc_path)
+            # common_substring = extract_common_substring(mod_path, split='.mod')
+            # if common_substring not in mrc_path:
+            #     print("\nlooking for correct rec file", common_substring, "\n")
+            #     mrc_path = next((path for path in mrc_paths if common_substring in os.path.basename(path)), None)
+            #     print(mrc_path)
+            mrc_path = find_matching_rec_file(mod_path, mrc_paths)
+            print("\n", mrc_path, mod_path, "\n")
         elif ".mrc" in mrc_path:
             scale_down = False
         label_names = get_label_names(mod_path)
