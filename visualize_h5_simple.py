@@ -66,7 +66,9 @@ def visualize():
 
     for path in paths:
         keys = get_all_keys_from_h5(path)
+        keys.sort(reverse=True)
         print("data keys", keys)
+        print("in path", path)
         data = {}
         for key in keys:
             data[key] = _read_h5(path, key, args.scale_factor)
