@@ -15,6 +15,7 @@ from torch_em.data import MinInstanceSampler
 from torch_em.model import AnisotropicUNet
 from torch_em.util.debug import check_loader, check_trainer
 from tqdm import tqdm
+import random
 
 # Import your util.py for data loading
 import util
@@ -89,9 +90,11 @@ def main():
         data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
     else:
         data_paths = util.get_data_paths(data_dir)
+        
         for path in data_paths:
             if "combined" in path:
                 data_paths.remove(path)
+        random.shuffle(data_paths)
         data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.8, val_ratio=0.2, test_ratio=0)
 
     end_time = time.time()
@@ -153,6 +156,17 @@ def main():
             with_channels=with_channels, with_label_channels=with_label_channels,
             sampler=sampler
         )
+    print("all val paths:")
+    for path in data["val"]:
+        print(path)
+    
+    val_iter = iter(val_loader)
+    try:
+        image, label = next(val_iter)
+        print("Validation data exists:", image.shape, label.shape)
+    except StopIteration:
+        print("val_loader is empty!")
+        return 0
     # for i in tqdm(range(100)):
     #     image, label = next(iter(train_loader))
     #     if image.shape is not None:

@@ -4,7 +4,7 @@
 #SBATCH --time=2-00:00:00
 #SBATCH --account=nim00007
 #SBATCH --nodes=1
-#SBATCH -c 16
+#SBATCH -c 8
 #SBATCH --mem 128G
 #SBATCH --job-name=train-mito-net32
 #SBATCH --constraint 80gb
