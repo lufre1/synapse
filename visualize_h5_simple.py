@@ -65,6 +65,7 @@ def visualize():
 
     paths = get_file_paths(args.path)
 
+    shapes = []
     for path in paths:
         print(path)
         if path == "/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi/36859_J1_66K_TS_CA3_MF_18_rec_2Kb1dawbp_crop.h5":
@@ -79,6 +80,21 @@ def visualize():
 
         if data and not args.no_visualize:
             visualize_data(data)
+        if data:
+            shapes.append(data["raw"].shape)
+            # print("data.keys", data.keys())
+            # shapes = []
+            # for key, value in data.items():
+            #     print(key, value.shape)
+            #     shapes.append(value.shape)
+            # print("shapes", shapes)
+            # avg0 = np.mean(shapes, axis=0)    
+            # avg1 = np.mean(data["raw"].shape, axis=1)    
+            # avg2 = np.mean(data["raw"].shape, axis=2)    
+            # print(avg0)#, avg1.shape, avg2.shape)
+    for shape in shapes:
+        print(shape)
+    print("average shapes", np.mean(shapes, axis=0))
 
 
 if __name__ == "__main__":
