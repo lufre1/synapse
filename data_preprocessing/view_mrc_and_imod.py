@@ -213,14 +213,16 @@ def create_directories_if_not_exists(base_path, inter_dirs):
         print(f"\nDirectories already exist: {full_path}")
 
 
-def main(visualize=False):
+def main():
     parser = argparse.ArgumentParser()
     # /mnt/lustre-emmy-hdd/projects/nim00007/data/synaptic-reconstruction/cooper/original_imod_data/20240909_cp_datatransfer
     parser.add_argument("--base_path", "-b",  type=str, default="/home/freckmann15/data/mitochondria/cooper/new_mitos", help="Path to the root data directory")
     parser.add_argument("--export_path", "-e",  type=str, default="/home/freckmann15/data/mitochondria/cooper/exported_mitos", help="Path to the root data directory")
+    parser.add_argument("--visualize", "-v", type=bool, default=False, help="If to visualize or not")
     #parser.add_argument("--save_dir", type=str, default="", help="Path to save the data to")
     args = parser.parse_args()
     print(args.base_path)
+    visualize = args.visualize
 
     mod_paths = sorted(glob(os.path.join(args.base_path, "**", "*.mod"), recursive=True))#, reverse=True)
     mrc_paths = sorted(glob(os.path.join(args.base_path, "**", "*.rec"), recursive=True))#, reverse=True)

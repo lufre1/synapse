@@ -40,6 +40,8 @@ def convert_mask_to_labels(file_path, key):
 
 
 def check_labels(file_path, key):
+    print("file path", file_path)
+    print("with key", key)
     with h5py.File(file_path, 'r') as hdf5_file:
         if key in hdf5_file:
             label_data = hdf5_file[key][:]
@@ -63,13 +65,16 @@ def process_h5_files(base_path, old_key, new_key):
         # convert_mask_to_labels(file_path, "labels/mitochondria")
         # convert_mask_to_labels(file_path, "labels/cristae")
         check_labels(file_path, "labels/mitochondria")
-        check_labels(file_path, "labels/cristae")
+        convert_mask_to_labels(file_path, "labels/mitochondria")
+        check_labels(file_path, "labels/mitochondria")
+        #check_labels(file_path, "labels/cristae")
 
 
 def main():
     
     # Example usage
     base_path = "/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi/"
+    base_path = "/home/freckmann15/data/mitochondria/cooper/new_mitos/"
     old_key = "labels/mitchondria"
     new_key = "labels/mitochondria"  
 
