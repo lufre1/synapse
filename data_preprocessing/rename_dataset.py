@@ -59,14 +59,15 @@ def process_h5_files(base_path, old_key, new_key):
     """
 
     h5_files = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
+    print("h5 files", h5_files)
     for h5_file in tqdm(h5_files):
         file_path = os.path.join(base_path, h5_file)
         # rename_h5_key(file_path, old_key, new_key)
         # convert_mask_to_labels(file_path, "labels/mitochondria")
         # convert_mask_to_labels(file_path, "labels/cristae")
         check_labels(file_path, "labels/mitochondria")
-        convert_mask_to_labels(file_path, "labels/mitochondria")
-        check_labels(file_path, "labels/mitochondria")
+        # convert_mask_to_labels(file_path, "labels/mitochondria")
+        #check_labels(file_path, "labels/mitochondria")
         #check_labels(file_path, "labels/cristae")
 
 
@@ -74,9 +75,9 @@ def main():
     
     # Example usage
     base_path = "/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi/"
-    base_path = "/home/freckmann15/data/mitochondria/cooper/new_mitos/"
+    #base_path = "/home/freckmann15/data/mitochondria/cooper/new_mitos/"
     old_key = "labels/mitchondria"
-    new_key = "labels/mitochondria"  
+    new_key = "labels/mitochondria"
 
     process_h5_files(base_path, old_key, new_key)
 

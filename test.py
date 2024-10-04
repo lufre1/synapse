@@ -84,6 +84,7 @@ def test():
 
     if checkpoint_path:
         model = torch_em.util.load_model(checkpoint=checkpoint_path, device=device)
+        print("checkpoint loaded")
         # state_dict = torch.load(checkpoint_path, map_location="cpu")["model_state"] #torch.device("cpu")
         # state_dict = util.remove_prefix_from_keys(state_dict)
         # print("\n", state_dict.keys(), "\n")
