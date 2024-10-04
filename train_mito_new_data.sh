@@ -15,7 +15,7 @@ source /home/nimlufre/.bashrc
 conda activate synapse
 
 python /user/freckmann15/u12103/synapse/main.py \
-  --experiment_name "mitotomo-net32-bs2-ps64512-lr1e-4-new_mitos" \
+  --experiment_name "mitotomo-net32-bs2-ps64512-lr1e-4-all-mitos" \
   --data_dir /scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi \
   --n_iterations 100000 \
   --patch_shape 64 512 512 \
