@@ -110,6 +110,8 @@ def main():
     )
     print(model)
     if checkpoint_path or os.path.exists(os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")):
+        if not checkpoint_path:
+            checkpoint_path = os.path.join(SAVE_DIR, "checkpoints", experiment_name)
         model = torch_em.util.load_model(checkpoint=checkpoint_path, device=device)
         # state_dict = torch.load(checkpoint_path, map_location=torch.device("cpu"))["model_state"]
         # model.load_state_dict(state_dict)
