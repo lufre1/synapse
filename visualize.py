@@ -47,14 +47,14 @@ def visualize():
         data_paths = []
         data_paths.append(args.file_path)
     else:
-        data_paths = glob(os.path.join(pred_dir, "**", "*.h5"), recursive=True)
-    raw_data_paths = glob(os.path.join(raw_data_path, "**", "*.h5"), recursive=True)
+        data_paths = sorted(glob(os.path.join(pred_dir, "**", "*.h5"), recursive=True))
+    raw_data_paths = sorted(glob(os.path.join(raw_data_path, "**", "*.h5"), recursive=True))
     if raw_file_path:
         raw_data_paths = [raw_file_path]
     if pred_path:
         data_paths = [pred_path]
     for i, data_path in enumerate(data_paths):
-        print(f"Visualizing {data_path}...")
+        print(f"Visualizing {data_path} and\n {raw_data_paths[i]}")
         with h5py.File(data_path, "r") as f:
             print("Prediction shape:", f["prediction"].shape)
             pred = f["prediction"][:, :, ::int(scale_factor/2), ::int(scale_factor/2)]
