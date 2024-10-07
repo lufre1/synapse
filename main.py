@@ -52,7 +52,7 @@ def main():
     initial_features = args.feature_size
     with_rois = not args.without_rois
 
-    n_workers = 4 if torch.cuda.is_available() else 1
+    n_workers = 12 if torch.cuda.is_available() else 1
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"\n Experiment: {experiment_name}\n")
     print(f"Using {device} with {n_workers} workers.")
@@ -94,8 +94,9 @@ def main():
         for path in data_paths:
             if "combined" in path:
                 data_paths.remove(path)
-        random.shuffle(data_paths)
-        data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.8, val_ratio=0.2, test_ratio=0)
+        #random.shuffle(data_paths)
+        data_paths.sort(reverse=True)
+        data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.8, val_ratio=0.15, test_ratio=0.05)
 
     end_time = time.time()
     # Calculate execution time in seconds
@@ -108,19 +109,24 @@ def main():
         in_channels=in_channels, out_channels=out_channels, initial_features=initial_features,
         final_activation=final_activation, gain=gain, scale_factors=scale_factors
     )
-    print(model)
+    print("does checkpoint exist at", os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt"), "?")
+    print(os.path.exists(os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")))
     if checkpoint_path or os.path.exists(os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")):
+        if not checkpoint_path:
+            checkpoint_path = os.path.join(SAVE_DIR, "checkpoints", experiment_name)
         model = torch_em.util.load_model(checkpoint=checkpoint_path, device=device)
+        print("loaded model from checkpoint:", os.path.join(SAVE_DIR, "checkpoints", experiment_name))
         # state_dict = torch.load(checkpoint_path, map_location=torch.device("cpu"))["model_state"]
         # model.load_state_dict(state_dict)
         
         model.to(device)
-
+    print(model)
     with_channels = False
     with_label_channels = False
     sampler = MinInstanceSampler(p_reject=0.95)
 
-    print("train", len(data["train"]), "val", len(data["val"]))
+    print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
+    print("data['test']", data["test"])
 
     if with_rois:
         train_loader = torch_em.default_segmentation_loader(
@@ -156,9 +162,9 @@ def main():
             with_channels=with_channels, with_label_channels=with_label_channels,
             sampler=sampler
         )
-    print("all val paths:")
-    for path in data["val"]:
-        print(path)
+    # print("all val paths:")
+    # for path in data["val"]:
+    #     print(path)
     
     val_iter = iter(val_loader)
     try:
