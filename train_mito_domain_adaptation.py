@@ -35,8 +35,7 @@ def main():
     parser.add_argument("--experiment_name", type=str, default="mito-domain-adapt", help="Name that is used for the experiment and store the model's weights")
     parser.add_argument("--data_dir", type=str, default="/mnt/lustre-emmy-hdd/projects/nim00007/data/synaptic-reconstruction/wichmann/extracted/endbulb_of_held", help="Path to the data directory")
     parser.add_argument("--patch_shape", type=int, nargs=3, default=(64, 512, 512), help="Patch shape for data loading (3D tuple)")
-    parser.add_argument("--checkpoint_path_student", type=str, default="", help="Path to checkpoint used to load model's state_dict for student")
-    parser.add_argument("--checkpoint_path_teacher", "-cpt", required=True, type=str, default="", help="Path to checkpoint used to load model's state_dict for teacher")
+    parser.add_argument("--checkpoint_path", required=True, type=str, default="", help="Path to checkpoint used to load model's state_dict for teacher")
     args = parser.parse_args()
     
     run_structure_domain_adaptation(args)

@@ -117,7 +117,7 @@ def main():
     
     # Example usage
     base_path = "/home/freckmann15/data/mitochondria/cooper/test_mitos"
-    #base_path = "/home/freckmann15/data/mitochondria/cooper/new_mitos/"
+    base_path = "/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi"
     old_key = "labels/mitchondria"
     new_key = "labels/mitochondria"
 

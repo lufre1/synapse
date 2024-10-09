@@ -15,11 +15,11 @@ source /home/nimlufre/.bashrc
 conda activate synapse
 
 python /user/freckmann15/u12103/synapse/main.py \
-  --experiment_name "mitotomo-net32-bs2-ps64512-lr1e-4-latest-1" \
-  --data_dir /scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi \
+  --experiment_name "mitotomo-net32-bs4-ps32256-lr1e-4-downscaled" \
+  --data_dir /scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2 \
   --n_iterations 100000 \
-  --patch_shape 64 512 512 \
-  --batch_size 1 \
+  --patch_shape 32 256 256 \
+  --batch_size 4 \
   --learning_rate 1e-4 \
   --feature_size 32 \
   --without_rois 1
