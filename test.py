@@ -52,7 +52,7 @@ def test():
     save_dir = args.save_dir
     file_path = args.file_path
 
-    n_workers = 4 if torch.cuda.is_available() else 1
+    n_workers = 8 if torch.cuda.is_available() else 1
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"\n Experiment: {experiment_name}\n")
     print(f"Using {device} with {n_workers} workers.")
@@ -122,8 +122,9 @@ def test():
             print("file number and file path:", i, data_path)
             image = f["raw"][:]
             # label = label["labels/mitochondria"]
+            halo = [patch_shape[0] // 4, patch_shape[1] // 8, patch_shape[2] // 8]
             image = torch_em.transform.raw.standardize(image, mean=np.mean(image), std=np.std(image))
-            pred = util.run_prediction(image, model)
+            pred = util.run_prediction(image, model, block_shape=patch_shape, halo=halo)
             prediction_filepath = os.path.join(predictions_dir, f"{experiment_name}_prediction_{util.get_filename_from_path(data_path)}")
             with h5py.File(prediction_filepath, "w") as prediction_file:
                 prediction_file.create_dataset("prediction", data=pred[:, :, ::down_scale_factor, ::down_scale_factor])
