@@ -82,6 +82,11 @@ def visualize():
             visualize_data(data)
         if data:
             shapes.append(data["raw"].shape)
+            print("min", np.min(data["raw"]))
+            print("max", np.max(data["raw"]))
+            print("mean", np.mean(data["raw"]))
+            print("std", np.std(data["raw"]))
+            print("percentile", np.percentile(data["raw"], [0, 25, 50, 75, 100]))
             # print("data.keys", data.keys())
             # shapes = []
             # for key, value in data.items():

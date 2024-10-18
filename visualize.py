@@ -23,7 +23,7 @@ def visualize():
     pred_path = args.pred_path
     raw_file_path = args.file_path
 
-    scale_factor = 4
+    scale_factor = 1
     if args.single_file_path:
         image = None
         label = None
@@ -57,7 +57,7 @@ def visualize():
         print(f"Visualizing {data_path} and\n {raw_data_paths[i]}")
         with h5py.File(data_path, "r") as f:
             print("Prediction shape:", f["prediction"].shape)
-            pred = f["prediction"][:, :, ::int(scale_factor/2), ::int(scale_factor/2)]
+            pred = f["prediction"][:, :, ::int(scale_factor), ::int(scale_factor)]
             print("Prediction shape after downsampling:", pred.shape)
             threshold = 0.75 #.85
             pred_foreground = (pred[0, :, :, :] > threshold).astype(np.uint8)
