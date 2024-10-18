@@ -2,6 +2,7 @@ import argparse
 import os
 from glob import glob
 from tqdm import tqdm
+import mrcfile
 
 
 def main(visualize=False):
@@ -14,11 +15,15 @@ def main(visualize=False):
     print(args.base_path)
 
     mod_paths = sorted(glob(os.path.join(args.base_path, "**", "*.mod"), recursive=True))#, reverse=True)
-    mrc_paths = sorted(glob(os.path.join(args.base_path, "**", "*.mrc"), recursive=True))#, reverse=True)
+    mrc_paths = sorted(glob(os.path.join(args.base_path, "**", "*.rec"), recursive=True))#, reverse=True)
     print("len(mod_paths)", len(mod_paths))
     print("len(mrc_paths)", len(mrc_paths))
-    for mod_path, mrc_path in tqdm(zip(mod_paths, mrc_paths)):
-        print("\n", mod_path, "\n", mrc_path, "\n")
+    # for mod_path, mrc_path in tqdm(zip(mod_paths, mrc_paths)):
+    for mrc_path in tqdm(mrc_paths):
+        with mrcfile.open(mrc_path) as mrc:
+            print(mrc_path)
+            print(mrc.voxel_size, "\n")
+        # print("\n", mod_path, "\n", mrc_path, "\n")
     # use this for 06
 
 

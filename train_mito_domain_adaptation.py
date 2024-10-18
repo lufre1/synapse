@@ -1,11 +1,13 @@
 import argparse
 import os
 from glob import glob
+import random
 
 from sklearn.model_selection import train_test_split
 from synaptic_reconstruction.training.domain_adaptation import mean_teacher_adaptation
 
 from config import SAVE_DIR
+
 
 ROOT = "/mnt/lustre-emmy-hdd/projects/nim00007/data/synaptic-reconstruction/wichmann/extracted/endbulb_of_held"
 NAMES = ["vesicle_pools", "tether", "rat"]
@@ -15,10 +17,18 @@ def _get_paths(root):
     paths = sorted(glob(os.path.join(root, "**", "*.h5")))
     return paths
 
+def sampler_func(pseudo_labels, label_filter, p=0.95):
+    use_sample = (pseudo_labels == label_filter).any().item()
+    if use_sample:
+        return True
+    else:
+        random.random() > p
+        
 
 def run_structure_domain_adaptation(args):
     paths = _get_paths(args.data_dir)
     train_paths, val_paths = train_test_split(paths, test_size=0.15, random_state=42)
+    sampler = sampler_func
     mean_teacher_adaptation(
         name=args.experiment_name,
         unsupervised_train_paths=train_paths,
@@ -29,6 +39,7 @@ def run_structure_domain_adaptation(args):
         lr=args.learning_rate,
         save_root=SAVE_DIR,
         source_checkpoint=args.checkpoint_path,
+        sampler=sampler
     )
 
 
