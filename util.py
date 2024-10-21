@@ -503,14 +503,14 @@ def visualize_data_napari(data):
         else:
             label_data = data["pred1"]
 
-        viewer.add_image(label_data.astype(float), name="Foreground Prediction")
+        viewer.add_image(label_data.astype(float), blending="additive", name="Foreground Prediction")
     if "pred2" in data.keys():
         if isinstance(data["pred2"], torch.Tensor):
             label_data = data["pred2"].cpu().detach().numpy()
         else:
             label_data = data["pred2"]
 
-        viewer.add_image(label_data.astype(float), name="Boundary Prediction")
+        viewer.add_image(label_data.astype(float), blending="additive", name="Boundary Prediction")
 
     # Show the napari viewer
     napari.run()
