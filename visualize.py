@@ -60,8 +60,10 @@ def visualize():
             pred = f["prediction"][:, :, ::int(scale_factor), ::int(scale_factor)]
             print("Prediction shape after downsampling:", pred.shape)
             threshold = 0.75 #.85
-            pred_foreground = (pred[0, :, :, :] > threshold).astype(np.uint8)
-            pred_boundaries = (pred[1, :, :, :] > (threshold-.3)).astype(np.uint8)
+            # pred_foreground = (pred[0, :, :, :] > threshold).astype(np.uint8)
+            # pred_boundaries = (pred[1, :, :, :] > (threshold-.3)).astype(np.uint8)
+            pred_foreground = pred[0, :, :, :]
+            pred_boundaries = pred[1, :, :, :]
         # breakpoint()
         with h5py.File(raw_data_paths[i], "r") as f:
             if "raw" in f:
