@@ -29,6 +29,9 @@ def sampler_func(pseudo_labels, label_filter, p=0.95):
 def run_structure_domain_adaptation(args):
     paths = _get_paths(args.data_dir)
     train_paths, val_paths = train_test_split(paths, test_size=0.15, random_state=42)
+    train_paths, test_paths = train_test_split(train_paths, test_size=0.10, random_state=42)
+    print(f"train_paths {len(train_paths)} val_paths {len(val_paths)} test_paths {len(test_paths)}")
+    print(f"all test_paths {test_paths}")
     sampler = sampler_func
     print(f"\n {args.experiment_name} \n")
     mean_teacher_adaptation(
@@ -43,7 +46,7 @@ def run_structure_domain_adaptation(args):
         source_checkpoint=args.checkpoint_path,
         sampler=sampler,
         confidence_threshold=args.confidence_threshold,
-        early_stopping=3,
+        #early_stopping=3,
     )
 
 
