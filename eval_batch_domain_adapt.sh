@@ -8,7 +8,8 @@
 #SBATCH --ntasks=1
 #SBATCH --constraint 80gb
 
-exp_name="mito-domain-adapt-s2-sampler"
+exp_name="mito-domain-adapt-s2-sampler-ct25"
+#"mito-domain-adapt-s2-sampler"
 
 source /home/nimlufre/.bashrc
 conda activate synapse
@@ -17,8 +18,9 @@ python /user/freckmann15/u12103/synapse/test.py \
   --experiment_name $exp_name \
   --down_scale_factor 1 \
   --checkpoint_path /scratch-grete/usr/nimlufre/synapse/mito_segmentation/checkpoints/$exp_name \
-  --patch_shape 32 512 512 \
+  --patch_shape 32 256 256 \
   --file_path /scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_MF_18_rec_2Kb1dawbp_crop_downscaled.h5
+
   # /scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi/36859_J1_66K_TS_CA3_PS_52_rec_2Kb1dawbp_crop.h5
 # /scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi/36859_J1_66K_TS_CA3_PS_23_rec_2Kb1dawbp_crop.h5
 #  --data_dir /scratch-grete/projects/nim00007/data/mitochondria/moebius/volume_em/training_blocks_v1/ 

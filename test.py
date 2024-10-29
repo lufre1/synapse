@@ -122,7 +122,11 @@ def test():
             print("file number and file path:", i, data_path)
             image = f["raw"][:]
             # label = label["labels/mitochondria"]
-            halo = [patch_shape[0] // 4, patch_shape[1] // 8, patch_shape[2] // 8]
+            # old halo calculation
+            # halo = [patch_shape[0] // 4, patch_shape[1] // 8, patch_shape[2] // 8]
+            halo = [patch_shape[0] // 8, patch_shape[1] // 8, patch_shape[2] // 8]
+            patch_shape = [p - h * 2 for p, h in zip(patch_shape, halo)]
+            print(f"new patch shape: {patch_shape} and new halo: {halo}")
             image = torch_em.transform.raw.standardize(image, mean=np.mean(image), std=np.std(image))
             pred = util.run_prediction(image, model, block_shape=patch_shape, halo=halo)
             prediction_filepath = os.path.join(predictions_dir, f"{experiment_name}_prediction_{util.get_filename_from_path(data_path)}")

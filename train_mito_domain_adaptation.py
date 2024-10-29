@@ -17,6 +17,7 @@ def _get_paths(root):
     paths = sorted(glob(os.path.join(root, "**", "*.h5")))
     return paths
 
+
 def sampler_func(pseudo_labels, label_filter, p=0.95):
     use_sample = (pseudo_labels == label_filter).any().item()
     if use_sample:
@@ -29,6 +30,7 @@ def run_structure_domain_adaptation(args):
     paths = _get_paths(args.data_dir)
     train_paths, val_paths = train_test_split(paths, test_size=0.15, random_state=42)
     sampler = sampler_func
+    print(f"\n {args.experiment_name} \n")
     mean_teacher_adaptation(
         name=args.experiment_name,
         unsupervised_train_paths=train_paths,
@@ -39,7 +41,8 @@ def run_structure_domain_adaptation(args):
         lr=args.learning_rate,
         save_root=SAVE_DIR,
         source_checkpoint=args.checkpoint_path,
-        sampler=sampler
+        sampler=sampler,
+        confidence_threshold=args.confidence_threshold,
     )
 
 
@@ -50,8 +53,9 @@ def main():
     parser.add_argument("--patch_shape", type=int, nargs=3, default=(32, 256, 256), help="Patch shape for data loading (3D tuple)")
     parser.add_argument("--checkpoint_path", required=True, type=str, default="", help="Path to checkpoint used to load model's state_dict for teacher")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
-    parser.add_argument("--n_iterations", type=int, default=100000, help="Number of training iterations")
+    parser.add_argument("--n_iterations", type=int, default=10000, help="Number of training iterations")
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate")
+    parser.add_argument("--confidence_threshold", type=float, default=0.75, help="Confidence threshold for pseudo-labeling")
     args = parser.parse_args()
     
     run_structure_domain_adaptation(args)
