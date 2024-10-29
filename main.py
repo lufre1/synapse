@@ -37,6 +37,7 @@ def main():
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
     parser.add_argument("--feature_size", type=int, default=32, help="Initial feature size of the 3D UNet")
     parser.add_argument("--without_rois", type=bool, default=False, help="Train without Regions Of Interest (ROI)")
+    parser.add_argument("--early_stopping", type=int, default=10, help="Number of epochs without improvement before stopping training")
 
     # Parse arguments
     args = parser.parse_args()
@@ -51,6 +52,7 @@ def main():
     patch_shape = args.patch_shape
     initial_features = args.feature_size
     with_rois = not args.without_rois
+    early_stopping = args.early_stopping
 
     n_workers = 12 if torch.cuda.is_available() else 1
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -193,6 +195,7 @@ def main():
         device=device,
         compile_model=False,
         save_root=SAVE_DIR,
+        early_stopping=early_stopping,
         # logger=None
     )
     #check_loader(train_loader, n_samples=10)

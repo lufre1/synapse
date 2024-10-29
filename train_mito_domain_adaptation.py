@@ -43,6 +43,7 @@ def run_structure_domain_adaptation(args):
         source_checkpoint=args.checkpoint_path,
         sampler=sampler,
         confidence_threshold=args.confidence_threshold,
+        early_stopping=3,
     )
 
 
