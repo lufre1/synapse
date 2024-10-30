@@ -159,6 +159,7 @@ def post_process():
     parser.add_argument("--scale_factor", "-s", type=int, default=1, help="Scale factor for the data")
     parser.add_argument("--visualize", "-v", action="store_true", default=False, help="Don't visualize data with napari")
     parser.add_argument("--patch_shape", "-ps", type=int, nargs=3, default=(32, 256, 256), help="Patch shape for data loading (3D tuple) also used for chunks")
+    parser.add_argument("--raw_path", "-rp", type=str, default="", help="Path to the raw data single file")
     args = parser.parse_args()
 
     paths = get_file_paths(args.path)
@@ -185,6 +186,10 @@ def post_process():
             }
             visualize_data(vis_data)
         new_path = change_file_extension(path, new_extension=".h5")
+        raw = None
+        if args.raw_path:
+            with h5py.File(args.raw_path, "r") as f:
+                raw = f["raw"]
         with h5py.File(new_path, "a") as f:
             f.create_dataset(
                 "segmentation", data=seg,
@@ -193,6 +198,11 @@ def post_process():
                 dtype="uint32",
                 chunks=args.patch_shape
             )
+            if raw is not None:
+                f.create_dataset(
+                    "raw", data=raw,
+                    chunks=args.patch_shape
+                )
         print(f"Saved segmentation to {new_path}")
 
 
