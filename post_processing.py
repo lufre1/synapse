@@ -189,7 +189,7 @@ def post_process():
         raw = None
         if args.raw_path:
             with h5py.File(args.raw_path, "r") as f:
-                raw = f["raw"]
+                raw = np.array(f["raw"])
         with h5py.File(new_path, "a") as f:
             f.create_dataset(
                 "segmentation", data=seg,
@@ -201,7 +201,6 @@ def post_process():
             if raw is not None:
                 f.create_dataset(
                     "raw", data=raw,
-                    chunks=args.patch_shape
                 )
         print(f"Saved segmentation to {new_path}")
 
