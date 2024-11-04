@@ -63,7 +63,7 @@ def visualize_data(data):
     napari.run()
 
 
-def change_file_extension(file_path, new_extension=".z5", append_to_name="segmentation"):
+def change_file_extension(file_path, new_extension=".z5", append_to_name="_segmentation"):
     """
     Returns a new file path with the specified file extension.
 
@@ -80,7 +80,7 @@ def change_file_extension(file_path, new_extension=".z5", append_to_name="segmen
     
     # Get the base name without the current extension and append the new one
     base_name = os.path.splitext(file_path)[0]
-    base_name = os.path.join(base_name, append_to_name) 
+    base_name = f"{base_name}{append_to_name}"
     new_file_path = f"{base_name}{new_extension}"
     
     return new_file_path

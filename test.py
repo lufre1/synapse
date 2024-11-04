@@ -96,6 +96,8 @@ def test():
     ### load data
     if file_path is None or file_path == "":
         data_paths = util.get_data_paths(data_dir)
+        test_data = ['/mnt/lustre-emmy-hdd/projects/nim00007/data/synaptic-reconstruction/wichmann/extracted/endbulb_of_held/Automatische_Segmentierung_Dataset_Validierung/1Otof_AVCN07_451A_WT_Rest_B3_10_35932.h5', '/mnt/lustre-emmy-hdd/projects/nim00007/data/synaptic-reconstruction/wichmann/extracted/endbulb_of_held/Adult_WT_Rest/1Otof_AVCN07_451A_WT_Rest_B3_8_35932.h5', '/mnt/lustre-emmy-hdd/projects/nim00007/data/synaptic-reconstruction/wichmann/extracted/endbulb_of_held/Adult_KO_MStim/1Otof_AVCN07_455L_KO_M.Stim_B3_6_35933.h5', '/mnt/lustre-emmy-hdd/projects/nim00007/data/synaptic-reconstruction/wichmann/extracted/endbulb_of_held/Young_KO_MStim/1Otof_AVCN03_439G_KO_M.Stim_M3_3.h5']
+        data_paths = [path for path in data_paths if path in test_data]
     else:
         data_paths.append(file_path)
     #data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
