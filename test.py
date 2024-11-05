@@ -95,9 +95,10 @@ def test():
     data_paths = []
     ### load data
     if file_path is None or file_path == "":
-        data_paths = util.get_data_paths(data_dir)
+        #data_paths = util.get_data_paths(data_dir)
         test_data = ['/mnt/lustre-emmy-hdd/projects/nim00007/data/synaptic-reconstruction/wichmann/extracted/endbulb_of_held/Automatische_Segmentierung_Dataset_Validierung/1Otof_AVCN07_451A_WT_Rest_B3_10_35932.h5', '/mnt/lustre-emmy-hdd/projects/nim00007/data/synaptic-reconstruction/wichmann/extracted/endbulb_of_held/Adult_WT_Rest/1Otof_AVCN07_451A_WT_Rest_B3_8_35932.h5', '/mnt/lustre-emmy-hdd/projects/nim00007/data/synaptic-reconstruction/wichmann/extracted/endbulb_of_held/Adult_KO_MStim/1Otof_AVCN07_455L_KO_M.Stim_B3_6_35933.h5', '/mnt/lustre-emmy-hdd/projects/nim00007/data/synaptic-reconstruction/wichmann/extracted/endbulb_of_held/Young_KO_MStim/1Otof_AVCN03_439G_KO_M.Stim_M3_3.h5']
-        data_paths = [path for path in data_paths if path in test_data]
+        # data_paths = [path for path in data_paths if path in test_data]
+        data_paths = test_data
     else:
         data_paths.append(file_path)
     #data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
@@ -113,8 +114,10 @@ def test():
     # Create the "predictions" directory inside DATA_DIR
     predictions_dir = os.path.join(save_dir, "predictions")
     util.create_directory(predictions_dir)
-    print(f"Using {device} with {n_workers} workers.")
+    # print(f"Using {device} with {n_workers} workers.")
     down_scale_factor = args.down_scale_factor
+    halo = [patch_shape[0] // 8, patch_shape[1] // 8, patch_shape[2] // 8]
+    patch_shape = [p - h * 2 for p, h in zip(patch_shape, halo)]
     for i, data_path in enumerate(data_paths):
         # image, label = next(iter(test_loader))
         # pred = model(image)
@@ -126,12 +129,11 @@ def test():
             # label = label["labels/mitochondria"]
             # old halo calculation
             # halo = [patch_shape[0] // 4, patch_shape[1] // 8, patch_shape[2] // 8]
-            halo = [patch_shape[0] // 8, patch_shape[1] // 8, patch_shape[2] // 8]
-            patch_shape = [p - h * 2 for p, h in zip(patch_shape, halo)]
+            
             print(f"new patch shape: {patch_shape} and new halo: {halo}")
             image = torch_em.transform.raw.standardize(image, mean=np.mean(image), std=np.std(image))
             pred = util.run_prediction(image, model, block_shape=patch_shape, halo=halo)
-            prediction_filepath = os.path.join(predictions_dir, f"{experiment_name}_prediction_{util.get_filename_from_path(data_path)}")
+            prediction_filepath = os.path.join(predictions_dir, f"{experiment_name}_prediction_ps{args.patch_shape[0]}{args.patch_shape[1]}_{util.get_filename_from_path(data_path)}")
             with h5py.File(prediction_filepath, "w") as prediction_file:
                 prediction_file.create_dataset("prediction", data=pred[:, :, ::down_scale_factor, ::down_scale_factor])
             print(f"\nPrediction file path:\n{prediction_filepath}")
