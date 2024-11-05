@@ -131,11 +131,12 @@ def test():
             # halo = [patch_shape[0] // 4, patch_shape[1] // 8, patch_shape[2] // 8]
             
             print(f"new patch shape: {patch_shape} and new halo: {halo}")
-            image = torch_em.transform.raw.standardize(image, mean=np.mean(image), std=np.std(image))
+            # image = torch_em.transform.raw.standardize(image, mean=np.mean(image), std=np.std(image))
+            image = torch_em.transform.raw.standardize(image)
             pred = util.run_prediction(image, model, block_shape=patch_shape, halo=halo)
             prediction_filepath = os.path.join(predictions_dir, f"{experiment_name}_prediction_ps{args.patch_shape[0]}{args.patch_shape[1]}_{util.get_filename_from_path(data_path)}")
             with h5py.File(prediction_filepath, "w") as prediction_file:
-                prediction_file.create_dataset("prediction", data=pred[:, :, ::down_scale_factor, ::down_scale_factor])
+                prediction_file.create_dataset("prediction", data=pred[:, ::down_scale_factor, ::down_scale_factor, ::down_scale_factor])
             print(f"\nPrediction file path:\n{prediction_filepath}")
         # pred_foreground = pred[:, 0, :, :]
         # pred_boundaries = pred[:, 1, :, :]

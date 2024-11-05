@@ -158,7 +158,7 @@ def post_process():
     parser.add_argument("--path", "-p", type=str, required=True, help="Path to the data directory or single file")
     parser.add_argument("--scale_factor", "-s", type=int, default=1, help="Scale factor for the data")
     parser.add_argument("--visualize", "-v", action="store_true", default=False, help="Don't visualize data with napari")
-    parser.add_argument("--patch_shape", "-ps", type=int, nargs=3, default=(32, 256, 256), help="Patch shape for data loading (3D tuple) also used for chunks")
+    parser.add_argument("--patch_shape", "-ps", type=int, nargs=3, default=(64, 512, 512), help="Patch shape for data loading (3D tuple) also used for chunks")
     parser.add_argument("--raw_path", "-rp", type=str, default="", help="Path to the raw data single file")
     args = parser.parse_args()
 
