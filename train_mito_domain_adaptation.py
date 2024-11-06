@@ -2,6 +2,7 @@ import argparse
 import os
 from glob import glob
 import random
+import torch
 
 from sklearn.model_selection import train_test_split
 from synaptic_reconstruction.training.domain_adaptation import mean_teacher_adaptation
@@ -19,7 +20,7 @@ def _get_paths(root):
 
 
 def sampler_func(pseudo_labels, label_filter, threshold=0.75, min_fraction=0.1, p=0.95):
-    sampled_labels = pseudo_labels[label_filter]
+    sampled_labels = pseudo_labels[label_filter.to(torch.bool)]
     foreground_prediction = (sampled_labels > threshold).sum()
     foreground_fraction = foreground_prediction / label_filter.sum() 
     if foreground_fraction > min_fraction:
