@@ -18,12 +18,14 @@ def _get_paths(root):
     return paths
 
 
-def sampler_func(pseudo_labels, label_filter, p=0.95):
-    use_sample = (pseudo_labels == label_filter).any().item()
-    if use_sample:
+def sampler_func(pseudo_labels, label_filter, threshold=0.75, min_fraction=0.1, p=0.95):
+    sampled_labels = pseudo_labels[label_filter]
+    foreground_prediction = (sampled_labels > threshold).sum()
+    foreground_fraction = foreground_prediction / label_filter.sum() 
+    if foreground_fraction > min_fraction:
         return True
     else:
-        random.random() > p
+        return random.random() > p
         
 
 def run_structure_domain_adaptation(args):
