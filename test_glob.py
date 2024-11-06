@@ -3,6 +3,7 @@ import os
 from glob import glob
 from tqdm import tqdm
 import mrcfile
+import numpy as np
 
 
 def main(visualize=False):
@@ -19,12 +20,15 @@ def main(visualize=False):
     print("len(mod_paths)", len(mod_paths))
     print("len(mrc_paths)", len(mrc_paths))
     # for mod_path, mrc_path in tqdm(zip(mod_paths, mrc_paths)):
+    vox_sizes = []
     for mrc_path in tqdm(mrc_paths):
         with mrcfile.open(mrc_path) as mrc:
             print(mrc_path)
             print(mrc.voxel_size, "\n")
+            vox_sizes.append([mrc.voxel_size.x, mrc.voxel_size.y, mrc.voxel_size.z])
         # print("\n", mod_path, "\n", mrc_path, "\n")
     # use this for 06
+    print("average voxel size", np.mean(vox_sizes))
 
 
 if __name__ == "__main__":
