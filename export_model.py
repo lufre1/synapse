@@ -16,4 +16,4 @@ if __name__ == "__main__":
     parser.add_argument("--export_path", "-ep", required=True, type=str, default="", help="Path to the directory plus the name of the exported model.")
     args = parser.parse_args()
 
-    export_model()
+    export_model(args)

@@ -16,7 +16,7 @@ def main(visualize=False):
     print(args.base_path)
 
     mod_paths = sorted(glob(os.path.join(args.base_path, "**", "*.mod"), recursive=True))#, reverse=True)
-    mrc_paths = sorted(glob(os.path.join(args.base_path, "**", "*.rec"), recursive=True))#, reverse=True)
+    mrc_paths = sorted(glob(os.path.join(args.base_path, "**", "*.mrc"), recursive=True))#, reverse=True)
     print("len(mod_paths)", len(mod_paths))
     print("len(mrc_paths)", len(mrc_paths))
     # for mod_path, mrc_path in tqdm(zip(mod_paths, mrc_paths)):

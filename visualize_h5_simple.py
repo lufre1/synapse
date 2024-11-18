@@ -14,7 +14,10 @@ def _read_h5(path, key, scale_factor):
     with h5py.File(path, "r") as f:
         try:
             print(f"{key} data shape", f[key].shape)
-            image = f[key][:, ::scale_factor, ::scale_factor]
+            if key == "prediction":
+                image = f[key][:, ::scale_factor, ::scale_factor, ::scale_factor]
+            else:
+                image = f[key][::scale_factor, ::scale_factor, ::scale_factor]
             print(f"{key} data shape after downsampling", image.shape)
             # if not key == "raw":
             #     print(np.unique(image))
@@ -49,7 +52,10 @@ def visualize_data(data):
     viewer = napari.Viewer()
     for key, value in data.items():
         if key == "raw":
+            value = torch_em.transform.raw.standardize(value)
             viewer.add_image(value, name="Raw")
+        elif key == "prediction":
+            viewer.add_image(value, name="Prediction")
         else:
             viewer.add_labels(value, name=key)
 
@@ -80,13 +86,14 @@ def visualize():
 
         if data and not args.no_visualize:
             visualize_data(data)
-        if data:
-            shapes.append(data["raw"].shape)
-            print("min", np.min(data["raw"]))
-            print("max", np.max(data["raw"]))
-            print("mean", np.mean(data["raw"]))
-            print("std", np.std(data["raw"]))
-            print("percentile", np.percentile(data["raw"], [0, 25, 50, 75, 100]))
+        # if data:
+        #     shapes.append(data["raw"].shape)
+        #     print("min", np.min(data["raw"]))
+        #     print("max", np.max(data["raw"]))
+        #     print("mean", np.mean(data["raw"]))
+        #     print("std", np.std(data["raw"]))
+        #     print("percentile", np.percentile(data["raw"], [0, 25, 50, 75, 100]))
+            
             # print("data.keys", data.keys())
             # shapes = []
             # for key, value in data.items():
@@ -97,9 +104,9 @@ def visualize():
             # avg1 = np.mean(data["raw"].shape, axis=1)    
             # avg2 = np.mean(data["raw"].shape, axis=2)    
             # print(avg0)#, avg1.shape, avg2.shape)
-    for shape in shapes:
-        print(shape)
-    print("average shapes", np.mean(shapes, axis=0))
+    # for shape in shapes:
+    #     print(shape)
+    # print("average shapes", np.mean(shapes, axis=0))
 
 
 if __name__ == "__main__":
