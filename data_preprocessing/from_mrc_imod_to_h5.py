@@ -222,6 +222,8 @@ def get_true_labels(label_dict):
             true_labels[key] = "labels/mitochondria"
         elif "cm" in value.lower() or "cristae" in value.lower():
             true_labels[key] = "labels/cristae"
+        elif "endbulb" in value.lower():
+            true_labels[key] = "labels/endbulb"
         else:
             true_labels[key] = f"labels/{value}"
     return true_labels
@@ -271,7 +273,7 @@ def main():
         if print_labels:
             print("\n\n", mod_path)
             print(get_label_names(mod_path))
-            print("\n", mrc_path, "voxel_size", mrcfile.open(mrc_path).voxel_size)
+            print("\n", mrc_path, "voxel  _size", mrcfile.open(mrc_path).voxel_size)
             continue
         if mod_path == "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/mitos_and_cristae/Otof-WT_P21/WT22_eb2_AZ1_10K_model2.mod":
             continue
