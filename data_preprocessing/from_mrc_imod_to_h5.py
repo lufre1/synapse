@@ -152,14 +152,14 @@ def find_matching_rec_file(mod_file, rec_files):
     mod_name = os.path.basename(mod_file)
 
     # Remove 'mtk_' and '.mod' parts from the mod file name to get the identifier
-    mod_base = mod_name.replace('_model', '').replace('.mod', '').replace("model", "")
+    mod_base = mod_name.replace('_model2', '').replace("_model", "").replace('.mod', '').replace("model", "")
 
     # Now loop over rec files to find a match
     for rec_file in rec_files:
         rec_name = os.path.basename(rec_file)
 
         # Normalize rec file name: remove '_SP.rec' or '.rec'
-        rec_base = rec_name.replace('_SP.rec', '').replace('_rec', '')
+        rec_base = rec_name.replace('_SP.rec', '').replace('_rec', '').replace('.rec', '').replace(".mrc", "")
 
         # Check if the relevant part of mod file name is in the rec file name
         if mod_base in rec_base:
@@ -273,7 +273,15 @@ def main():
             print(get_label_names(mod_path))
             print("\n", mrc_path, "voxel_size", mrcfile.open(mrc_path).voxel_size)
             continue
+        if mod_path == "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/mitos_and_cristae/Otof-WT_P21/WT22_eb2_AZ1_10K_model2.mod":
+            continue
         scale_down = False
+        export_file_name, rel_path = get_filename_and_inter_dirs(mod_path, args.base_path)
+        create_directories_if_not_exists(args.export_path, rel_path)
+        export_file_path = os.path.join(args.export_path, rel_path, export_file_name + ".h5")
+        if os.path.exists(export_file_path):
+            print("File already exists:", export_file_path)
+            continue
         mrc_basename = os.path.basename(mrc_path)
         mod_basename = os.path.basename(mod_path).strip("_model")
         if mrc_basename != mod_basename:
@@ -300,10 +308,6 @@ def main():
 
         if visualize:
             v = napari.Viewer()
-
-        export_file_name, rel_path = get_filename_and_inter_dirs(mod_path, args.base_path)
-        create_directories_if_not_exists(args.export_path, rel_path)
-        export_file_path = os.path.join(args.export_path, rel_path, export_file_name + ".h5")
 
         print("\nexporting to", export_file_path)
 

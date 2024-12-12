@@ -44,9 +44,11 @@ def main():
     
     mrc_paths = sorted(glob(os.path.join(args.base_path, "**", "*.mrc"), recursive=True))#, reverse=True)
     rec_paths = sorted(glob(os.path.join(args.base_path, "**", "*.rec"), recursive=True))
+    mod_paths = sorted(glob(os.path.join(args.base_path, "**", "*.mod"), recursive=True))
     mrc_paths.extend(rec_paths)
     
-    inspect_voxel_sizes(mrc_paths)
+    # inspect_voxel_sizes(mrc_paths)
+    
     
     # voxel_sizes = []
     # for mrc_path in tqdm(mrc_paths):
