@@ -3,6 +3,7 @@ import os
 from glob import glob
 from tqdm import tqdm
 from skimage import measure
+import argparse
 # import numpy as np
 import mrcfile
 
@@ -22,6 +23,9 @@ def rename_h5_key(file_path, old_key, new_key):
 
     with h5py.File(file_path, 'r+') as h5_file:
         if old_key in h5_file:
+            if new_key in h5_file:
+                print("New key already exists", new_key)
+                return
             old_dataset = h5_file[old_key]
             h5_file.create_dataset(new_key, data=old_dataset[()], dtype=old_dataset.dtype)
             del h5_file[old_key]
@@ -84,43 +88,37 @@ def separate_cristae(h5_file_path):
         # print("any other value than 0 and 1 in mitochondria?", len(np.unique(mitochondria)))
         mito_ds = h5f['labels/mitochondria']
         mito_ds[...] = mitochondria
-        # if np.any(cristae != 0):
-        #     h5f.create_dataset('labels/cristae', data=cristae)
-        # if cristae is not None:
-        #     vis_data = {
-        #         "raw": raw,
-        #         "label": mitochondria,
-        #         "pred1": cristae
-        #     }
-        # util.visualize_data_napari(vis_data)
-        # h5f.create_dataset('labels/cristae', data=cristae)
+
+
+def get_all_datasets(file_path):
+    dataset_names = []
+
+    def visit_func(name, obj):
+        if isinstance(obj, h5py.Dataset):
+            dataset_names.append(name)
+
+    with h5py.File(file_path, 'r') as hdf5_file:
+        hdf5_file.visititems(visit_func)
+
+    return dataset_names
 
 
 def main():
-    
-    # Example usage
-    # base_path = "/home/freckmann15/data/mitochondria/fidi_orig/"
-    label_base_path = "/home/freckmann15/data/mitochondria/corrected_mito_h5_label_split/"
-    # bu_path = "/home/freckmann15/data/mitochondria/fidi_h5/fidi"
-    # old_key = "labels/mitchondria"
-    # new_key = "labels/mitochondria"  
-    # raw_file_paths = sorted(glob(os.path.join(base_path, "**/*raw.mrc")),key=lambda x: os.path.basename(x))
-    label_h5_file_paths = sorted(glob(os.path.join(label_base_path, "*.h5")), key=lambda x: os.path.basename(x))
-    cristaefolder = "/home/freckmann15/data/mitochondria/corrected_mito_h5_label_split/with_cistae"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--base_path", "-b",  type=str, default="/home/freckmann15/data/mitochondria/wichmann/", help="Path to the root data directory")
+    args = parser.parse_args()
+    label_base_path = args.base_path
 
-    for path in label_h5_file_paths:
+    h5_paths = sorted(glob(os.path.join(label_base_path, "**", "*.h5"), recursive=True))
+
+    for path in tqdm(h5_paths):
         print(path)
-        with h5py.File(path, 'r') as hdf5_file:
-            # check if cristae key exists
-            if 'labels/cristae' in hdf5_file:
-                print("Cristae exists in the file.")
-                print("Moving file to cristae folder")
-                os.rename(path, os.path.join(cristaefolder, os.path.basename(path)))
-                print("check if new file exists")
-                if os.path.exists(os.path.join(cristaefolder, os.path.basename(path))):
-                    print("File moved successfully.")
-                else:
-                    print("File not moved.")
+        # with h5py.File(path, 'r') as hdf5_file:
+        dataset_names = get_all_datasets(path)
+        print(dataset_names)
+        for name in dataset_names:
+            if "endbulb" in name.lower():
+                rename_h5_key(path, name, "labels/endbulb")
 
 
 if __name__ == "__main__":
