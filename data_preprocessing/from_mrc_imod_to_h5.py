@@ -271,6 +271,7 @@ def main():
         if print_labels:
             print("\n\n", mod_path)
             print(get_label_names(mod_path))
+            print("\n", mrc_path, "voxel_size", mrcfile.open(mrc_path).voxel_size)
             continue
         scale_down = False
         mrc_basename = os.path.basename(mrc_path)
@@ -322,7 +323,7 @@ def main():
         else:
             _write_h5(export_file_path, "raw", raw_data)
             for key, val in true_labels.items():
-                print("key", key, "image has vals?", np.any(val))
+                #print("key", key, "image has vals?", np.any(val))
                 _write_h5(export_file_path, key, val)
 
 
