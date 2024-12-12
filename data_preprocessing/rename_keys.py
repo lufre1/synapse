@@ -115,9 +115,10 @@ def main():
         print(path)
         # with h5py.File(path, 'r') as hdf5_file:
         dataset_names = get_all_datasets(path)
-        print(dataset_names)
+        #print(dataset_names)
         for name in dataset_names:
             if "endbulb" in name.lower():
+                print(name)
                 rename_h5_key(path, name, "labels/endbulb")
 
 
