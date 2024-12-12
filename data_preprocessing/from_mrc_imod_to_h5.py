@@ -152,7 +152,7 @@ def find_matching_rec_file(mod_file, rec_files):
     mod_name = os.path.basename(mod_file)
 
     # Remove 'mtk_' and '.mod' parts from the mod file name to get the identifier
-    mod_base = mod_name.replace('_model', '').replace('.mod', '')
+    mod_base = mod_name.replace('_model', '').replace('.mod', '').replace("model", "")
 
     # Now loop over rec files to find a match
     for rec_file in rec_files:
@@ -218,13 +218,33 @@ def get_true_labels(label_dict):
     for key, value in label_dict.items():
         if "az" in value.lower():
             true_labels[key] = "labels/az"
-        elif "mito" in value.lower():
+        elif "mito" in value.lower() and "cristae" not in value.lower():
             true_labels[key] = "labels/mitochondria"
-        elif "cm" in value.lower():
+        elif "cm" in value.lower() or "cristae" in value.lower():
             true_labels[key] = "labels/cristae"
         else:
             true_labels[key] = f"labels/{value}"
     return true_labels
+
+
+def crop_data(raw, labels_dict):
+    combined_labels = np.zeros_like(next(iter(labels_dict.values())))
+    for labels in labels_dict.values():
+        combined_labels |= labels
+
+    # Identify slices along the z-dimension where there is label data
+    non_zero_slices = np.any(combined_labels, axis=(1, 2))
+
+    # Crop raw data
+    raw_cropped = raw[non_zero_slices, :, :]
+
+    # Crop each label dataset in labels_dict
+    cropped_labels_dict = {
+        label_name: labels[non_zero_slices, :, :]
+        for label_name, labels in labels_dict.items()
+    }
+
+    return raw_cropped, cropped_labels_dict
 
 
 def main():
@@ -233,10 +253,12 @@ def main():
     parser.add_argument("--base_path", "-b",  type=str, default="/home/freckmann15/data/mitochondria/cooper/new_mitos", help="Path to the root data directory")
     parser.add_argument("--export_path", "-e",  type=str, default="/home/freckmann15/data/mitochondria/wichmann/output", help="Path to the root data directory")
     parser.add_argument("--visualize", "-v", default=False, action='store_true', help="If to visualize or not")
+    parser.add_argument("--print_labels", "-pl", default=False, action='store_true', help="If to print labels from mod file or not")
     #parser.add_argument("--save_dir", type=str, default="", help="Path to save the data to")
     args = parser.parse_args()
     print(args.base_path)
     visualize = args.visualize
+    print_labels = args.print_labels
 
     mod_paths = sorted(glob(os.path.join(args.base_path, "**", "*.mod"), recursive=True))#, reverse=True)
     mrc_paths = sorted(glob(os.path.join(args.base_path, "**", "*.mrc"), recursive=True))#, reverse=True)
@@ -246,6 +268,10 @@ def main():
     # mod_paths = sorted(glob(os.path.join(args.base_path, "*.mod")), reverse=True)
     # mrc_paths = sorted(glob(os.path.join(args.base_path, "*.mrc")), reverse=True)
     for mod_path, mrc_path in tqdm(zip(mod_paths, mrc_paths)):
+        if print_labels:
+            print("\n\n", mod_path)
+            print(get_label_names(mod_path))
+            continue
         scale_down = False
         mrc_basename = os.path.basename(mrc_path)
         mod_basename = os.path.basename(mod_path).strip("_model")
@@ -286,6 +312,7 @@ def main():
                 true_labels[val] = labels[key]
             else:
                 true_labels[val] = true_labels[val] + labels[key]
+        raw_data, true_labels = crop_data(raw_data, true_labels)
 
         if visualize:
             v.add_image(raw_data)
