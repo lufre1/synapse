@@ -1,6 +1,7 @@
 import h5py
 import os
 from glob import glob
+import numpy as np
 from tqdm import tqdm
 from skimage import measure
 import argparse
@@ -29,6 +30,42 @@ def rename_h5_key(file_path, old_key, new_key):
             old_dataset = h5_file[old_key]
             h5_file.create_dataset(new_key, data=old_dataset[()], dtype=old_dataset.dtype)
             del h5_file[old_key]
+
+
+def merge_keys(file_path, key1, key2):
+    """
+    Merge label datasets in an HDF5 file.
+    The merged dataset will contain only zeros and ones, and the dataset with key2 is deleted after merging.
+
+    Args:
+        file_path (str): Path to the HDF5 file.
+        key1 (str): Key of the first dataset to merge.
+        key2 (str): Key of the second dataset to merge.
+    """
+    dataset_names = get_all_datasets(file_path)
+    with h5py.File(file_path, 'r+') as hdf5_file:
+        if key1 in dataset_names and key2 in dataset_names:
+            
+            # Load data from both keys
+            data1 = hdf5_file[key1][:]
+            data2 = hdf5_file[key2][:]
+
+            # Ensure the merged data contains only 0s and 1s
+            merged_data = ((data1 + data2) > 0).astype(np.uint8)
+
+            # Write the merged data back to key1
+            hdf5_file[key1][:] = merged_data
+
+            # Delete the second dataset
+            del hdf5_file[key2]
+        elif key1 not in dataset_names and key2 in dataset_names:
+            print(f"Only Dataset {key2} found in {file_path}, creating {key1}")
+            data = hdf5_file[key2][:]
+            hdf5_file.create_dataset(key1, data=data, dtype=data.dtype)
+            del hdf5_file[key2]
+        else:
+            print(f"Dataset {key1} not found in {file_path}")
+            return
 
 
 def correct_mito_labels(file_path, key="labels/mitochondria"):
@@ -115,10 +152,16 @@ def main():
         print(path)
         # with h5py.File(path, 'r') as hdf5_file:
         dataset_names = get_all_datasets(path)
-        print(dataset_names)
+        # print(dataset_names)
         for name in dataset_names:
-            if "endbulb" in name.lower():
-                rename_h5_key(path, name, "labels/endbulb")
+            if "IM" in name:
+                dataset_names = get_all_datasets(path)
+                print(dataset_names)
+                merge_keys(path, "labels/cristae", name)
+        # Verify the file after processing
+
+        # remaining_datasets = get_all_datasets(path)
+        # print(f"Remaining datasets in {path}: {remaining_datasets}\n")
 
 
 if __name__ == "__main__":
