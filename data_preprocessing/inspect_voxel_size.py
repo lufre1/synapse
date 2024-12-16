@@ -47,7 +47,7 @@ def main():
     mod_paths = sorted(glob(os.path.join(args.base_path, "**", "*.mod"), recursive=True))
     mrc_paths.extend(rec_paths)
     
-    # inspect_voxel_sizes(mrc_paths)
+    inspect_voxel_sizes(mrc_paths)
     
     
     # voxel_sizes = []
