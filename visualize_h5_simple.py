@@ -14,7 +14,7 @@ def _read_h5(path, key, scale_factor):
     with h5py.File(path, "r") as f:
         try:
             print(f"{key} data shape", f[key].shape)
-            if key == "prediction":
+            if key == "prediction" or "pred" in key:
                 image = f[key][:, ::scale_factor, ::scale_factor, ::scale_factor]
             else:
                 image = f[key][::scale_factor, ::scale_factor, ::scale_factor]
@@ -54,8 +54,8 @@ def visualize_data(data):
         if key == "raw":
             value = torch_em.transform.raw.standardize(value)
             viewer.add_image(value, name="Raw")
-        elif key == "prediction":
-            viewer.add_image(value, name="Prediction")
+        elif key == "prediction" or "pred" in key:
+            viewer.add_image(value, name="Prediction", blending="additive")
         else:
             viewer.add_labels(value, name=key)
 
