@@ -27,6 +27,7 @@ from config import DATA_DIR, SAVE_DIR, TEST_DATA_DIR
 def main():
     parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
     parser.add_argument("--data_dir", type=str, default=DATA_DIR, help="Path to the data directory")
+    parser.add_argument("--data_dir2", type=str, default=None, help="Path to a second data directory")
     parser.add_argument("--lucchi_data_dir", type=str, default=TEST_DATA_DIR, help="Path to the lucchi data directory (optional)")
     parser.add_argument("--visualize", action="store_true", default=False, help="Visualize data with napari")
     parser.add_argument("--patch_shape", type=int, nargs=3, default=(32, 256, 256), help="Patch shape for data loading (3D tuple)")
@@ -45,8 +46,8 @@ def main():
     n_iterations = args.n_iterations
     learning_rate = args.learning_rate
     data_dir = args.data_dir
-    # lucchi_data_dir = args.lucchi_data_dir
-    # visualize = args.visualize
+    if args.data_dir2 is not None:
+        data_dir2 = args.data_dir2
     experiment_name = args.experiment_name
     batch_size = args.batch_size
     patch_shape = args.patch_shape
@@ -70,18 +71,18 @@ def main():
     # depth = 4
     gain = 2
 
-    #scale_factors = 4*[[2, 2, 2]]
+    # scale_factors = 4*[[2, 2, 2]]
     scale_factors = [
         [1, 2, 2],
         [1, 2, 2],
         [2, 2, 2],
         [2, 2, 2]
     ]
-    
+
     final_activation = None
     if final_activation is None and loss_name == "dice":
         final_activation = "Sigmoid"
-        
+
     # load data paths etc.
     start_time = time.time()
     print(f"Start time {time.ctime()}")
@@ -89,15 +90,21 @@ def main():
 
     if with_rois:
         data_paths, rois_dict = util.get_data_paths_and_rois(data_dir, min_shape=patch_shape, with_thresholds=True)
+        random.seed(42)
+        random.shuffle(data_paths)
         data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
     else:
         data_paths = util.get_data_paths(data_dir)
-        
+        if data_dir2 is not None:
+            data_paths2 = util.get_data_paths(data_dir2)
+            data_paths.extend(data_paths2)
+
         for path in data_paths:
             if "combined" in path:
                 data_paths.remove(path)
-        #random.shuffle(data_paths)
-        data_paths.sort(reverse=True)
+        random.seed(42)
+        random.shuffle(data_paths)
+        # data_paths.sort(reverse=True)
         data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.8, val_ratio=0.15, test_ratio=0.05)
 
     end_time = time.time()
@@ -106,7 +113,7 @@ def main():
     print(f"Data and ROI preprocessing execution time: {execution_time:.6f} seconds")
 
     print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
-    #UNet3d
+    # UNet3d
     model = AnisotropicUNet(
         in_channels=in_channels, out_channels=out_channels, initial_features=initial_features,
         final_activation=final_activation, gain=gain, scale_factors=scale_factors
@@ -120,7 +127,7 @@ def main():
         print("loaded model from checkpoint:", os.path.join(SAVE_DIR, "checkpoints", experiment_name))
         # state_dict = torch.load(checkpoint_path, map_location=torch.device("cpu"))["model_state"]
         # model.load_state_dict(state_dict)
-        
+
         model.to(device)
     print(model)
     with_channels = False
@@ -167,7 +174,7 @@ def main():
     # print("all val paths:")
     # for path in data["val"]:
     #     print(path)
-    
+
     val_iter = iter(val_loader)
     try:
         image, label = next(val_iter)
@@ -198,8 +205,8 @@ def main():
         early_stopping=early_stopping,
         # logger=None
     )
-    #check_loader(train_loader, n_samples=10)
-    #check_trainer(trainer, n_samples=1)
+    # check_loader(train_loader, n_samples=10)
+    # check_trainer(trainer, n_samples=1)
     trainer.fit(n_iterations)
 
 
