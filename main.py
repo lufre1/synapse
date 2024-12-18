@@ -46,8 +46,7 @@ def main():
     n_iterations = args.n_iterations
     learning_rate = args.learning_rate
     data_dir = args.data_dir
-    if args.data_dir2 is not None:
-        data_dir2 = args.data_dir2
+    data_dir2 = args.data_dir2
     experiment_name = args.experiment_name
     batch_size = args.batch_size
     patch_shape = args.patch_shape
