@@ -16,6 +16,7 @@ from torch_em.model import AnisotropicUNet
 from torch_em.util.debug import check_loader, check_trainer
 from tqdm import tqdm
 import random
+from synapse_net.training.supervised_training import supervised_training, get_supervised_loader, get_3d_model
 
 # Import your util.py for data loading
 import util
@@ -116,10 +117,11 @@ def main():
 
     print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
     # UNet3d
-    model = AnisotropicUNet(
-        in_channels=in_channels, out_channels=out_channels, initial_features=initial_features,
-        final_activation=final_activation, gain=gain, scale_factors=scale_factors
-    )
+    # model = AnisotropicUNet(
+    #     in_channels=in_channels, out_channels=out_channels, initial_features=initial_features,
+    #     final_activation=final_activation, gain=gain, scale_factors=scale_factors
+    # )
+    model = get_3d_model(out_channels=out_channels)
     print("does checkpoint exist at", os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt"), "?")
     print(os.path.exists(os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")))
     if checkpoint_path or os.path.exists(os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")):
@@ -156,63 +158,34 @@ def main():
             with_channels=with_channels, with_label_channels=with_label_channels,
             rois=rois_dict["val"]
         )
-    else:
-        train_loader = torch_em.default_segmentation_loader(
-            raw_paths=data["train"], raw_key="raw",
-            label_paths=data["train"], label_key="labels/mitochondria",
-            patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
-            raw_transform=raw_transform,
-            label_transform=label_transform, num_workers=n_workers,
-            with_channels=with_channels, with_label_channels=with_label_channels,
-            sampler=sampler
-        )
-        val_loader = torch_em.default_segmentation_loader(
-            raw_paths=data["val"], raw_key="raw",
-            label_paths=data["val"], label_key="labels/mitochondria",
-            patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
-            raw_transform=raw_transform,
-            label_transform=label_transform, num_workers=n_workers,
-            with_channels=with_channels, with_label_channels=with_label_channels,
-            sampler=sampler
-        )
-    # print("all val paths:")
-    # for path in data["val"]:
-    #     print(path)
+    # else:
+    #     train_loader = get_supervised_loader(
+    #         data_paths=data["train"], raw_key="raw", label_key="labels/mitochondria",
+    #         patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+    #         raw_transform=raw_transform, num_workers=n_workers,
+    #         with_channels=with_channels, with_label_channels=with_label_channels,
+    #         sampler=sampler
+    #     )
+    #     val_loader = get_supervised_loader(
+    #         data_paths=data["val"], raw_key="raw", label_key="labels/mitochondria",
+    #         patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+    #         raw_transform=raw_transform, num_workers=n_workers,
+    #         with_channels=with_channels, with_label_channels=with_label_channels,
+    #         sampler=sampler
+    #     )
 
-    val_iter = iter(val_loader)
-    try:
-        image, label = next(val_iter)
-        print("Validation data exists:", image.shape, label.shape)
-    except StopIteration:
-        print("val_loader is empty!")
-        return 0
-    # for i in tqdm(range(100)):
-    #     image, label = next(iter(train_loader))
-    #     if image.shape is not None:
-    #         print("image shape and label shape", image.shape, label.shape)
-        # vis_data = {
-        #     "raw": image,
-        #     "label": label
-        # }
-    #     util.visualize_data_napari(vis_data)
-
-    trainer = torch_em.default_segmentation_trainer(
-        name=experiment_name, model=model,
-        train_loader=train_loader, val_loader=val_loader,
-        loss=loss_function, metric=metric_function,
-        learning_rate=learning_rate,
-        mixed_precision=True,
-        log_image_interval=50,
-        device=device,
-        compile_model=False,
+    supervised_training(
+        name=experiment_name,
+        train_paths=data["train"],
+        val_paths=data["val"],
+        label_key="labels/mitochondria",
+        patch_shape=patch_shape,
         save_root=SAVE_DIR,
-        early_stopping=early_stopping,
-        # logger=None
+        batch_size=batch_size,
+        n_iterations=n_iterations,
+        sampler=sampler,
+        out_channels=2,
     )
-    # check_loader(train_loader, n_samples=10)
-    # check_trainer(trainer, n_samples=1)
-    trainer.fit(n_iterations)
-
 
 if __name__ == "__main__":
     main()
