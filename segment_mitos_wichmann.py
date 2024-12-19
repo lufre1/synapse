@@ -18,11 +18,26 @@ def main(visualize=False):
     parser.add_argument("--model_path", "-m", type=str, default="/scratch-grete/projects/nim00007/models/exports_for_cooper/mito_model_s2.pt")
     args = parser.parse_args()
     print(args.base_path)
-
+    # tile_shape
+    ts = {
+        "z": 32,
+        "y": 512,
+        "x": 512
+        }
+    halo = {
+        "z": int(ts["z"] * 0.25),
+        "y": int(ts["y"] * 0.25),
+        "x": int(ts["x"] * 0.25)
+        }
+    # halo = {'z': 12, 'y': 128, 'x': 128}
     h5_paths = sorted(glob(os.path.join(args.base_path, "**", "*.h5"), recursive=True))#, reverse=True)
 
     print("len(h5_paths)", len(h5_paths))
-    tiling = {"tile": {"z": 32+2*8, "y": 512+128*2, "x": 512+128*2}, "halo": {"z": 8, "y": 128, "x": 128}}
+    # tiling = {"tile": {"z": ts["z"]+2*halo["z"], "y": ts["y"]+halo["y"]*2, "x": ts["x"]+halo["x"]*2}, "halo": halo}
+    # tiling = None
+    # tiling = {"tile": {"z": ts["z"]-2*halo["z"], "y": ts["y"]-halo["y"]*2, "x": ts["x"]-halo["x"]*2}, "halo": halo}
+    tiling = {"tile": ts, "halo": halo}
+    print("tiling:", tiling)
     scale = 1
 
     for path in tqdm(h5_paths):
@@ -36,9 +51,7 @@ def main(visualize=False):
             # max_val = np.max(valid_data)
             # data = data[valid_mask] = 2 * (valid_data - min_val) / (max_val - min_val) - 1
             image = torch_em.transform.raw.standardize(data)
-            print("mean of data and image", mean, np.mean(image))
-            print("max values of data and image", np.max(data), np.max(image))
-        output_path = os.path.join(args.export_path, "ND_scale_" + str(int(scale*10)) + "_" + os.path.basename(path))
+        output_path = os.path.join(args.export_path, "training_ts_scale_" + str(int(scale*10)) + "_" + os.path.basename(path))
         if os.path.exists(output_path):
             print("Skipping... output path exists", output_path)
             continue
@@ -46,7 +59,8 @@ def main(visualize=False):
             image, args.model_path,
             scale=scale,
             tiling=tiling,
-            return_predictions=True
+            return_predictions=True,
+            min_size=50000*2
             )
         with open_file(output_path, "w", ".h5") as f1:
             f1["labels/mitochondria"] = seg

@@ -21,6 +21,41 @@ from typing import List, Union, Tuple, Optional, Any
 # data_format = "*.h5"
 
 
+def get_wichmann_data():
+    data = [
+        "mitos_and_cristae/Otof-KO_M6/KO8_eb2_model.h5",
+        "mitos_and_cristae/Otof-KO_M6/KO9_eb11_model.h5",
+        "mitos_and_cristae/Otof-KO_M6/KO9_eb13_model.h5",
+        "mitos_and_cristae/Otof-KO_M6/KO9_eb4_model.h5",
+        "mitos_and_cristae/Otof-KO_M6/KO9_eb6_model.h5",
+        "mitos_and_cristae/Otof-KO_M6/KO9_eb9_model.h5",
+        "mitos_and_cristae/Otof-KO_M6/M10_eb8_model.h5",
+        "mitos_and_cristae/Otof-KO_P10/M1_eb8_model.h5",
+        "mitos_and_cristae/Otof-KO_P10/M2_eb10_model.h5",
+        "mitos_and_cristae/Otof-KO_P10/M2_eb1_model.h5",
+        "mitos_and_cristae/Otof-KO_P10/M2_eb8_model.h5",
+        "mitos_and_cristae/Otof-KO_P22/M5_eb3_model.h5",
+        "mitos_and_cristae/Otof-KO_P22/M6_eb2_model.h5",
+        "mitos_and_cristae/Otof-KO_P22/M7_eb15_model.h5",
+        "mitos_and_cristae/Otof-WT_M6/WT40_eb10_model.h5",
+        "mitos_and_cristae/Otof-WT_M6/WT40_eb3_model.h5",
+        "mitos_and_cristae/Otof-WT_M6/WT40_eb8_model.h5",
+        "mitos_and_cristae/Otof-WT_M6/WT41_eb4_model.h5",
+        "mitos_and_cristae/Otof-WT_P10/WT13_syn1_model2.h5",
+        "mitos_and_cristae/Otof-WT_P10/WT13_syn4_model2.h5",
+        "mitos_in_endbuld/Otof_AVCN03_429C_WT_M.Stim_G3_3_model.h5",
+        "mitos_in_endbuld/Otof_AVCN03_429C_WT_M.Stim_G3_4_model.h5",
+        "mitos_in_endbuld/Otof_AVCN03_429C_WT_M.Stim_G3_5_model.h5",
+        "mitos_in_endbuld/Otof_AVCN03_429D_WT_Rest_G3_4_model.h5",
+        "mitos_in_endbuld/Otof_AVCN03_429D_WT_Rest_H5_1_35461_model.h5",
+        "mitos_in_endbuld/Otof_AVCN03_429D_WT_Rest_H5_3_35461_model.h5",
+        "mitos_in_endbuld/Otof_AVCN03_429D_WT_Rest_H5_4_35461_model.h5",
+    ]
+    for i in range(len(data)):
+        data[i] = "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/extracted/" + data[i]
+    return data
+
+
 class CombinedDatasets(torch.utils.data.Dataset):
     def __init__(
         self,
