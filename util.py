@@ -52,7 +52,8 @@ def get_wichmann_data():
         "mitos_in_endbuld/Otof_AVCN03_429D_WT_Rest_H5_4_35461_model.h5",
     ]
     for i in range(len(data)):
-        data[i] = "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/extracted/" + data[i]
+        # data[i] = "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/extracted/" + data[i]
+        data[i] = "/home/freckmann15/data/mitochondria/wichmann/extracted/" + data[i]
     return data
 
 

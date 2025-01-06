@@ -51,7 +51,7 @@ def get_file_paths(path):
 def visualize_data(data):
     viewer = napari.Viewer()
     for key, value in data.items():
-        if key == "raw":
+        if key == "raw" or "raw" in key:
             value = torch_em.transform.raw.standardize(value)
             viewer.add_image(value, name="Raw")
         elif key == "prediction" or "pred" in key:
@@ -70,6 +70,7 @@ def visualize():
     args = parser.parse_args()
 
     paths = get_file_paths(args.path)
+    #paths = util.get_wichmann_data()
 
     shapes = []
     for path in paths:
@@ -85,6 +86,14 @@ def visualize():
             data[key] = _read_h5(path, key, args.scale_factor)
 
         if data and not args.no_visualize:
+            # upper_threshold = np.percentile(data["raw"], 95)
+            # lower_threshold = np.percentile(data["raw"], 5)
+            # artifact_mask = (data["raw"] > upper_threshold) | (data["raw"] < lower_threshold)
+            # data["raw2"] = data["raw"].copy()
+            # median = np.median(data["raw"])
+            # data["raw2"][artifact_mask] = np.median(median)
+            # print(median)
+
             visualize_data(data)
         # if data:
         #     shapes.append(data["raw"].shape)
