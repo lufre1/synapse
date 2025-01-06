@@ -21,6 +21,34 @@ from typing import List, Union, Tuple, Optional, Any
 # data_format = "*.h5"
 
 
+def custom_raw_transform(raw):
+    """
+    A custom raw transform function that replaces outliers with the median and normalizes the data.
+
+    Args:
+        raw (np.ndarray): The raw input data.
+
+    Returns:
+        np.ndarray: The transformed data.
+    """
+    # Define thresholds for artifacts
+    upper_artifact_threshold = -20.0
+    lower_artifact_threshold = -90.0
+
+    # Identify artifact mask
+    artifact_mask = (raw > upper_artifact_threshold) | (raw < lower_artifact_threshold)
+    
+    # Replace artifacts with the median
+    raw_cleaned = raw.copy()
+    median_value = np.median(raw)
+    raw_cleaned[artifact_mask] = median_value
+
+    # Normalize the data using torch_em's normalize function
+    raw_normalized = torch_em.transform.raw.normalize(raw_cleaned)
+
+    return raw_normalized
+
+
 def get_wichmann_data():
     data = [
         "mitos_and_cristae/Otof-KO_M6/KO8_eb2_model.h5",
