@@ -10,14 +10,18 @@ import torch_em
 import napari
 
 
-def _read_h5(path, key, scale_factor):
+def _read_h5(path, key, scale_factor, z_offset=None):
     with h5py.File(path, "r") as f:
         try:
             print(f"{key} data shape", f[key].shape)
             if key == "prediction" or "pred" in key:
                 image = f[key][:, ::scale_factor, ::scale_factor, ::scale_factor]
+                if z_offset:
+                    image = image[z_offset[0]:z_offset[1], :, :]
             else:
                 image = f[key][::scale_factor, ::scale_factor, ::scale_factor]
+                if z_offset:
+                    image = image[z_offset[0]:z_offset[1], :, :]
             print(f"{key} data shape after downsampling", image.shape)
             # if not key == "raw":
             #     print(np.unique(image))
@@ -67,10 +71,11 @@ def visualize():
     parser.add_argument("--path", "-p", type=str, required=True, help="Path to the data directory or single file")
     parser.add_argument("--scale_factor", "-s", type=int, default=1, help="Scale factor for the data")
     parser.add_argument("--no_visualize", "-nv", action="store_true", default=False, help="Don't visualize data with napari")
+    parser.add_argument("--z_offset", "-z", type=int, nargs=2, default=None, help="Z offset for the data e.g. 5 -5")
     args = parser.parse_args()
 
     paths = get_file_paths(args.path)
-    #paths = util.get_wichmann_data()
+    # paths = util.get_wichmann_data()
 
     shapes = []
     for path in paths:
@@ -83,7 +88,8 @@ def visualize():
         print("in path", path)
         data = {}
         for key in keys:
-            data[key] = _read_h5(path, key, args.scale_factor)
+            data[key] = _read_h5(path, key, args.scale_factor, z_offset=(args.z_offset))
+            # data[key] = _read_h5(path, key, args.scale_factor)
 
         if data and not args.no_visualize:
             # upper_threshold = np.percentile(data["raw"], 95)
