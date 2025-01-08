@@ -90,17 +90,27 @@ def visualize():
         for key in keys:
             data[key] = _read_h5(path, key, args.scale_factor, z_offset=(args.z_offset))
             # data[key] = _read_h5(path, key, args.scale_factor)
+        filtered_data = {}
 
         if data and not args.no_visualize:
             # upper_threshold = np.percentile(data["raw"], 95)
-            # lower_threshold = np.percentile(data["raw"], 5)
-            # artifact_mask = (data["raw"] > upper_threshold) | (data["raw"] < lower_threshold)
+            # lower_threshold = -125 # np.percentile(data["raw"], 5)
+            # artifact_mask = data["raw"] > lower_threshold
+            # # slices_to_keep = [z for z in range(data["raw"].shape[0]) if np.min(data["raw"][z, :, :]) >= lower_threshold]
+            # # for z in range(data["raw"].shape[0]):
+            # #     print(np.min(data["raw"][z, :, :]))
+            # # print("slices to keep", len(slices_to_keep), "out of", data["raw"].shape[0])
+            # # for key, value in data.items():
+            # #     filtered_data[key] = value[slices_to_keep, :, :]
             # data["raw2"] = data["raw"].copy()
-            # median = np.median(data["raw"])
-            # data["raw2"][artifact_mask] = np.median(median)
+            # # median = np.median(data["raw"])
+            # print("np.percentile(data[raw], 5)",np.percentile(data["raw"], 5))
+            # data["raw2"][artifact_mask] = np.percentile(data["raw"], 5)
             # print(median)
-
-            visualize_data(data)
+            if filtered_data:
+                visualize_data(filtered_data)
+            else:
+                visualize_data(data)
         # if data:
         #     shapes.append(data["raw"].shape)
         #     print("min", np.min(data["raw"]))
