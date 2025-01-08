@@ -20,7 +20,7 @@ def main(visualize=False):
     print(args.base_path)
     # tile_shape
     ts = {
-        "z": 32,
+        "z": 48,
         "y": 512,
         "x": 512
         }
@@ -30,20 +30,18 @@ def main(visualize=False):
         "x": int(ts["x"] * 0.25)
         }
     # halo = {'z': 12, 'y': 128, 'x': 128}
+    ts = {'z': 32+2*halo["z"], 'y': 512+2*halo["y"], 'x': 512+2*halo["x"]}
     h5_paths = sorted(glob(os.path.join(args.base_path, "**", "*.h5"), recursive=True))#, reverse=True)
 
     print("len(h5_paths)", len(h5_paths))
-    # tiling = {"tile": {"z": ts["z"]+2*halo["z"], "y": ts["y"]+halo["y"]*2, "x": ts["x"]+halo["x"]*2}, "halo": halo}
-    # tiling = None
-    # tiling = {"tile": {"z": ts["z"]-2*halo["z"], "y": ts["y"]-halo["y"]*2, "x": ts["x"]-halo["x"]*2}, "halo": halo}
-    tiling = {"tile": ts, "halo": halo}
+    tiling = {"tile": ts, "halo": halo} # prediction function automatically subtracts the 2*halo from tile
     print("tiling:", tiling)
     scale = 1
 
     for path in tqdm(h5_paths):
         with open_file(path, "r") as f:
             data = f["raw"][:]
-            mean = np.mean(data)
+            # mean = np.mean(data)
             # valid_min, valid_max = -5, 5
             # valid_mask = (data >= valid_min) & (data <= valid_max)
             # data[~valid_mask] = mean
@@ -51,7 +49,7 @@ def main(visualize=False):
             # max_val = np.max(valid_data)
             # data = data[valid_mask] = 2 * (valid_data - min_val) / (max_val - min_val) - 1
             image = torch_em.transform.raw.standardize(data)
-        output_path = os.path.join(args.export_path, "training_ts_scale_" + str(int(scale*10)) + "_" + os.path.basename(path))
+        output_path = os.path.join(args.export_path, os.path.basename(args.model_path) + "_extended_halo_" + os.path.basename(path))
         if os.path.exists(output_path):
             print("Skipping... output path exists", output_path)
             continue
