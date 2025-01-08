@@ -187,7 +187,7 @@ def trim_z_dim(h5_file_path, z_dim_trim, export_path):
     dataset_names = get_all_datasets(h5_file_path)
     export_file_name = os.path.basename(h5_file_path)
     data = {}
-    with h5py.File(h5_file_path, 'r+') as h5f:
+    with h5py.File(h5_file_path, 'r') as h5f:
         for name in dataset_names:
             print(name)
             # breakpoint()
@@ -207,11 +207,11 @@ def main():
 
     h5_paths = sorted(glob(os.path.join(label_base_path, "**", "*.h5"), recursive=True))
     
-    h5_paths = get_wichmann_data()
+    # h5_paths = get_wichmann_data()
 
     for path in tqdm(h5_paths):
         print(path)
-        trim_z_dim(path, [10, -10], export_path)
+        trim_z_dim(path, [10, -1], export_path)
 
 
 if __name__ == "__main__":

@@ -96,7 +96,7 @@ def main():
         data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
     else:
         data_paths = util.get_data_paths(data_dir)
-        data_paths = util.get_wichmann_data()
+        # data_paths = util.get_wichmann_data()
         print(data_paths)
         if data_dir2 is not None:
             data_paths2 = util.get_data_paths(data_dir2)
@@ -186,6 +186,7 @@ def main():
         sampler=sampler,
         out_channels=2,
     )
+
 
 if __name__ == "__main__":
     main()
