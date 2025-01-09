@@ -1,6 +1,6 @@
 import argparse
 import napari
-import util
+import synapse.util as util
 from config import *
 import os
 from skimage import io

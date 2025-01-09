@@ -19,7 +19,7 @@ import random
 from synapse_net.training.supervised_training import supervised_training, get_supervised_loader, get_3d_model
 
 # Import your util.py for data loading
-import util
+import synapse.util as util
 # import data_classes
 from config import DATA_DIR, SAVE_DIR, TEST_DATA_DIR
 # from unet import UNet3D

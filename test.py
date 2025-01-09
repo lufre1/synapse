@@ -17,7 +17,7 @@ from torch_em.model import UNet3d, AnisotropicUNet
 from torch_em.util.debug import check_loader, check_trainer
 
 # Import your util.py for data loading
-import util
+import synapse.util as util
 import data_classes
 from config import *
 

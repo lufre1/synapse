@@ -18,7 +18,7 @@ from tqdm import tqdm
 import random
 
 # Import your util.py for data loading
-import util
+import synapse.util as util
 # import data_classes
 from config import DATA_DIR, SAVE_DIR, TEST_DATA_DIR
 # from unet import UNet3D

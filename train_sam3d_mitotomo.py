@@ -15,7 +15,7 @@ import micro_sam.training as sam_training
 from micro_sam.util import export_custom_sam_model
 from micro_sam.models.sam_3d_wrapper import get_sam_3d_model
 from micro_sam.training.util import ConvertToSemanticSamInputs
-from util import get_loaders
+from synapse.util import get_loaders
 
 
 class LabelTrafoToBinary:

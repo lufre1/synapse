@@ -1,4 +1,4 @@
-import util
+import synapse.util as util
 import data_classes
 from config import *
 import h5py
