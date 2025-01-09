@@ -7,45 +7,10 @@ from skimage import measure
 import argparse
 # import numpy as np
 import mrcfile
-
-
-def get_wichmann_data():
-    data = [
-        "mitos_and_cristae/Otof-KO_M6/KO8_eb2_model.h5",
-        "mitos_and_cristae/Otof-KO_M6/KO9_eb11_model.h5",
-        "mitos_and_cristae/Otof-KO_M6/KO9_eb13_model.h5",
-        "mitos_and_cristae/Otof-KO_M6/KO9_eb4_model.h5",
-        "mitos_and_cristae/Otof-KO_M6/KO9_eb6_model.h5",
-        "mitos_and_cristae/Otof-KO_M6/KO9_eb9_model.h5",
-        "mitos_and_cristae/Otof-KO_M6/M10_eb8_model.h5",
-        "mitos_and_cristae/Otof-KO_P10/M1_eb8_model.h5",
-        "mitos_and_cristae/Otof-KO_P10/M2_eb10_model.h5",
-        "mitos_and_cristae/Otof-KO_P10/M2_eb1_model.h5",
-        "mitos_and_cristae/Otof-KO_P10/M2_eb8_model.h5",
-        "mitos_and_cristae/Otof-KO_P22/M5_eb3_model.h5",
-        "mitos_and_cristae/Otof-KO_P22/M6_eb2_model.h5",
-        "mitos_and_cristae/Otof-KO_P22/M7_eb15_model.h5",
-        "mitos_and_cristae/Otof-WT_M6/WT40_eb10_model.h5",
-        "mitos_and_cristae/Otof-WT_M6/WT40_eb3_model.h5",
-        "mitos_and_cristae/Otof-WT_M6/WT40_eb8_model.h5",
-        "mitos_and_cristae/Otof-WT_M6/WT41_eb4_model.h5",
-        "mitos_and_cristae/Otof-WT_P10/WT13_syn1_model2.h5",
-        "mitos_and_cristae/Otof-WT_P10/WT13_syn4_model2.h5",
-        "mitos_in_endbuld/Otof_AVCN03_429C_WT_M.Stim_G3_3_model.h5",
-        "mitos_in_endbuld/Otof_AVCN03_429C_WT_M.Stim_G3_4_model.h5",
-        "mitos_in_endbuld/Otof_AVCN03_429C_WT_M.Stim_G3_5_model.h5",
-        "mitos_in_endbuld/Otof_AVCN03_429D_WT_Rest_G3_4_model.h5",
-        "mitos_in_endbuld/Otof_AVCN03_429D_WT_Rest_H5_1_35461_model.h5",
-        "mitos_in_endbuld/Otof_AVCN03_429D_WT_Rest_H5_3_35461_model.h5",
-        "mitos_in_endbuld/Otof_AVCN03_429D_WT_Rest_H5_4_35461_model.h5",
-    ]
-    for i in range(len(data)):
-        # data[i] = "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/extracted/" + data[i]
-        data[i] = "/home/freckmann15/data/mitochondria/wichmann/extracted/" + data[i]
-    return data
-
-
-SAVE_DIR = "/home/freckmann15/data/mitochondria/corrected_mito_h5"
+from synapse.util import get_data_metadata
+from synapse.h5_util import read_h5, get_all_keys_from_h5
+import napari
+from elf.io import open_file
 
 
 def rename_h5_key(file_path, old_key, new_key):
@@ -197,21 +162,54 @@ def trim_z_dim(h5_file_path, z_dim_trim, export_path):
     export_to_h5(data, os.path.join(export_path, export_file_name))
 
 
+def find_trimmed_and_new_labels_pair(t_path, nl_paths):
+    t_name = os.path.basename(t_path)
+    for nl_path in nl_paths:
+        nl_name = os.path.basename(nl_path)
+        if t_name in nl_name:
+            print("Found new labels file for trimmed file:\n", nl_path)
+            return nl_path
+    
+    print("Could not find new labels file for trimmed file", t_name)
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--base_path", "-b",  type=str, default="/home/freckmann15/data/mitochondria/wichmann/", help="Path to the root data directory")
-    parser.add_argument("--export_path", "-e", type=str, default="/home/freckmann15/data/mitochondria/wichmann/trimmed/", help="Path to the export directory")
+    parser.add_argument("--base_path", "-b",  type=str, default="/home/freckmann15/data/mitochondria/wichmann/trimmed2", help="Path to the root data directory")
+    parser.add_argument("--label_path", "-lp",  type=str, default="/home/freckmann15/data/mitochondria/wichmann/new_mito_labels", help="Path to the root data directory")
+    parser.add_argument("--export_path", "-e", type=str, default="/home/freckmann15/data/mitochondria/wichmann/test/", help="Path to the export directory")
+    parser.add_argument("--scale_factor", "-s", type=int, default=1, help="Scale factor for the image")
     args = parser.parse_args()
-    label_base_path = args.base_path
+    base_path = args.base_path
+    label_path = args.label_path
     export_path = args.export_path
+    scale_factor = args.scale_factor
 
-    h5_paths = sorted(glob(os.path.join(label_base_path, "**", "*.h5"), recursive=True))
-    
-    # h5_paths = get_wichmann_data()
-
-    for path in tqdm(h5_paths):
-        print(path)
-        trim_z_dim(path, [20, -10], export_path)
+    h5_paths = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
+    h5_label_paths = sorted(glob(os.path.join(label_path, "**", "*.h5"), recursive=True))
+    for h5_path in tqdm(h5_paths):
+        label_path = find_trimmed_and_new_labels_pair(h5_path, h5_label_paths)
+        if label_path is None:
+            continue
+        keys = get_all_keys_from_h5(h5_path)
+        data = {}
+        for key in keys:
+            data[key] = read_h5(h5_path, key, scale_factor)
+        new_labels = read_h5(label_path, "labels/mitochondria", scale_factor)
+        data["labels/mitochondria"] = (new_labels + (data["labels/mitochondria"] > 0).astype(np.uint8) > 0).astype(np.uint8)
+        output_path = os.path.join(export_path, os.path.basename(h5_path))
+        if os.path.exists(output_path):
+            print("output path already exists:", output_path)
+            continue
+        else:
+            export_to_h5(data, output_path)
+        
+        # v = napari.Viewer()
+        # v.add_image(data["raw"])
+        # v.add_labels(data["labels/mitochondria"], name="combined")
+        #v.add_labels(new_labels, name="new_labels")
+        #napari.run()
 
 
 if __name__ == "__main__":
