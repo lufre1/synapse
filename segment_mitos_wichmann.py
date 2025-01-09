@@ -25,12 +25,12 @@ def main(visualize=False):
         "x": 512
         }
     halo = {
-        "z": int(ts["z"] * 0.25),
+        "z": int(ts["z"] * 0.1),
         "y": int(ts["y"] * 0.25),
         "x": int(ts["x"] * 0.25)
         }
     # halo = {'z': 12, 'y': 128, 'x': 128}
-    ts = {'z': 32+2*halo["z"], 'y': 512+2*halo["y"], 'x': 512+2*halo["x"]}
+    ts = {'z': ts["z"]+2*halo["z"], 'y': ts["y"]+2*halo["y"], 'x': ts["x"]+2*halo["x"]}
     h5_paths = sorted(glob(os.path.join(args.base_path, "**", "*.h5"), recursive=True))#, reverse=True)
 
     print("len(h5_paths)", len(h5_paths))
@@ -49,7 +49,7 @@ def main(visualize=False):
             # max_val = np.max(valid_data)
             # data = data[valid_mask] = 2 * (valid_data - min_val) / (max_val - min_val) - 1
             image = torch_em.transform.raw.standardize(data)
-        output_path = os.path.join(args.export_path, os.path.basename(args.model_path) + "_extended_halo_" + os.path.basename(path))
+        output_path = os.path.join(args.export_path, "new_mito_labels_" + os.path.basename(path))
         if os.path.exists(output_path):
             print("Skipping... output path exists", output_path)
             continue
@@ -58,7 +58,8 @@ def main(visualize=False):
             scale=scale,
             tiling=tiling,
             return_predictions=True,
-            min_size=50000*2
+            min_size=50000*5,
+            seed_distance=30  # default 6
             )
         with open_file(output_path, "w", ".h5") as f1:
             f1["labels/mitochondria"] = seg

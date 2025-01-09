@@ -211,7 +211,7 @@ def main():
 
     for path in tqdm(h5_paths):
         print(path)
-        trim_z_dim(path, [10, -1], export_path)
+        trim_z_dim(path, [20, -10], export_path)
 
 
 if __name__ == "__main__":
