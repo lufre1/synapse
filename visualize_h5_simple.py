@@ -84,7 +84,7 @@ def visualize():
             continue
         keys = get_all_keys_from_h5(path)
         keys.sort(reverse=True)
-        print("data keys", keys)
+        print("\ndata keys", keys)
         print("in path", path)
         data = {}
         for key in keys:
