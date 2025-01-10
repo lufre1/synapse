@@ -39,6 +39,13 @@ def main(visualize=False):
     scale = 1
 
     for path in tqdm(h5_paths):
+        if "Otof_AVCN03_429C_WT_M.Stim_G3_1_model.h5" in path or "Otof_AVCN03_429C_WT_M.Stim_G3_3_model.h5" in path or "Otof_AVCN03_429C_WT_M.Stim_G3_5_model.h5" in path or "Otof_AVCN03_429C_WT_M.Stim_G3_6_model.h5" in path or "Otof_AVCN03_429D_WT_Rest_G3_4_model.h5" in path:
+            continue
+        print("opening file", path)
+        output_path = os.path.join(args.export_path, "new_mito_labels_" + os.path.basename(path))
+        if os.path.exists(output_path):
+            print("Skipping... output path exists", output_path)
+            continue
         with open_file(path, "r") as f:
             data = f["raw"][:]
             # mean = np.mean(data)
@@ -49,10 +56,8 @@ def main(visualize=False):
             # max_val = np.max(valid_data)
             # data = data[valid_mask] = 2 * (valid_data - min_val) / (max_val - min_val) - 1
             image = torch_em.transform.raw.standardize(data)
-        output_path = os.path.join(args.export_path, "new_mito_labels_" + os.path.basename(path))
-        if os.path.exists(output_path):
-            print("Skipping... output path exists", output_path)
-            continue
+        
+
         seg, pred = segment_mitochondria(
             image, args.model_path,
             scale=scale,
