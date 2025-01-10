@@ -59,7 +59,7 @@ def main():
     print(f"\n Experiment: {experiment_name}\n")
     print(f"Using {device} with {n_workers} workers.")
     label_transform = torch_em.transform.label.BoundaryTransform(add_binary_target=True)
-    raw_transform = None  # util.custom_raw_transform
+    raw_transform = util.custom_raw_transform
 
     loss_name = "dice"
     metric_name = "dice"
