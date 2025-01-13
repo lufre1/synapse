@@ -186,15 +186,15 @@ def main():
     except StopIteration:
         print("val_loader is empty!")
         return 0
-    # for i in tqdm(range(100)):
-    #     image, label = next(iter(train_loader))
-    #     if image.shape is not None:
-    #         print("image shape and label shape", image.shape, label.shape)
-        # vis_data = {
-        #     "raw": image,
-        #     "label": label
-        # }
-    #     util.visualize_data_napari(vis_data)
+    for i in tqdm(range(100)):
+        image, label = next(iter(val_loader))
+        if image.shape is not None:
+            print("image shape and label shape", image.shape, label.shape)
+        vis_data = {
+            "raw": image,
+            "label": label
+        }
+        util.visualize_data_napari(vis_data)
 
     trainer = torch_em.default_segmentation_trainer(
         name=experiment_name, model=model,
