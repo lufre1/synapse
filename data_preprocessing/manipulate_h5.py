@@ -11,6 +11,11 @@ from synapse.util import get_data_metadata
 from synapse.h5_util import read_h5, get_all_keys_from_h5
 import napari
 from elf.io import open_file
+from elf.evaluation.matching import label_overlap, intersection_over_union
+from elf.parallel import label as parallel_label
+from skimage.segmentation import relabel_sequential
+from skimage.morphology import binary_closing, remove_small_objects, label
+import tifffile
 
 
 def rename_h5_key(file_path, old_key, new_key):
@@ -162,22 +167,21 @@ def trim_z_dim(h5_file_path, z_dim_trim, export_path):
     export_to_h5(data, os.path.join(export_path, export_file_name))
 
 
-def find_trimmed_and_new_labels_pair(t_path, nl_paths):
+def find_trimmed_and_new_labels_pair(t_path, nl_paths, type):
     t_name = os.path.basename(t_path)
     for nl_path in nl_paths:
-        nl_name = os.path.basename(nl_path)
-        if t_name in nl_name:
-            print("Found new labels file for trimmed file:\n", nl_path)
+        nl_name = os.path.basename(nl_path).replace(".tif", "")
+        if nl_name in t_name:
+            print(f"Found new {type} file for trimmed file:\n", nl_path)
             return nl_path
-    
-    print("Could not find new labels file for trimmed file", t_name)
+    print(f"Could not find new {type} file for trimmed file", t_name)
     return None
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--base_path", "-b",  type=str, default="/home/freckmann15/data/mitochondria/wichmann/trimmed2", help="Path to the root data directory")
-    parser.add_argument("--label_path", "-lp",  type=str, default="/home/freckmann15/data/mitochondria/wichmann/new_mito_labels", help="Path to the root data directory")
+    parser.add_argument("--base_path", "-b",  type=str, default="/home/freckmann15/data/mitochondria/wichmann/trimmed_all", help="Path to the root data directory")
+    parser.add_argument("--label_path", "-lp",  type=str, default="/home/freckmann15/data/mitochondria/wichmann/manual_and_microsam_annotations", help="Path to the root data directory")
     parser.add_argument("--export_path", "-e", type=str, default="/home/freckmann15/data/mitochondria/wichmann/test/", help="Path to the export directory")
     parser.add_argument("--scale_factor", "-s", type=int, default=1, help="Scale factor for the image")
     args = parser.parse_args()
@@ -187,29 +191,41 @@ def main():
     scale_factor = args.scale_factor
 
     h5_paths = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
-    h5_label_paths = sorted(glob(os.path.join(label_path, "**", "*.h5"), recursive=True))
+    h5_label_paths = sorted(glob(os.path.join(label_path, "**", "*.tif"), recursive=True))
+    skip = True
     for h5_path in tqdm(h5_paths):
-        label_path = find_trimmed_and_new_labels_pair(h5_path, h5_label_paths)
+        if "M7_eb11_model" in h5_path: #  "M6_eb2_model" M7_eb11_model
+            skip = False
+        if skip:
+            continue
+        label_path = find_trimmed_and_new_labels_pair(h5_path, h5_label_paths, type="label")
         if label_path is None:
             continue
         keys = get_all_keys_from_h5(h5_path)
         data = {}
         for key in keys:
-            data[key] = read_h5(h5_path, key, scale_factor)
-        new_labels = read_h5(label_path, "labels/mitochondria", scale_factor)
-        data["labels/mitochondria"] = (new_labels + (data["labels/mitochondria"] > 0).astype(np.uint8) > 0).astype(np.uint8)
-        output_path = os.path.join(export_path, os.path.basename(h5_path))
-        if os.path.exists(output_path):
-            print("output path already exists:", output_path)
-            continue
-        else:
-            export_to_h5(data, output_path)
+            if "raw" in key:
+                data[key] = read_h5(h5_path, key, scale_factor)
+        #new_labels = np.array(open_file(label_path, ext=".tif")[:], dtype=np.uint8)  # read_h5(label_path, "labels/mitochondria", scale_factor)
+        new_labels = tifffile.imread(label_path)
+        # new_labels = binary_closing(new_labels)
+        # new_labels = parallel_label(new_labels, block_shape=(16, 512, 512))
+        new_labels = label(new_labels)
+        new_labels = remove_small_objects(new_labels.astype(np.uint8), min_size=1000)
         
-        # v = napari.Viewer()
-        # v.add_image(data["raw"])
-        # v.add_labels(data["labels/mitochondria"], name="combined")
-        #v.add_labels(new_labels, name="new_labels")
-        #napari.run()
+        #data["labels/mitochondria"] = (new_labels + (data["labels/mitochondria"] > 0).astype(np.uint8) > 0).astype(np.uint8)
+        output_path = os.path.join(export_path, os.path.basename(h5_path))
+        # if os.path.exists(output_path):
+        #     print("output path already exists:", output_path)
+        #     continue
+        # else:
+        #     export_to_h5(data, output_path)
+        print(new_labels.shape)
+        v = napari.Viewer()
+        v.add_image(data["raw"])
+        # v.add_labels(data["labels/mitochondria"], name="original_labels")
+        v.add_labels(new_labels, name="new_labels")
+        napari.run()
 
 
 if __name__ == "__main__":

@@ -92,14 +92,15 @@ def visualize():
         filtered_data = {}
 
         if data and not args.no_visualize:
-            flattened_data = data["raw"].ravel()
-            upper_threshold = np.percentile(flattened_data, 99)
-            lower_threshold = np.percentile(flattened_data, 1)
-            print("lower and upper threshold", lower_threshold, upper_threshold)
-            filtered_data["raw"] = np.clip(data["raw"], lower_threshold, upper_threshold)  # data["raw"].copy()
-            # filtered_data["raw_5_95"] =np.clip(data["raw"], np.percentile(data["raw"], 5), np.percentile(data["raw"], 95))
-            filtered_data["raw_norm"] = torch_em.transform.raw.normalize(filtered_data["raw"])
-            print("min and max of raw_norm", filtered_data["raw_norm"].min(), filtered_data["raw_norm"].max())
+            # flattened_data = data["raw"].ravel()
+            # upper_threshold = np.percentile(flattened_data, 99)
+            # lower_threshold = np.percentile(flattened_data, 1)
+            # print("lower and upper threshold", lower_threshold, upper_threshold)
+            # filtered_data["raw"] = np.clip(data["raw"], lower_threshold, upper_threshold)  # data["raw"].copy()
+            # # filtered_data["raw_5_95"] =np.clip(data["raw"], np.percentile(data["raw"], 5), np.percentile(data["raw"], 95))
+            # filtered_data["raw_norm"] = torch_em.transform.raw.normalize(filtered_data["raw"])
+            # print("min and max of raw_norm", filtered_data["raw_norm"].min(), filtered_data["raw_norm"].max())
+            
             # filtered_data["raw_stand"] = torch_em.transform.raw.standardize(filtered_data["raw"])
             # artifact_mask = data["raw"] > lower_threshold
             # # slices_to_keep = [z for z in range(data["raw"].shape[0]) if np.min(data["raw"][z, :, :]) >= lower_threshold]
