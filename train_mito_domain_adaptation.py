@@ -5,7 +5,7 @@ import random
 import torch
 
 from sklearn.model_selection import train_test_split
-from synaptic_reconstruction.training.domain_adaptation import mean_teacher_adaptation
+from synapse_net.training.domain_adaptation import mean_teacher_adaptation
 
 from config import SAVE_DIR
 

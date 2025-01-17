@@ -18,7 +18,6 @@ from torch_em.util.debug import check_loader, check_trainer
 
 # Import your util.py for data loading
 import synapse.util as util
-import data_classes
 from config import *
 
 def test():
