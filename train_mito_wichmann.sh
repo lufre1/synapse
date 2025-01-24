@@ -14,8 +14,8 @@ source /home/nimlufre/.bashrc
 conda activate synapse
 
 python /user/freckmann15/u12103/synapse/train_mito_wichmann.py \
-  --experiment_name "mitotomo-net32-bs2-ps48512-lr1e-4-wichmann-trimmed-new" \
-  --data_dir /scratch-grete/projects/nim00007/data/mitochondria/wichmann/trimmed2 \
+  --experiment_name "mitotomo-net32-bs2-ps48512-lr1e-4-wichmann-more-fully-annotated" \
+  --data_dir /scratch-grete/projects/nim00007/data/mitochondria/wichmann/more_fully_annotated_mitos \
   --n_iterations 100000 \
   --patch_shape 48 512 512 \
   --batch_size 2 \

@@ -14,7 +14,7 @@ from synapse_net.inference.mitochondria import segment_mitochondria
 def main(visualize=False):
     parser = argparse.ArgumentParser()
     parser.add_argument("--base_path", "-b",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/wichmann/extracted/", help="Path to the root data directory")
-    parser.add_argument("--export_path", "-e",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/wichmann/new_mito_labels/", help="Path to the root data directory")
+    parser.add_argument("--export_path", "-e",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/wichmann/test/", help="Path to the root data directory")
     parser.add_argument("--model_path", "-m", type=str, default="/scratch-grete/projects/nim00007/models/exports_for_cooper/mito_model_s2.pt")
     args = parser.parse_args()
     print(args.base_path)
@@ -31,7 +31,7 @@ def main(visualize=False):
         }
     # halo = {'z': 12, 'y': 128, 'x': 128}
     ts = {'z': ts["z"]+2*halo["z"], 'y': ts["y"]+2*halo["y"], 'x': ts["x"]+2*halo["x"]}
-    h5_paths = sorted(glob(os.path.join(args.base_path, "**", "*.h5"), recursive=True))#, reverse=True)
+    h5_paths = sorted(glob(os.path.join(args.base_path, "**", "*.h5"), recursive=True), reverse=True)
 
     print("len(h5_paths)", len(h5_paths))
     tiling = {"tile": ts, "halo": halo} # prediction function automatically subtracts the 2*halo from tile
@@ -39,10 +39,14 @@ def main(visualize=False):
     scale = 1
 
     for path in tqdm(h5_paths):
-        if "Otof_AVCN03_429C_WT_M.Stim_G3_1_model.h5" in path or "Otof_AVCN03_429C_WT_M.Stim_G3_3_model.h5" in path or "Otof_AVCN03_429C_WT_M.Stim_G3_5_model.h5" in path or "Otof_AVCN03_429C_WT_M.Stim_G3_6_model.h5" in path or "Otof_AVCN03_429D_WT_Rest_G3_4_model.h5" in path:
+        skip = True
+        if "KO8_eb2_model" in path or "KO9_eb6_model" in path or "M7_eb2_model" in path:
+            # breakpoint()
+            skip = False
+        if skip:
             continue
         print("opening file", path)
-        output_path = os.path.join(args.export_path, "new_mito_labels_" + os.path.basename(path))
+        output_path = os.path.join(args.export_path, "_" + os.path.basename(args.model_path) + "_sd6_" + os.path.basename(path))
         if os.path.exists(output_path):
             print("Skipping... output path exists", output_path)
             continue
@@ -63,8 +67,10 @@ def main(visualize=False):
             scale=scale,
             tiling=tiling,
             return_predictions=True,
-            min_size=50000*5,
-            seed_distance=30  # default 6
+            min_size=50000*3,
+            seed_distance=6,  # default 6
+            ws_block_shape=(128, 256, 256),
+            ws_halo=(64, 128, 128),
             )
         with open_file(output_path, "w", ".h5") as f1:
             f1["labels/mitochondria"] = seg

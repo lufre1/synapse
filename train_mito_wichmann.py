@@ -60,7 +60,7 @@ def main():
     print(f"\n Experiment: {experiment_name}\n")
     print(f"Using {device} with {n_workers} workers.")
     label_transform = torch_em.transform.label.BoundaryTransform(add_binary_target=True)
-    raw_transform = util.custom_raw_transform
+    raw_transform = None  # util.custom_raw_transform
 
     loss_name = "dice"
     metric_name = "dice"
@@ -140,6 +140,8 @@ def main():
 
     print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
     print("data['test']", data["test"])
+    
+    transform = torch_em.transform.get_augmentations(3)
 
     if with_rois:
         train_loader = torch_em.default_segmentation_loader(
@@ -148,7 +150,7 @@ def main():
             patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
-            rois=rois_dict["train"]
+            rois=rois_dict["train"], transform=transform
         )
         val_loader = torch_em.default_segmentation_loader(
             raw_paths=data["val"], raw_key="raw",
@@ -156,7 +158,7 @@ def main():
             patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
-            rois=rois_dict["val"]
+            rois=rois_dict["val"], transform=transform
         )
     # else:
     #     train_loader = get_supervised_loader(

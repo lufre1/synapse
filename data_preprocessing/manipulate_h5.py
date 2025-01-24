@@ -190,21 +190,32 @@ def main():
     export_path = args.export_path
     scale_factor = args.scale_factor
 
+    ### cluster
+    export_path = "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/more_fully_annotated_mitos"
+    label_path = "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/manual_mitochondria_labels"
+    base_path = "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/trimmed_all"
+
     h5_paths = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
     h5_label_paths = sorted(glob(os.path.join(label_path, "**", "*.tif"), recursive=True))
     skip = True
     for h5_path in tqdm(h5_paths):
-        if "M7_eb11_model" in h5_path: #  "M6_eb2_model" M7_eb11_model
-            skip = False
-        if skip:
+        output_path = os.path.join(export_path, os.path.basename(h5_path))
+        if os.path.exists(output_path):
+            print("output path already exists:", output_path)
             continue
+        # if "M7_eb11_model" in h5_path: #  "M6_eb2_model" M7_eb11_model
+        #     skip = False
+        # if skip:
+        #     continue
         label_path = find_trimmed_and_new_labels_pair(h5_path, h5_label_paths, type="label")
         if label_path is None:
             continue
         keys = get_all_keys_from_h5(h5_path)
         data = {}
         for key in keys:
-            if "raw" in key:
+            if "mitochondria" in key:
+                continue
+            else:
                 data[key] = read_h5(h5_path, key, scale_factor)
         #new_labels = np.array(open_file(label_path, ext=".tif")[:], dtype=np.uint8)  # read_h5(label_path, "labels/mitochondria", scale_factor)
         new_labels = tifffile.imread(label_path)
@@ -212,20 +223,16 @@ def main():
         # new_labels = parallel_label(new_labels, block_shape=(16, 512, 512))
         new_labels = label(new_labels)
         new_labels = remove_small_objects(new_labels.astype(np.uint8), min_size=1000)
-        
-        #data["labels/mitochondria"] = (new_labels + (data["labels/mitochondria"] > 0).astype(np.uint8) > 0).astype(np.uint8)
-        output_path = os.path.join(export_path, os.path.basename(h5_path))
-        # if os.path.exists(output_path):
-        #     print("output path already exists:", output_path)
-        #     continue
-        # else:
-        #     export_to_h5(data, output_path)
-        print(new_labels.shape)
-        v = napari.Viewer()
-        v.add_image(data["raw"])
-        # v.add_labels(data["labels/mitochondria"], name="original_labels")
-        v.add_labels(new_labels, name="new_labels")
-        napari.run()
+
+        data["labels/mitochondria"] = new_labels
+
+        export_to_h5(data, output_path)
+
+        # v = napari.Viewer()
+        # v.add_image(data["raw"])
+        # # v.add_labels(data["labels/mitochondria"], name="original_labels")
+        # v.add_labels(new_labels, name="new_labels")
+        # napari.run()
 
 
 if __name__ == "__main__":
