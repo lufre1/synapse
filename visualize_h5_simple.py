@@ -7,6 +7,9 @@ from glob import glob
 import numpy as np
 import torch_em
 import napari
+import elf.parallel as parallel
+from scipy.ndimage import binary_erosion, binary_fill_holes, binary_closing
+from synapse_net.inference.util import apply_size_filter, get_prediction, _Scaler, _postprocess_seg_3d
 
 
 def _read_h5(path, key, scale_factor, z_offset=None):
@@ -58,7 +61,7 @@ def visualize_data(data):
             value = torch_em.transform.raw.standardize(value)
             viewer.add_image(value, name=key)
         elif key == "prediction" or "pred" in key:
-            viewer.add_image(value, name="Prediction", blending="additive")
+            viewer.add_image(value, name=key, blending="additive")
         else:
             viewer.add_labels(value, name=key)
 
@@ -79,8 +82,8 @@ def visualize():
     shapes = []
     for path in paths:
         print(path)
-        if path == "/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi/36859_J1_66K_TS_CA3_MF_18_rec_2Kb1dawbp_crop.h5":
-            continue
+        # if "M7_eb2" not in path:
+        #     continue
         keys = get_all_keys_from_h5(path)
         keys.sort(reverse=True)
         print("\ndata keys", keys)
@@ -90,6 +93,36 @@ def visualize():
             data[key] = _read_h5(path, key, args.scale_factor, z_offset=(args.z_offset))
             # data[key] = _read_h5(path, key, args.scale_factor)
         filtered_data = {}
+
+        block_shape = (64, 512, 512)
+        halo = (32, 128, 128)
+        seed_distance =3
+        boundary_threshold = 0.2
+        min_size = 50000*10
+        foreground, boundaries = data["pred"]
+        # #boundaries = binary_erosion(boundaries < boundary_threshold, structure=np.ones((1, 3, 3)))
+        dist = parallel.distance_transform(boundaries < boundary_threshold, halo=halo, verbose=True, block_shape=block_shape)
+        # data["pred_dist_without_fore"] = parallel.distance_transform((boundaries) < boundary_threshold, halo=halo, verbose=True, block_shape=block_shape)
+        hmap = boundaries + ((dist.max() - dist) / dist.max())
+        # hmap = hmap.clip(min=0)
+        seeds = np.logical_and(foreground > 0.5, dist > seed_distance)
+        seeds = parallel.label(seeds, block_shape=block_shape, verbose=True)
+        # #seeds = binary_fill_holes(seeds)
+        
+        mask = (foreground + boundaries) > 0.5
+        seg = np.zeros_like(seeds)
+        seg = parallel.seeded_watershed(
+            hmap, seeds, block_shape=block_shape,
+            out=seg, mask=mask, verbose=True, halo=halo,
+        )
+        seg = apply_size_filter(seg, min_size, verbose=True, block_shape=block_shape)
+        seg = _postprocess_seg_3d(seg, area_threshold=5000)
+        data["pred_hmap"] = hmap
+        data["pred_dist"] = dist
+        data["seg"] = seg
+        data["seeds"] = seeds
+        #data["postprocessed_seeds"] = binary_closing(binary_closing(seeds, structure=np.ones((5, 5, 5))), structure=np.ones((5, 5, 5)))
+
 
         if data and not args.no_visualize:
             # flattened_data = data["raw"].ravel()
