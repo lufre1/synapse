@@ -203,10 +203,10 @@ def main():
         if os.path.exists(output_path):
             print("output path already exists:", output_path)
             continue
-        # if "M7_eb11_model" in h5_path: #  "M6_eb2_model" M7_eb11_model
-        #     skip = False
-        # if skip:
-        #     continue
+        if "WT21_syn5_model2" in h5_path:
+            skip = False
+        if skip:
+            continue
         label_path = find_trimmed_and_new_labels_pair(h5_path, h5_label_paths, type="label")
         if label_path is None:
             continue

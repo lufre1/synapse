@@ -80,9 +80,16 @@ def visualize():
     # paths = util.get_wichmann_data()
 
     shapes = []
+    i = 0
+    skip = True
     for path in paths:
         print(path)
-        # if "M7_eb2" not in path:
+        if "WT20_syn7_model2" in path:
+            skip = False
+        if skip:
+            continue
+        # if i < 2:
+        #     i += 1
         #     continue
         keys = get_all_keys_from_h5(path)
         keys.sort(reverse=True)
@@ -94,33 +101,34 @@ def visualize():
             # data[key] = _read_h5(path, key, args.scale_factor)
         filtered_data = {}
 
-        block_shape = (64, 512, 512)
-        halo = (32, 128, 128)
-        seed_distance =3
-        boundary_threshold = 0.2
-        min_size = 50000*10
-        foreground, boundaries = data["pred"]
-        # #boundaries = binary_erosion(boundaries < boundary_threshold, structure=np.ones((1, 3, 3)))
-        dist = parallel.distance_transform(boundaries < boundary_threshold, halo=halo, verbose=True, block_shape=block_shape)
-        # data["pred_dist_without_fore"] = parallel.distance_transform((boundaries) < boundary_threshold, halo=halo, verbose=True, block_shape=block_shape)
-        hmap = boundaries + ((dist.max() - dist) / dist.max())
-        # hmap = hmap.clip(min=0)
-        seeds = np.logical_and(foreground > 0.5, dist > seed_distance)
-        seeds = parallel.label(seeds, block_shape=block_shape, verbose=True)
-        # #seeds = binary_fill_holes(seeds)
+        # block_shape = (64, 512, 512)
+        # halo = (32, 128, 128)
+        # seed_distance = 6
+        # boundary_threshold = 0.2
+        # min_size = 50000*10
+        # foreground, boundaries = data["pred"]
+        # # #boundaries = binary_erosion(boundaries < boundary_threshold, structure=np.ones((1, 3, 3)))
+        # dist = parallel.distance_transform(boundaries < boundary_threshold, halo=halo, verbose=True, block_shape=block_shape)
+        # # data["pred_dist_without_fore"] = parallel.distance_transform((boundaries) < boundary_threshold, halo=halo, verbose=True, block_shape=block_shape)
+        # hmap = boundaries + ((dist.max() - dist) / dist.max())
+        # # hmap = hmap.clip(min=0)
+        # seeds = np.logical_and(foreground > 0.5, dist > seed_distance)
+        # seeds = parallel.label(seeds, block_shape=block_shape, verbose=True)
+        # # #seeds = binary_fill_holes(seeds)
         
-        mask = (foreground + boundaries) > 0.5
-        seg = np.zeros_like(seeds)
-        seg = parallel.seeded_watershed(
-            hmap, seeds, block_shape=block_shape,
-            out=seg, mask=mask, verbose=True, halo=halo,
-        )
-        seg = apply_size_filter(seg, min_size, verbose=True, block_shape=block_shape)
-        seg = _postprocess_seg_3d(seg, area_threshold=5000)
-        data["pred_hmap"] = hmap
-        data["pred_dist"] = dist
-        data["seg"] = seg
-        data["seeds"] = seeds
+        # mask = (foreground + boundaries) > 0.5
+        # seg = np.zeros_like(seeds)
+        # seg = parallel.seeded_watershed(
+        #     hmap, seeds, block_shape=block_shape,
+        #     out=seg, mask=mask, verbose=True, halo=halo,
+        # )
+        # seg = apply_size_filter(seg, min_size, verbose=True, block_shape=block_shape)
+        # seg = _postprocess_seg_3d(seg, area_threshold=1000, iterations=4, iterations_3d=8)
+
+        # data["pred_hmap"] = hmap
+        # data["pred_dist"] = dist
+        # data["seg"] = seg
+        # data["seeds"] = seeds
         #data["postprocessed_seeds"] = binary_closing(binary_closing(seeds, structure=np.ones((5, 5, 5))), structure=np.ones((5, 5, 5)))
 
 
