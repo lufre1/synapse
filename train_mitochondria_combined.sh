@@ -13,9 +13,9 @@
 source /home/nimlufre/.bashrc
 conda activate synapse
 
-python /user/freckmann15/u12103/synapse/main.py \
-  --experiment_name "mitotomo-net32-bs2-ps48512-lr1e-4-combined-new" \
-  --data_dir /scratch-grete/projects/nim00007/data/mitochondria/wichmann/combined_mitos \
+python /user/freckmann15/u12103/synapse/train_mito_wichmann.py \
+  --experiment_name "mitotomo-net32-bs2-ps48512-lr1e-4-combined-refined" \
+  --data_dir /scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos \
   --data_dir2 /scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/ \
   --n_iterations 100000 \
   --patch_shape 48 512 512 \

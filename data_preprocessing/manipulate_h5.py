@@ -191,20 +191,23 @@ def main():
     scale_factor = args.scale_factor
 
     ### cluster
-    export_path = "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/more_fully_annotated_mitos"
-    label_path = "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/manual_mitochondria_labels"
+    export_path = "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/more_fully_annotated_mitos_corrected"
+    label_path = "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/new_labels_tif"
     base_path = "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/trimmed_all"
 
     h5_paths = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
     h5_label_paths = sorted(glob(os.path.join(label_path, "**", "*.tif"), recursive=True))
-    skip = True
+    skip = False
+    wait_1 = False
     for h5_path in tqdm(h5_paths):
         output_path = os.path.join(export_path, os.path.basename(h5_path))
         if os.path.exists(output_path):
             print("output path already exists:", output_path)
             continue
+        if wait_1:
+            skip = True
         if "WT21_syn5_model2" in h5_path:
-            skip = False
+            wait_1 = True
         if skip:
             continue
         label_path = find_trimmed_and_new_labels_pair(h5_path, h5_label_paths, type="label")
@@ -219,9 +222,10 @@ def main():
                 data[key] = read_h5(h5_path, key, scale_factor)
         #new_labels = np.array(open_file(label_path, ext=".tif")[:], dtype=np.uint8)  # read_h5(label_path, "labels/mitochondria", scale_factor)
         new_labels = tifffile.imread(label_path)
+        binary_labels = new_labels > 0
         # new_labels = binary_closing(new_labels)
         # new_labels = parallel_label(new_labels, block_shape=(16, 512, 512))
-        new_labels = label(new_labels)
+        new_labels = label(binary_labels)
         new_labels = remove_small_objects(new_labels.astype(np.uint8), min_size=1000)
 
         data["labels/mitochondria"] = new_labels
