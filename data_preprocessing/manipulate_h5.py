@@ -16,6 +16,7 @@ from elf.parallel import label as parallel_label
 from skimage.segmentation import relabel_sequential
 from skimage.morphology import binary_closing, remove_small_objects, label
 import tifffile
+import zarr
 
 
 def rename_h5_key(file_path, old_key, new_key):
@@ -153,6 +154,14 @@ def export_to_h5(data, export_path):
     print("exported to", export_path)
 
 
+def export_to_zarr(data, export_path):
+    store = zarr.DirectoryStore(export_path)
+    root = zarr.group(store)
+    for key, value in data.items():
+        root.create_dataset(key, data=np.array(value))
+    print("exported to", export_path)
+
+
 def trim_z_dim(h5_file_path, z_dim_trim, export_path):
     dataset_names = get_all_datasets(h5_file_path)
     export_file_name = os.path.basename(h5_file_path)
@@ -167,7 +176,7 @@ def trim_z_dim(h5_file_path, z_dim_trim, export_path):
     export_to_h5(data, os.path.join(export_path, export_file_name))
 
 
-def find_trimmed_and_new_labels_pair(t_path, nl_paths, type):
+def find_filename_in_list_of_tifs(t_path, nl_paths, type):
     t_name = os.path.basename(t_path)
     for nl_path in nl_paths:
         nl_name = os.path.basename(nl_path).replace(".tif", "")
@@ -191,41 +200,36 @@ def main():
     scale_factor = args.scale_factor
 
     ### cluster
-    # export_path = "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/more_fully_annotated_mitos_corrected"
+    export_path = "/scratch-grete/projects/nim00007/data/mitochondria/cooper/test_segmentations/without_pred"
     # label_path = "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/new_labels_tif"
-    # base_path = "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/trimmed_all"
+    base_path = "/scratch-grete/projects/nim00007/data/mitochondria/cooper/test_segmentations/"
 
     h5_paths = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
-    h5_label_paths = sorted(glob(os.path.join(label_path, "**", "*.tif"), recursive=True))
-    skip = True
-    wait_1 = False
+    # h5_label_paths = sorted(glob(os.path.join(label_path, "**", "*.tif"), recursive=True))
+    # skip = True
+    # wait_1 = False
     for h5_path in tqdm(h5_paths):
-        output_path = os.path.join(export_path, os.path.basename(h5_path))
+        output_path = os.path.join(export_path, os.path.basename(h5_path).replace(".h5", ".zarr").replace("_with_pred", ""))
         if os.path.exists(output_path):
             print("output path already exists:", output_path)
             continue
-        # if wait_1:
-        #     skip = True
-        # if "/home/freckmann15/data/mitochondria/cooper/fidi_s2/new_mitos/36859_J1_66K_TS_CA3_MF_19_rec_2Kb1dawbp_crop_s2" in h5_path:
-        #     skip = False
-        # if skip:
-        #     continue
-        # label_path = find_trimmed_and_new_labels_pair(h5_path, h5_label_paths, type="label")
-        # if label_path is None:
-        #     continue
+
         keys = get_all_keys_from_h5(h5_path)
         data = {}
         for key in keys:
-            data[key] = read_h5(h5_path, key, scale_factor)
+            if "pred" in key:
+                continue
+            else:
+                data[key] = read_h5(h5_path, key, scale_factor)
 
-        new_labels = data["labels/mitochondria"] # tifffile.imread(label_path)
-        binary_labels = new_labels > 0
-        new_labels = label(binary_labels)
-        new_labels = remove_small_objects(new_labels.astype(np.uint8), min_size=500)
+        # new_labels = data["labels/mitochondria"] # tifffile.imread(label_path)
+        # binary_labels = new_labels > 0
+        # new_labels = label(binary_labels)
+        # new_labels = remove_small_objects(new_labels.astype(np.uint8), min_size=500)
 
-        data["labels/mitochondria"] = new_labels
+        # data["labels/mitochondria"] = new_labels
 
-        export_to_h5(data, output_path)
+        export_to_zarr(data, output_path)
 
         # v = napari.Viewer()
         # v.add_image(data["raw"])

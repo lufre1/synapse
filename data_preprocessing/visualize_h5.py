@@ -42,7 +42,7 @@ def visualize():
     raw_file_path = args.file_path
     base_path = args.base_path
     
-    scale_factor = 4
+    scale_factor = 2
     
     if base_path:
         paths = glob(os.path.join(base_path, "**", "*.h5"), recursive=True)
@@ -74,13 +74,13 @@ def visualize():
         if label2 is not None:
             vis_data = {
                 "raw": image1,
-                "label": label,
-                "pred1": label2
+                #"label": label,
+                #"pred1": label2
             }
         else:
             vis_data = {
                 "raw": image1,
-                "label": label
+                #"label": label
             }
         util.visualize_data_napari(vis_data)
         
@@ -98,7 +98,7 @@ def visualize():
         print(f"Visualizing {data_path}...")
         with h5py.File(data_path, "r") as f:
             print("Prediction shape:", f["prediction"].shape)
-            pred = f["prediction"][:, :, ::int(scale_factor/2), ::int(scale_factor/2)]
+            pred = f["prediction"][:, :, ::int(scale_factor), ::int(scale_factor)]
             print("Prediction shape after downsampling:", pred.shape)
             threshold = .85
             pred_foreground = (pred[0, :, :, :] > threshold).astype(np.uint8)

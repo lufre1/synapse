@@ -9,6 +9,7 @@ import torch_em
 import napari
 import elf.parallel as parallel
 from scipy.ndimage import binary_erosion, binary_fill_holes, binary_closing
+from tqdm import tqdm
 from synapse_net.inference.util import apply_size_filter, get_prediction, _Scaler, _postprocess_seg_3d
 
 
@@ -120,103 +121,44 @@ def visualize():
     args = parser.parse_args()
 
     paths = get_file_paths(args.path, reverse=False)
-    # paths = util.get_wichmann_data()
+    #paths.extend(get_file_paths("/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/"))
 
-    shapes = []
-    i = 0
-    skip = True
-    for path in paths:
+    print("len paths", len(paths))
+    statistics = {}
+
+    for path in tqdm(paths):
         print(path)
-        # if "combined" in path or "membrane" in path or "36859_J1_66K_TS_CA3_MF_19_rec_2Kb1dawbp" not in path:
-        #     continue
-        # if "outer-membrane" in path:
-        #     skip = False
-        # else:
-        #     skip = False
-        # if skip:
-        #     continue
-        # if i < 45:
-        #     i += 1
-        #     continue
-        # if "only_net" not in path or "sd18_bt015" not in path or "downscaled" not in path:
-        #     continue
+ 
+
         keys = get_all_keys_from_h5(path)
         keys.sort(reverse=True)
         print("\ndata keys", keys)
         print("in path", path)
         data = {}
-        block_shape = (32, 256, 256)
-        min_size =5000
         for key in keys:
-            data[key] = _read_h5(path, key, args.scale_factor, z_offset=(args.z_offset))
-            # if "mito" in key:
-            #     data[key] = parallel.label(data[key], block_shape=block_shape, verbose=True)
-                #data[key] = apply_size_filter(data[key], min_size, verbose=True, block_shape=block_shape)
-                #data[key] = _postprocess_seg_3d(data[key], area_threshold=500, iterations=4, iterations_3d=8)
-            # data[key] = _read_h5(path, key, args.scale_factor)
+            if "mito" in key:
+                data[key] = _read_h5(path, key, args.scale_factor, z_offset=(args.z_offset))
+            else:
+                continue
+
         filtered_data = {}
 
-        # seg_data = _segment(data["pred"])
-
-        # data["pred_hmap"] = seg_data["hmap"]
-        # print("pred_hmap max val", data["pred_hmap"].max())
-        # # data["pred_dist"] = dist
-        # data["seg_new"] = seg_data["seg"]
-        # data["seeds"] = seg_data["seeds"]
-        
-        # seg_data2 = _segment(data["pred"], with_hmp_max_value=False, dist=seg_data["dist"])
-        # data["pred_hmap_no_max"] = seg_data2["hmap"]
-        # print("pred_hmap_no_max max val", data["pred_hmap_no_max"].max())
-        # data["seg_new_no_max"] = seg_data2["seg"]
-
         if data and not args.no_visualize:
-            # flattened_data = data["raw"].ravel()
-            # upper_threshold = np.percentile(flattened_data, 99)
-            # lower_threshold = np.percentile(flattened_data, 1)
-            # print("lower and upper threshold", lower_threshold, upper_threshold)
-            # filtered_data["raw"] = np.clip(data["raw"], lower_threshold, upper_threshold)  # data["raw"].copy()
-            # # filtered_data["raw_5_95"] =np.clip(data["raw"], np.percentile(data["raw"], 5), np.percentile(data["raw"], 95))
-            # filtered_data["raw_norm"] = torch_em.transform.raw.normalize(filtered_data["raw"])
-            # print("min and max of raw_norm", filtered_data["raw_norm"].min(), filtered_data["raw_norm"].max())
-            
-            # filtered_data["raw_stand"] = torch_em.transform.raw.standardize(filtered_data["raw"])
-            # artifact_mask = data["raw"] > lower_threshold
-            # # slices_to_keep = [z for z in range(data["raw"].shape[0]) if np.min(data["raw"][z, :, :]) >= lower_threshold]
-            # # for z in range(data["raw"].shape[0]):
-            # #     print(np.min(data["raw"][z, :, :]))
-            # # print("slices to keep", len(slices_to_keep), "out of", data["raw"].shape[0])
-            # # for key, value in data.items():
-            # #     filtered_data[key] = value[slices_to_keep, :, :]
-            # data["raw2"] = data["raw"].copy()
-            # # median = np.median(data["raw"])
-            # print("np.percentile(data[raw], 5)",np.percentile(data["raw"], 5))
-            # data["raw2"][artifact_mask] = np.percentile(data["raw"], 5)
-            # print(median)
             if filtered_data:
                 visualize_data(filtered_data)
             else:
                 visualize_data(data)
-        # if data:
-        #     shapes.append(data["raw"].shape)
-        #     print("min", np.min(data["raw"]))
-        #     print("max", np.max(data["raw"]))
-        #     print("mean", np.mean(data["raw"]))
-        #     print("std", np.std(data["raw"]))
-        #     print("percentile", np.percentile(data["raw"], [0, 25, 50, 75, 100]))
-            
-            # print("data.keys", data.keys())
-            # shapes = []
-            # for key, value in data.items():
-            #     print(key, value.shape)
-            #     shapes.append(value.shape)
-            # print("shapes", shapes)
-            # avg0 = np.mean(shapes, axis=0)    
-            # avg1 = np.mean(data["raw"].shape, axis=1)    
-            # avg2 = np.mean(data["raw"].shape, axis=2)    
-            # print(avg0)#, avg1.shape, avg2.shape)
-    # for shape in shapes:
-    #     print(shape)
-    # print("average shapes", np.mean(shapes, axis=0))
+        else:
+            #print("Calculate Statistics...")
+            statistics[path] = {
+                "#mitos": len(np.unique(data["labels/mitochondria"])),
+            }
+    print("statistics:")
+    mitos = 0
+    for key in statistics.keys():
+        mitos += statistics[key]["#mitos"]
+        print(statistics[key])
+    print("amount of all mitos", mitos)
 
 
 if __name__ == "__main__":
