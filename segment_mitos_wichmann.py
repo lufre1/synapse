@@ -104,7 +104,7 @@ def get_all_keys_from_h5(file_path):
 def main(visualize=False):
     parser = argparse.ArgumentParser()
     parser.add_argument("--base_path", "-b",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/wichmann/extracted/", help="Path to the root data directory")
-    parser.add_argument("--export_path", "-e",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/wichmann/test/", help="Path to the root data directory")
+    parser.add_argument("--export_path", "-e",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/cooper/test_segmentations", help="Path to the root data directory")
     parser.add_argument("--model_path", "-m", type=str, default="/scratch-grete/projects/nim00007/models/exports_for_cooper/mito_model_s2.pt")
     parser.add_argument("--add_missing_mitos", "-am", default=False, action='store_true', help="If to add missing mitos to segmentation and keep original labels")
     args = parser.parse_args()
@@ -124,15 +124,24 @@ def main(visualize=False):
     # halo = {'z': 12, 'y': 128, 'x': 128}
     ts = {'z': ts["z"]+2*halo["z"], 'y': ts["y"]+2*halo["y"], 'x': ts["x"]+2*halo["x"]}
     h5_paths = sorted(glob(os.path.join(args.base_path, "**", "*.h5"), recursive=True), reverse=True)
+    # test_file_paths = [
+    #     "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M2_eb10_model.h5",
+    #     '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5',
+    #     '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5',
+    #     '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5',
+    #     '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5',
+    #     '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5'
+    # ]
+    ### fidi
+    # test_file_paths = [
+    #     '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M2_eb10_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5'
+        
+    # ]
     test_file_paths = [
-        "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M2_eb10_model.h5",
-        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5',
-        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5',
-        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5',
-        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5',
-        '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5'
+        "/scratch-grete/projects/nim00007/data/mitochondria/cooper/mito_tomo/outer-membrane2/2_20230415_TOMO_HOI_WT_36859_J1_STEM750/36859_J1_STEM750_66K_SP_06_rec_2kb1dawbp_crop.h5",
+        "/scratch-grete/projects/nim00007/data/mitochondria/cooper/mito_tomo/outer-membrane2/2_20230415_TOMO_HOI_WT_36859_J1_STEM750/36859_J1_STEM750_66K_SP_07_rec_2kb1dawbp_crop.h5",
+        "/scratch-grete/projects/nim00007/data/mitochondria/cooper/mito_tomo/outer-membrane3/4_20230829_TOMO_HOI_WT_36859_J2_uPSTEM750/36859_J2_66K_TS_R04_PS06_rec_2Kb1dawbp_crop.h5"
     ]
-
 
     print("len(h5_paths)", len(h5_paths))
     tiling = {"tile": ts, "halo": halo} # prediction function automatically subtracts the 2*halo from tile
@@ -147,15 +156,16 @@ def main(visualize=False):
         # if skip:
         #     continue
         print("opening file", path)
-        output_path = os.path.join(args.export_path, "only_net_" + os.path.basename(args.model_path) + "_sd18_bt015_with_pred_" + os.path.basename(path))
+        output_path = os.path.join(args.export_path, "only_net_" + os.path.basename(args.model_path) + "_sd18_bt015_with_pred_" + os.path.basename(path) + "_downscaled")
         if os.path.exists(output_path):
             print("Skipping... output path exists", output_path)
             continue
         keys = get_all_keys_from_h5(path)
         data = {}
+        scale_factor = 2
         with open_file(path, "r") as f:
             for key in keys:
-                data[key] = f[key][:]
+                data[key] = f[key][::scale_factor, ::scale_factor, ::scale_factor]
             # data = f["raw"][:]
             # mean = np.mean(data)
             # valid_min, valid_max = -5, 5

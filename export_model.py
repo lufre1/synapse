@@ -1,12 +1,17 @@
 import torch
 from torch_em.util import load_model
 import argparse
+import os
 
 
 def export_model(args):
     model = load_model(args.checkpoint_path)
     print("Loaded model from", args.checkpoint_path)
-    torch.save(model, args.export_path)
+    if os.path.isdir(args.export_path):
+        export_path = os.path.join(args.export_path, "model.pt")
+    else:
+        export_path = args.export_path
+    torch.save(model, export_path)
     print("Successfully exported model to", args.export_path)
 
 
