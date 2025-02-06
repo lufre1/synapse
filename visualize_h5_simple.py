@@ -16,7 +16,7 @@ def _read_h5(path, key, scale_factor, z_offset=None):
     with h5py.File(path, "r") as f:
         try:
             print(f"{key} data shape", f[key].shape)
-            if key == "prediction" or "pred" in key:
+            if key == "prediction" or "pred" in key or "combined" in key:
                 image = f[key][:, ::scale_factor, ::scale_factor, ::scale_factor]
                 if z_offset:
                     image = image[z_offset[0]:z_offset[1], :, :]
@@ -45,11 +45,11 @@ def get_all_keys_from_h5(file_path):
     return keys
 
 
-def get_file_paths(path):
+def get_file_paths(path, reverse=False):
     if os.path.isfile(path):
         return [path]
     else:
-        paths = sorted(glob(os.path.join(path, "**", "*.h5"), recursive=True))
+        paths = sorted(glob(os.path.join(path, "**", "*.h5"), recursive=True), reverse=reverse)
         print(f"Found {len(paths)} files:")
         return paths
 
@@ -58,7 +58,7 @@ def visualize_data(data):
     viewer = napari.Viewer()
     for key, value in data.items():
         if key == "raw" or "raw" in key:
-            value = torch_em.transform.raw.standardize(value)
+            value = torch_em.transform.raw.normalize_percentile(value, lower=5, upper=95)
             viewer.add_image(value, name=key)
         elif key == "prediction" or "pred" in key:
             viewer.add_image(value, name=key, blending="additive")
@@ -68,6 +68,49 @@ def visualize_data(data):
     napari.run()
 
 
+def _segment(pred,
+             block_shape=(32, 256, 256),
+             halo=(16, 64, 64),
+             seed_distance=18,
+             boundary_threshold=0.15,
+             min_size=50000*8,
+             area_threshold=1000,
+             with_hmp_max_value=True,
+             dist=None
+             ):
+    foreground, boundaries = pred
+    # # #boundaries = binary_erosion(boundaries < boundary_threshold, structure=np.ones((1, 3, 3)))
+    if dist is None:
+        dist = parallel.distance_transform(boundaries < boundary_threshold, halo=halo, verbose=True, block_shape=block_shape)
+    # # data["pred_dist_without_fore"] = parallel.distance_transform((boundaries) < boundary_threshold, halo=halo, verbose=True, block_shape=block_shape)
+    hmap = ((dist.max() - dist) / dist.max())
+    if with_hmp_max_value:
+        hmap[boundaries > boundary_threshold] = (hmap + boundaries).max()
+    else:
+        hmap = hmap + boundaries
+        hmap[boundaries > boundary_threshold] = hmap.max()
+    # # hmap = hmap.clip(min=0)
+    seeds = np.logical_and(foreground > 0.5, dist > seed_distance)
+    seeds = parallel.label(seeds, block_shape=block_shape, verbose=True)
+    # # #seeds = binary_fill_holes(seeds)
+    
+    mask = (foreground + boundaries) > 0.5
+    seg = np.zeros_like(seeds)
+    seg = parallel.seeded_watershed(
+        hmap, seeds, block_shape=block_shape,
+        out=seg, mask=mask, verbose=True, halo=halo,
+    )
+    seg = apply_size_filter(seg, min_size, verbose=True, block_shape=block_shape)
+    seg = _postprocess_seg_3d(seg, area_threshold=area_threshold, iterations=4, iterations_3d=8)
+    seg_data = {
+        "seg": seg,
+        "seeds": seeds,
+        "dist": dist,
+        "hmap": hmap
+    }
+    return seg_data
+        
+
 def visualize():
     parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
     parser.add_argument("--path", "-p", type=str, required=True, help="Path to the data directory or single file")
@@ -76,7 +119,7 @@ def visualize():
     parser.add_argument("--z_offset", "-z", type=int, nargs=2, default=None, help="Z offset for the data e.g. 5 -5")
     args = parser.parse_args()
 
-    paths = get_file_paths(args.path)
+    paths = get_file_paths(args.path, reverse=False)
     # paths = util.get_wichmann_data()
 
     shapes = []
@@ -84,53 +127,47 @@ def visualize():
     skip = True
     for path in paths:
         print(path)
-        if "WT20_syn7_model2" in path:
-            skip = False
-        if skip:
-            continue
-        # if i < 2:
+        # if "combined" in path or "membrane" in path or "36859_J1_66K_TS_CA3_MF_19_rec_2Kb1dawbp" not in path:
+        #     continue
+        # if "outer-membrane" in path:
+        #     skip = False
+        # else:
+        #     skip = False
+        # if skip:
+        #     continue
+        # if i < 45:
         #     i += 1
+        #     continue
+        # if "only_net" not in path or "sd18_bt015" not in path or "downscaled" not in path:
         #     continue
         keys = get_all_keys_from_h5(path)
         keys.sort(reverse=True)
         print("\ndata keys", keys)
         print("in path", path)
         data = {}
+        block_shape = (32, 256, 256)
+        min_size =5000
         for key in keys:
             data[key] = _read_h5(path, key, args.scale_factor, z_offset=(args.z_offset))
+            # if "mito" in key:
+            #     data[key] = parallel.label(data[key], block_shape=block_shape, verbose=True)
+                #data[key] = apply_size_filter(data[key], min_size, verbose=True, block_shape=block_shape)
+                #data[key] = _postprocess_seg_3d(data[key], area_threshold=500, iterations=4, iterations_3d=8)
             # data[key] = _read_h5(path, key, args.scale_factor)
         filtered_data = {}
 
-        # block_shape = (64, 512, 512)
-        # halo = (32, 128, 128)
-        # seed_distance = 6
-        # boundary_threshold = 0.2
-        # min_size = 50000*10
-        # foreground, boundaries = data["pred"]
-        # # #boundaries = binary_erosion(boundaries < boundary_threshold, structure=np.ones((1, 3, 3)))
-        # dist = parallel.distance_transform(boundaries < boundary_threshold, halo=halo, verbose=True, block_shape=block_shape)
-        # # data["pred_dist_without_fore"] = parallel.distance_transform((boundaries) < boundary_threshold, halo=halo, verbose=True, block_shape=block_shape)
-        # hmap = boundaries + ((dist.max() - dist) / dist.max())
-        # # hmap = hmap.clip(min=0)
-        # seeds = np.logical_and(foreground > 0.5, dist > seed_distance)
-        # seeds = parallel.label(seeds, block_shape=block_shape, verbose=True)
-        # # #seeds = binary_fill_holes(seeds)
+        # seg_data = _segment(data["pred"])
+
+        # data["pred_hmap"] = seg_data["hmap"]
+        # print("pred_hmap max val", data["pred_hmap"].max())
+        # # data["pred_dist"] = dist
+        # data["seg_new"] = seg_data["seg"]
+        # data["seeds"] = seg_data["seeds"]
         
-        # mask = (foreground + boundaries) > 0.5
-        # seg = np.zeros_like(seeds)
-        # seg = parallel.seeded_watershed(
-        #     hmap, seeds, block_shape=block_shape,
-        #     out=seg, mask=mask, verbose=True, halo=halo,
-        # )
-        # seg = apply_size_filter(seg, min_size, verbose=True, block_shape=block_shape)
-        # seg = _postprocess_seg_3d(seg, area_threshold=1000, iterations=4, iterations_3d=8)
-
-        # data["pred_hmap"] = hmap
-        # data["pred_dist"] = dist
-        # data["seg"] = seg
-        # data["seeds"] = seeds
-        #data["postprocessed_seeds"] = binary_closing(binary_closing(seeds, structure=np.ones((5, 5, 5))), structure=np.ones((5, 5, 5)))
-
+        # seg_data2 = _segment(data["pred"], with_hmp_max_value=False, dist=seg_data["dist"])
+        # data["pred_hmap_no_max"] = seg_data2["hmap"]
+        # print("pred_hmap_no_max max val", data["pred_hmap_no_max"].max())
+        # data["seg_new_no_max"] = seg_data2["seg"]
 
         if data and not args.no_visualize:
             # flattened_data = data["raw"].ravel()
