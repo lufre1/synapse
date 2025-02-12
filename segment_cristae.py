@@ -7,7 +7,7 @@ import torch_em.transform
 from tqdm import tqdm
 from elf.io import open_file
 import numpy as np
-from synapse_net.inference.mitochondria import segment_mitochondria
+from synapse_net.inference.cristae import segment_cristae
 # from synapse_net.ground_truth.matching import find_additional_objects
 from elf.evaluation.matching import label_overlap, intersection_over_union
 from skimage.segmentation import relabel_sequential
@@ -104,8 +104,8 @@ def get_all_keys_from_h5(file_path):
 def main(visualize=False):
     parser = argparse.ArgumentParser()
     parser.add_argument("--base_path", "-b",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/wichmann/extracted/", help="Path to the root data directory")
-    parser.add_argument("--export_path", "-e",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/cooper/test_segmentations", help="Path to the root data directory")
-    parser.add_argument("--model_path", "-m", type=str, default="/scratch-grete/projects/nim00007/models/exports_for_cooper/mito_model_s2.pt")
+    parser.add_argument("--export_path", "-e",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/cooper/cristae_test_segmentations", help="Path to the root data directory")
+    parser.add_argument("--model_path", "-m", type=str, default="/scratch-grete/usr/nimlufre/synapse/mito_segmentation/checkpoints/cristae-net32-bs2-ps48512-cooper-wichmann")
     parser.add_argument("--add_missing_mitos", "-am", default=False, action='store_true', help="If to add missing mitos to segmentation and keep original labels")
     args = parser.parse_args()
     add_missing_mitos = args.add_missing_mitos
@@ -137,11 +137,11 @@ def main(visualize=False):
     #     '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M2_eb10_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5'
         
     # ]
-    test_file_paths = [
-        "/scratch-grete/projects/nim00007/data/mitochondria/cooper/mito_tomo/outer-membrane2/2_20230415_TOMO_HOI_WT_36859_J1_STEM750/36859_J1_STEM750_66K_SP_06_rec_2kb1dawbp_crop.h5",
-        "/scratch-grete/projects/nim00007/data/mitochondria/cooper/mito_tomo/outer-membrane2/2_20230415_TOMO_HOI_WT_36859_J1_STEM750/36859_J1_STEM750_66K_SP_07_rec_2kb1dawbp_crop.h5",
-        "/scratch-grete/projects/nim00007/data/mitochondria/cooper/mito_tomo/outer-membrane3/4_20230829_TOMO_HOI_WT_36859_J2_uPSTEM750/36859_J2_66K_TS_R04_PS06_rec_2Kb1dawbp_crop.h5"
-    ]
+    test_file_paths = ['/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-KO_P10/M2_eb14_model_combined.h5', 
+                       '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_in_endbuld/Otof_AVCN03_429C_WT_M.Stim_G3_1_model_combined.h5', 
+                       '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT19_syn6_model2_combined.h5', 
+                       '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-KO_P22/M7_eb12_model_combined.h5'
+                       ]
 
     print("len(h5_paths)", len(h5_paths))
     tiling = {"tile": ts, "halo": halo} # prediction function automatically subtracts the 2*halo from tile
@@ -156,7 +156,7 @@ def main(visualize=False):
         # if skip:
         #     continue
         print("opening file", path)
-        output_path = os.path.join(args.export_path, "only_net_" + os.path.basename(args.model_path) + "_sd18_bt015_with_pred_" + os.path.basename(path) + "_downscaled")
+        output_path = os.path.join(args.export_path, os.path.basename(args.model_path) + os.path.basename(path)).replace(".h5", ".n5")
         if os.path.exists(output_path):
             print("Skipping... output path exists", output_path)
             continue
@@ -174,30 +174,30 @@ def main(visualize=False):
             # min_val = np.min(valid_data)
             # max_val = np.max(valid_data)
             # data = data[valid_mask] = 2 * (valid_data - min_val) / (max_val - min_val) - 1
-            image = torch_em.transform.raw.standardize(data["raw"])
+            image = torch_em.transform.raw.normalize_percentile(data["raw_mitos_combined"])
 
-        seg, pred = segment_mitochondria(
+        seg, pred = segment_cristae(
             image, args.model_path,
             scale=scale,
             tiling=tiling,
             return_predictions=True,
-            min_size=50000*8,
-            seed_distance=18,  # default 6
-            ws_block_shape=(128, 256, 256),
-            ws_halo=(64, 128, 128),
-            boundary_threshold=0.15,
-            area_threshold=1000,
+            # min_size=50000*8,
+            # seed_distance=18,  # default 6
+            # ws_block_shape=(128, 256, 256),
+            # ws_halo=(64, 128, 128),
+            # boundary_threshold=0.15,
+            # area_threshold=1000,
             )
-        with open_file(output_path, "w", ".h5") as f1:
+        with open_file(output_path, "w", ".n5") as f1:
             print("output_path", output_path)
             print("keys", keys)
             for key in keys:
-                if "mito" in key:
+                if "cristae" in key:
                     if add_missing_mitos:
                         additional_objects = find_additional_objects(data[key], seg, matching_threshold=0.1)
                         f1[key] = label(data[key] + additional_objects)
                     else:
-                        f1["labels/mitochondria"] = seg
+                        f1[key] = seg
                 else:
                     f1[key] = data[key]
 

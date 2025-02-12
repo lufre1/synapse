@@ -43,6 +43,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--path",
+        "-p",
         default="/scratch-grete/usr/nimlufre/synapse/mito_segmentation/checkpoints/"  # "/scratch-grete/usr/nimlufre/medico_sam/mito_segmentation_lrs/"
     )
     parser.add_argument(
