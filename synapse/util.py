@@ -33,6 +33,44 @@ def custom_raw_transform(raw):
     return raw_normalized
 
 
+def get_all_datasets(file_path):
+    dataset_names = []
+
+    def visit_func(name, obj):
+        if isinstance(obj, h5py.Dataset):
+            dataset_names.append(name)
+
+    with h5py.File(file_path, 'r') as hdf5_file:
+        hdf5_file.visititems(visit_func)
+
+    return dataset_names
+
+
+def get_filename_and_inter_dirs(file_path, base_path):
+    # Extract the base name (filename with extension)
+    base_name = os.path.basename(file_path)
+    # Split the base name into name and extension to get the filename
+    file_name = os.path.splitext(base_name)[0]
+    # Get the relative path of file_path from base_path
+    relative_path = os.path.relpath(file_path, base_path)
+    # Get the intermediate directories by removing the filename from the relative path
+    inter_dirs = os.path.dirname(relative_path)
+    return file_name, inter_dirs
+
+
+def create_directories_if_not_exists(base_path, inter_dirs):
+    # Construct the full path from base_path and inter_dirs
+    full_path = os.path.join(base_path, inter_dirs)
+    
+    # Check if the path exists
+    if not os.path.exists(full_path):
+        # If it doesn't exist, create the directories
+        os.makedirs(full_path)
+        print(f"\nCreated directories: {full_path}")
+    else:
+        print(f"\nDirectories already exist: {full_path}")
+
+
 def get_wichmann_data():
     data = [
         "mitos_and_cristae/Otof-KO_M6/KO8_eb2_model.h5",
