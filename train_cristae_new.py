@@ -66,7 +66,7 @@ def main():
 
     # loss_function = util.get_loss_function(loss_name)
     # metric_function = util.get_loss_function(metric_name)
-    in_channels, out_channels = 1, 2
+    in_channels, out_channels = 2, 2
     # depth = 4
     # gain = 2
 
@@ -95,14 +95,14 @@ def main():
     else:
         data_paths = util.get_data_paths(data_dir)
         # data_paths = util.get_wichmann_data()
-        print(data_paths)
+        
         if data_dir2 is not None:
             data_paths2 = util.get_data_paths(data_dir2)
             data_paths.extend(data_paths2)
 
-        for path in data_paths:
-            if "combined" in path:
-                data_paths.remove(path)
+        # for path in data_paths:
+        #     if "combined" in path:
+        #         data_paths.remove(path)
         random.seed(42)
         random.shuffle(data_paths)
         # data_paths.sort(reverse=True)
@@ -112,6 +112,7 @@ def main():
     # Calculate execution time in seconds
     execution_time = end_time - start_time
     print(f"Data and ROI preprocessing execution time: {execution_time:.6f} seconds")
+    print("all data", data)
 
     print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
     # UNet3d
@@ -119,7 +120,7 @@ def main():
     #     in_channels=in_channels, out_channels=out_channels, initial_features=initial_features,
     #     final_activation=final_activation, gain=gain, scale_factors=scale_factors
     # )
-    model = get_3d_model(out_channels=out_channels)
+    model = get_3d_model(out_channels=out_channels, in_channels=in_channels)
     print("does checkpoint exist at", os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt"), "?")
     print(os.path.exists(os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")))
     if checkpoint_path or os.path.exists(os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")):
@@ -142,7 +143,7 @@ def main():
     # transofrm not needed with synapse-net supvervied training:
     # it is added by default
     # transform = torch_em.transform.get_augmentations(3)
-    raw_transform = torch_em.transform.raw.normalize_percentile
+    raw_transform = util.normalize_percentile_with_channel
     
     loader_kwargs = {
         "raw_transform": raw_transform,

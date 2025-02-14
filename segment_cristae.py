@@ -144,9 +144,9 @@ def main(visualize=False):
                        ]
 
     print("len(h5_paths)", len(h5_paths))
-    tiling = {"tile": ts, "halo": halo} # prediction function automatically subtracts the 2*halo from tile
+    tiling = {"tile": ts, "halo": halo}  # prediction function automatically subtracts the 2*halo from tile
     print("tiling:", tiling)
-    scale = None
+    scale = None  # [1.0, 1.0, 1.0]
 
     for path in tqdm(test_file_paths):
         # skip = True
@@ -156,7 +156,7 @@ def main(visualize=False):
         # if skip:
         #     continue
         print("opening file", path)
-        output_path = os.path.join(args.export_path, os.path.basename(args.model_path) + "_" + os.path.basename(path)).replace(".h5", ".n5")
+        output_path = os.path.join(args.export_path, os.path.basename(args.model_path) + "_scaler_test_" + os.path.basename(path)).replace(".h5", ".n5")
         if os.path.exists(output_path):
             print("Skipping... output path exists", output_path)
             continue
@@ -169,8 +169,8 @@ def main(visualize=False):
                 # if "raw" in key:
                 #     data[key] = f[key][:]
 
-            image = torch_em.transform.raw.normalize_percentile(data["raw_mitos_combined"])
-            # image = np.stack([raw, data["raw_mitos_combined"][1].astype(np.float16)], axis=0)
+            raw = torch_em.transform.raw.normalize_percentile(data["raw_mitos_combined"][0])
+            image = np.stack([raw, data["raw_mitos_combined"][1]], axis=0)
         seg, pred = segment_cristae(
             image, args.model_path,
             scale=scale,
@@ -186,10 +186,10 @@ def main(visualize=False):
                     additional_objects = find_additional_objects(data[key], seg, matching_threshold=0.1)
                     f1[key] = label(data[key] + additional_objects)
 
-
-            # f1["pred"] = pred
-            f1["new_cristae_seg"] = seg
+            f1["pred"] = pred
+            f1["labels/new_cristae_seg"] = seg
             print("Saved to", output_path)
+            print("\n")
 
 
 if __name__ == "__main__":

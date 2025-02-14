@@ -21,16 +21,22 @@ from typing import List, Union, Tuple, Optional, Any
 # data_format = "*.h5"
 
 
-def custom_raw_transform(raw):
-    # Define thresholds for artifacts
-    upper_threshold = np.percentile(raw, 99)
-    lower_threshold = np.percentile(raw, 1)
-    clipped = np.clip(raw, lower_threshold, upper_threshold)
+def normalize_percentile_with_channel(raw, lower=1, upper=99, channel=0):
+    """_summary_
 
-    # Normalize the data using torch_em's normalize function
-    raw_normalized = torch_em.transform.raw.normalize(clipped)
+    Args:
+        raw (np.ndarray): Input array of shape (C, Z, Y, X).
+        lower (float): Lower percentile for normalization.
+        upper (float): Upper percentile for normalization.
+        channel (int, optional): Which channel to normalize. Defaults to 0.
 
-    return raw_normalized
+    Returns:
+        np.ndarray: Normalized array with shape (C, Z, Y, X).
+    """
+    assert raw.ndim == 4, "Raw data must be 4D"
+    raw[channel] = torch_em.transform.raw.normalize_percentile(raw=raw[channel], lower=lower, upper=upper)
+
+    return raw
 
 
 def get_all_datasets(file_path):

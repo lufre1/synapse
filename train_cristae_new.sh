@@ -9,7 +9,7 @@
 #SBATCH --job-name=train-cristae-net
 #SBATCH --constraint 80gb
 
-exp_name="cristae-net32-bs2-ps48512-cooper-wichmann"
+exp_name="cristae-net32-bs2-ps48512-cooper-wichmann-new-transform"
 
 source /user/freckmann15/u12103/.bashrc
 micromamba activate synapse
