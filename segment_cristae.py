@@ -146,7 +146,7 @@ def main(visualize=False):
     print("len(h5_paths)", len(h5_paths))
     tiling = {"tile": ts, "halo": halo} # prediction function automatically subtracts the 2*halo from tile
     print("tiling:", tiling)
-    scale = 1
+    scale = None
 
     for path in tqdm(test_file_paths):
         # skip = True
@@ -156,7 +156,7 @@ def main(visualize=False):
         # if skip:
         #     continue
         print("opening file", path)
-        output_path = os.path.join(args.export_path, os.path.basename(args.model_path) + os.path.basename(path)).replace(".h5", ".n5")
+        output_path = os.path.join(args.export_path, os.path.basename(args.model_path) + "_" + os.path.basename(path)).replace(".h5", ".n5")
         if os.path.exists(output_path):
             print("Skipping... output path exists", output_path)
             continue
@@ -165,43 +165,30 @@ def main(visualize=False):
         scale_factor = 1
         with open_file(path, "r") as f:
             for key in keys:
-                data[key] = f[key][::scale_factor, ::scale_factor, ::scale_factor]
-            # data = f["raw"][:]
-            # mean = np.mean(data)
-            # valid_min, valid_max = -5, 5
-            # valid_mask = (data >= valid_min) & (data <= valid_max)
-            # data[~valid_mask] = mean
-            # min_val = np.min(valid_data)
-            # max_val = np.max(valid_data)
-            # data = data[valid_mask] = 2 * (valid_data - min_val) / (max_val - min_val) - 1
-            image = torch_em.transform.raw.normalize_percentile(data["raw_mitos_combined"])
+                data[key] = f[key][:]
+                # if "raw" in key:
+                #     data[key] = f[key][:]
 
+            image = torch_em.transform.raw.normalize_percentile(data["raw_mitos_combined"])
+            # image = np.stack([raw, data["raw_mitos_combined"][1].astype(np.float16)], axis=0)
         seg, pred = segment_cristae(
             image, args.model_path,
             scale=scale,
             tiling=tiling,
             return_predictions=True,
-            # min_size=50000*8,
-            # seed_distance=18,  # default 6
-            # ws_block_shape=(128, 256, 256),
-            # ws_halo=(64, 128, 128),
-            # boundary_threshold=0.15,
-            # area_threshold=1000,
             )
         with open_file(output_path, "w", ".n5") as f1:
             print("output_path", output_path)
             print("keys", keys)
             for key in keys:
-                if "cristae" in key:
-                    if add_missing_mitos:
-                        additional_objects = find_additional_objects(data[key], seg, matching_threshold=0.1)
-                        f1[key] = label(data[key] + additional_objects)
-                    else:
-                        f1[key] = seg
-                else:
-                    f1[key] = data[key]
+                f1[key] = data[key]
+                if add_missing_mitos and "cristae" in key:
+                    additional_objects = find_additional_objects(data[key], seg, matching_threshold=0.1)
+                    f1[key] = label(data[key] + additional_objects)
 
-            f1["pred"] = pred
+
+            # f1["pred"] = pred
+            f1["new_cristae_seg"] = seg
             print("Saved to", output_path)
 
 

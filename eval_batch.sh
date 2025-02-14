@@ -1,17 +1,17 @@
 #!/bin/bash
 
-#SBATCH --partition=grete:shared
-#SBATCH -G A100:1
+#SBATCH --partition=grete-h100:shared
+#SBATCH -G H100:1
 #SBATCH --time=2-00:00:00
 #SBATCH --account=nim00007
-#SBATCH --job-name=mito-net32
-#SBATCH -c 64
+#SBATCH --job-name=cristae-segmenation
+#SBATCH -c 12
 #SBATCH --ntasks=1
 
 exp_name="mitotomo-net32-bs1-ps56512-lr1e-4-fididata"
 
-source /home/nimlufre/.bashrc
-conda activate synapse
+source /user/freckmann15/u12103/.bashrc
+micromamba activate synapse
 
 python /home/nimlufre/synapse/test.py \
   --experiment_name $exp_name \
