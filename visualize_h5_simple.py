@@ -136,10 +136,16 @@ def visualize():
         print("in path", path)
         data = {}
         for key in keys:
-            if "mito" in key:
-                data[key] = _read_h5(path, key, args.scale_factor, z_offset=(args.z_offset))
-            else:
-                continue
+            data[key] = _read_h5(path, key, args.scale_factor, z_offset=(args.z_offset))
+            if "raw" in key:
+                data[key] = util.normalize_percentile_with_channel(data[key], lower=1, upper=99, channel=0)
+                # data[key] = np.stack([torch_em.transform.raw.normalize_percentile(data[key][0]), data[key][1]], axis=0)
+                # data["mitos"] = data[key][1]
+
+            # if "mito" in key:
+            #     data[key] = _read_h5(path, key, args.scale_factor, z_offset=(args.z_offset))
+            # else:
+            #     continue
 
         filtered_data = {}
 
@@ -153,12 +159,12 @@ def visualize():
             statistics[path] = {
                 "#mitos": len(np.unique(data["labels/mitochondria"])),
             }
-    print("statistics:")
-    mitos = 0
-    for key in statistics.keys():
-        mitos += statistics[key]["#mitos"]
-        print(statistics[key])
-    print("amount of all mitos", mitos)
+    # print("statistics:")
+    # mitos = 0
+    # for key in statistics.keys():
+    #     mitos += statistics[key]["#mitos"]
+    #     print(statistics[key])
+    # print("amount of all mitos", mitos)
 
 
 if __name__ == "__main__":

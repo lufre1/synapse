@@ -22,7 +22,7 @@ from typing import List, Union, Tuple, Optional, Any
 
 
 def normalize_percentile_with_channel(raw, lower=1, upper=99, channel=0):
-    """_summary_
+    """raw normalize with channel = 2
 
     Args:
         raw (np.ndarray): Input array of shape (C, Z, Y, X).
@@ -34,9 +34,9 @@ def normalize_percentile_with_channel(raw, lower=1, upper=99, channel=0):
         np.ndarray: Normalized array with shape (C, Z, Y, X).
     """
     assert raw.ndim == 4, "Raw data must be 4D"
-    raw[channel] = torch_em.transform.raw.normalize_percentile(raw=raw[channel], lower=lower, upper=upper)
+    raw_norm = torch_em.transform.raw.normalize_percentile(raw=raw[channel], lower=lower, upper=upper)
 
-    return raw
+    return np.stack([raw_norm, raw[1-channel]], axis=0)
 
 
 def get_all_datasets(file_path):
