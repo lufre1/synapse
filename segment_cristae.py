@@ -12,6 +12,7 @@ from synapse_net.inference.cristae import segment_cristae
 from elf.evaluation.matching import label_overlap, intersection_over_union
 from skimage.segmentation import relabel_sequential
 from skimage.measure import label
+import synapse.util as util
 
 
 def find_additional_objects(
@@ -105,10 +106,10 @@ def main(visualize=False):
     parser = argparse.ArgumentParser()
     parser.add_argument("--base_path", "-b",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/wichmann/extracted/", help="Path to the root data directory")
     parser.add_argument("--export_path", "-e",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/cooper/cristae_test_segmentations", help="Path to the root data directory")
-    parser.add_argument("--model_path", "-m", type=str, default="/scratch-grete/usr/nimlufre/synapse/mito_segmentation/checkpoints/cristae-net32-bs2-ps48512-cooper-wichmann")
-    parser.add_argument("--add_missing_mitos", "-am", default=False, action='store_true', help="If to add missing mitos to segmentation and keep original labels")
+    parser.add_argument("--model_path", "-m", type=str, default="/scratch-grete/usr/nimlufre/synapse/mito_segmentation/checkpoints/cristae-net32-bs2-ps48512-cooper-wichmann-new-transform")
+    parser.add_argument("--add_missing", "-am", default=False, action='store_true', help="If to add missing objects to segmentation and keep original labels")
     args = parser.parse_args()
-    add_missing_mitos = args.add_missing_mitos
+    add_missing = args.add_missing
     print(args.base_path)
     # tile_shape
     ts = {
@@ -137,11 +138,7 @@ def main(visualize=False):
     #     '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M2_eb10_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5'
         
     # ]
-    test_file_paths = ['/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-KO_P10/M2_eb14_model_combined.h5', 
-                       '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_in_endbuld/Otof_AVCN03_429C_WT_M.Stim_G3_1_model_combined.h5', 
-                       '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT19_syn6_model2_combined.h5', 
-                       '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-KO_P22/M7_eb12_model_combined.h5'
-                       ]
+    test_file_paths = ['/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT20_eb7_AZ1_model2_combined.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT20_syn7_model2_combined.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT20_syn2_model2_combined.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-KO_P10/M1_eb1_model_combined.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_in_endbuld/Otof_AVCN03_429C_WT_M.Stim_G3_1_model_combined.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT13_syn6_model2_combined.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-KO_P22/M7_eb12_model_combined.h5']
 
     print("len(h5_paths)", len(h5_paths))
     tiling = {"tile": ts, "halo": halo}  # prediction function automatically subtracts the 2*halo from tile
@@ -156,21 +153,21 @@ def main(visualize=False):
         # if skip:
         #     continue
         print("opening file", path)
-        output_path = os.path.join(args.export_path, os.path.basename(args.model_path) + "_scaler_test_" + os.path.basename(path)).replace(".h5", ".n5")
+        output_path = os.path.join(args.export_path, os.path.basename(args.model_path) + "_new-transform_" + os.path.basename(path)).replace(".h5", ".n5")
         if os.path.exists(output_path):
             print("Skipping... output path exists", output_path)
             continue
         keys = get_all_keys_from_h5(path)
         data = {}
-        scale_factor = 1
+        scale_factor = None
         with open_file(path, "r") as f:
             for key in keys:
                 data[key] = f[key][:]
                 # if "raw" in key:
                 #     data[key] = f[key][:]
-
-            raw = torch_em.transform.raw.normalize_percentile(data["raw_mitos_combined"][0])
-            image = np.stack([raw, data["raw_mitos_combined"][1]], axis=0)
+            image = util.normalize_percentile_with_channel(data["raw_mitos_combined"])
+            # raw = torch_em.transform.raw.normalize_percentile(data["raw_mitos_combined"][0])
+            # image = np.stack([raw, data["raw_mitos_combined"][1]], axis=0)
         seg, pred = segment_cristae(
             image, args.model_path,
             scale=scale,
@@ -182,7 +179,7 @@ def main(visualize=False):
             print("keys", keys)
             for key in keys:
                 f1[key] = data[key]
-                if add_missing_mitos and "cristae" in key:
+                if add_missing and "cristae" in key:
                     additional_objects = find_additional_objects(data[key], seg, matching_threshold=0.1)
                     f1[key] = label(data[key] + additional_objects)
 
