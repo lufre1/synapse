@@ -14,6 +14,8 @@ import elf.parallel as parallel
 from elf.io import open_file
 from tqdm import tqdm
 import z5py
+import mrcfile
+from skimage.transform import resize
 
 from synapse_net.inference.cristae import _run_segmentation
 
@@ -35,7 +37,10 @@ def visualize_data(data):
     viewer = napari.Viewer()
     for key, value in data.items():
         if key == "raw" or "raw" in key:
-            value = torch_em.transform.raw.normalize_percentile(value, lower=5, upper=95)
+            if data[key].ndim == 4:
+                data[key] = util.normalize_percentile_with_channel(data[key], lower=1, upper=99, channel=0)
+            else:
+                value = torch_em.transform.raw.normalize_percentile(value, lower=1, upper=99)
             viewer.add_image(value, name=key)
         elif key == "prediction" or "pred" in key:
             viewer.add_image(value, name=key, blending="additive")
@@ -52,7 +57,7 @@ def visualize_data(data):
     napari.run()
 
 
-def extract_data(group: Any, data: Dict[str, Any], prefix: str = ""):
+def extract_data(group: Any, data: Dict[str, Any], prefix: str = "", scale: int = 1):
     """
     Recursively extract datasets from a group and store them in a dictionary.
     """
@@ -60,13 +65,31 @@ def extract_data(group: Any, data: Dict[str, Any], prefix: str = ""):
         full_key = f"{prefix}/{key}" if prefix else key
         if isinstance(item, (zarr.Group, h5py.Group, z5py.Group)):
             # Recursively extract data from subgroups
-            extract_data(item, data, prefix=full_key)
+            extract_data(item, data, prefix=full_key, scale=scale)
         else:
-            # Store the dataset in the dictionary
-            data[full_key] = item[:]
+            ndim = item.ndim
+            # Generate a slicing tuple based on the number of dimensions
+            slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+            
+            # Apply downsampling while preserving batch/channel dimensions
+            data[full_key] = item[slicing] if scale > 1 else item[:]
+            # # Store the dataset in the dictionary
+            # data[full_key] = item[:]
 
 
-def main(path: str, ext: str = None):
+def upsample_data(data, factor):
+    """Upsample a 3D dataset in chunks to avoid memory overload."""
+    upsampled_data = np.zeros(tuple(dim * factor for dim in data.shape), dtype=data.dtype)
+    for z in range(data.shape[0]):
+        upsampled_data[z * factor : (z + 1) * factor] = resize(
+            data[z], 
+            (factor * data.shape[1], factor * data.shape[2]), 
+            order=0, preserve_range=True, anti_aliasing=False
+        ).astype(data.dtype)
+    return upsampled_data
+
+
+def main(path: str, ext: str = None, scale: int = 1, upsample: bool = False):
     if ext is None:
         print("Loading h5, n5 and zarr files")
         paths = get_file_paths(path, ".h5")
@@ -74,27 +97,52 @@ def main(path: str, ext: str = None):
         paths.extend(get_file_paths(path, ".zarr"))
     else:
         paths = get_file_paths(path, ext)
+    print("Found files:", len(paths))
     for path in paths:
-        print(path)
-        with open_file(path) as f:
-            print(f.keys())
+        print("\n", path)
+        with open_file(path, mode="r") as f:
             data = {}
-            for key in f.keys():
-                if isinstance(f[key], (zarr.Group, h5py.Group, z5py.Group)):
-                    print(f"Loading group: {key}")
-                    extract_data(f[key], data)
-                    continue
-                data[key] = f[key][:]
+            if ".mrc" in path:
+                ndim = f["data"].ndim
+                slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+                data["raw"] = f["data"][slicing] if scale > 1 else f["data"][:]
+            else:
+                print(f.keys())
+                for key in f.keys():
+                    if isinstance(f[key], (zarr.Group, h5py.Group, z5py.Group)):
+                        print(f"Loading group: {key}")
+                        extract_data(f[key], data, scale=scale)
+                        continue
+                    ndim = f[key].ndim
+
+                    # Generate a slicing tuple based on the number of dimensions
+                    slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+                    # Apply downsampling while preserving batch/channel dimensions
+                    data[key] = f[key][slicing] if scale > 1 else f[key][:]
+
         # new_seg = _run_segmentation(data["pred"][0], min_size=1000, verbose=True)
         # data["new_segmentation"] = new_seg
+        if upsample:
+            del data["pred"]
+            del data["raw"]
+            
+            for key in data.keys():
+                data[key] = upsample_data(data[key], upsample)
+            #     target_shape = tuple(dim * upsample for dim in data[key].shape)
+            #     print(f"Upsampling {key} in {os.path.basename(path)} from original shape {data[key].shape} to shape {target_shape}")
+            #     data[key] = resize(data[key][:], target_shape, order=0, preserve_range=True, anti_aliasing=False).astype(data[key].dtype)
         visualize_data(data)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--path", "-p", type=str)
-    parser.add_argument("--ext", "-e", type=str, default=".h5")
+    parser.add_argument("--ext", "-e", type=str, default=None)
+    parser.add_argument("--scale", "-s", type=int, default=1)
+    parser.add_argument("--upsample", "-u", type=int, default=None)
     args = parser.parse_args()
     path = args.path
     ext = args.ext
-    main(path, ext)
+    scale = args.scale
+    upsample = args.upsample
+    main(path, ext, scale, upsample)
