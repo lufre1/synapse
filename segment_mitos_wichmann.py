@@ -101,6 +101,7 @@ def get_all_keys_from_h5(file_path):
         h5file.visititems(collect_keys)  # Visit all groups and datasets
     return keys
 
+
 def main(visualize=False):
     parser = argparse.ArgumentParser()
     parser.add_argument("--base_path", "-b",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/wichmann/extracted/", help="Path to the root data directory")
@@ -137,18 +138,18 @@ def main(visualize=False):
     #     '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M2_eb10_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5'
         
     # ]
-    test_file_paths = [
-        "/scratch-grete/projects/nim00007/data/mitochondria/cooper/mito_tomo/outer-membrane2/2_20230415_TOMO_HOI_WT_36859_J1_STEM750/36859_J1_STEM750_66K_SP_06_rec_2kb1dawbp_crop.h5",
-        "/scratch-grete/projects/nim00007/data/mitochondria/cooper/mito_tomo/outer-membrane2/2_20230415_TOMO_HOI_WT_36859_J1_STEM750/36859_J1_STEM750_66K_SP_07_rec_2kb1dawbp_crop.h5",
-        "/scratch-grete/projects/nim00007/data/mitochondria/cooper/mito_tomo/outer-membrane3/4_20230829_TOMO_HOI_WT_36859_J2_uPSTEM750/36859_J2_66K_TS_R04_PS06_rec_2Kb1dawbp_crop.h5"
-    ]
+    # test_file_paths = [
+    #     "/scratch-grete/projects/nim00007/data/mitochondria/cooper/mito_tomo/outer-membrane2/2_20230415_TOMO_HOI_WT_36859_J1_STEM750/36859_J1_STEM750_66K_SP_06_rec_2kb1dawbp_crop.h5",
+    #     "/scratch-grete/projects/nim00007/data/mitochondria/cooper/mito_tomo/outer-membrane2/2_20230415_TOMO_HOI_WT_36859_J1_STEM750/36859_J1_STEM750_66K_SP_07_rec_2kb1dawbp_crop.h5",
+    #     "/scratch-grete/projects/nim00007/data/mitochondria/cooper/mito_tomo/outer-membrane3/4_20230829_TOMO_HOI_WT_36859_J2_uPSTEM750/36859_J2_66K_TS_R04_PS06_rec_2Kb1dawbp_crop.h5"
+    # ]
 
     print("len(h5_paths)", len(h5_paths))
     tiling = {"tile": ts, "halo": halo} # prediction function automatically subtracts the 2*halo from tile
     print("tiling:", tiling)
-    scale = 1
+    scale = None
 
-    for path in tqdm(test_file_paths):
+    for path in tqdm(h5_paths):
         # skip = True
         # if "KO8_eb2_model" in path or "KO9_eb6_model" in path or "M7_eb2_model" in path:
         #     # breakpoint()
@@ -156,7 +157,7 @@ def main(visualize=False):
         # if skip:
         #     continue
         print("opening file", path)
-        output_path = os.path.join(args.export_path, "only_net_" + os.path.basename(args.model_path) + "_sd18_bt015_with_pred_" + os.path.basename(path) + "_downscaled")
+        output_path = os.path.join(args.export_path, "only_net_" + os.path.basename(args.model_path).replace(".pt", "") + "_sd18_bt015_with_pred_" + os.path.basename(path))
         if os.path.exists(output_path):
             print("Skipping... output path exists", output_path)
             continue
@@ -200,7 +201,8 @@ def main(visualize=False):
                         f1["labels/mitochondria"] = seg
                 else:
                     f1[key] = data[key]
-
+            if "labels/mitochondria" not in keys:
+                f1.create_dataset("labels/mitochondria", data=seg, compression="gzip")
             f1["pred"] = pred
             print("Saved to", output_path)
 

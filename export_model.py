@@ -5,7 +5,11 @@ import os
 
 
 def export_model(args):
-    model = load_model(args.checkpoint_path)
+    if os.path.isdir(args.checkpoint_path):
+        checkpoint_path = args.checkpoint_path
+    else:
+        checkpoint_path = os.path.dirname(args.checkpoint_path)
+    model = load_model(checkpoint_path)
     print("Loaded model from", args.checkpoint_path)
     if os.path.isdir(args.export_path):
         export_path = os.path.join(args.export_path, "model.pt")

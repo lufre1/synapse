@@ -127,18 +127,19 @@ def visualize():
     statistics = {}
 
     for path in tqdm(paths):
-        print(path)
- 
+        #print(path)
 
         keys = get_all_keys_from_h5(path)
+        if "labels/cristae" not in keys:
+            continue
         keys.sort(reverse=True)
         print("\ndata keys", keys)
         print("in path", path)
         data = {}
         for key in keys:
             data[key] = _read_h5(path, key, args.scale_factor, z_offset=(args.z_offset))
-            if "raw" in key:
-                data[key] = util.normalize_percentile_with_channel(data[key], lower=1, upper=99, channel=0)
+            # if "raw" in key:
+            #     data[key] = util.normalize_percentile_with_channel(data[key], lower=1, upper=99, channel=0)
                 # data[key] = np.stack([torch_em.transform.raw.normalize_percentile(data[key][0]), data[key][1]], axis=0)
                 # data["mitos"] = data[key][1]
 
@@ -156,15 +157,16 @@ def visualize():
                 visualize_data(data)
         else:
             #print("Calculate Statistics...")
+            block_shape = (32, 256, 256)
             statistics[path] = {
-                "#mitos": len(np.unique(data["labels/mitochondria"])),
+                "#mitos": len(np.unique((data["labels/mitochondria"]))),
             }
-    # print("statistics:")
-    # mitos = 0
-    # for key in statistics.keys():
-    #     mitos += statistics[key]["#mitos"]
-    #     print(statistics[key])
-    # print("amount of all mitos", mitos)
+    print("statistics:")
+    mitos = 0
+    for key in statistics.keys():
+        mitos += statistics[key]["#mitos"]
+        print(statistics[key])
+    print("amount of all mitos", mitos)
 
 
 if __name__ == "__main__":
