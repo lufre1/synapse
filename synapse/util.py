@@ -33,7 +33,7 @@ def normalize_percentile_with_channel(raw, lower=1, upper=99, channel=0):
     Returns:
         np.ndarray: Normalized array with shape (C, Z, Y, X).
     """
-    assert raw.ndim == 4, "Raw data must be 4D"
+    # assert raw.ndim == 4, "Raw data must be 4D"
     raw_norm = torch_em.transform.raw.normalize_percentile(raw=raw[channel], lower=lower, upper=upper)
 
     return np.stack([raw_norm, raw[1-channel]], axis=0)

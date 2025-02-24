@@ -59,9 +59,11 @@ def visualize_data(data):
     viewer = napari.Viewer()
     for key, value in data.items():
         if key == "raw" or "raw" in key:
-            value = torch_em.transform.raw.normalize_percentile(value, lower=5, upper=95)
+            #value = torch_em.transform.raw.normalize_percentile(value, lower=5, upper=95)
             viewer.add_image(value, name=key)
         elif key == "prediction" or "pred" in key:
+            viewer.add_image(value, name=key, blending="additive")
+        elif "dist" in key or "hmap" in key:
             viewer.add_image(value, name=key, blending="additive")
         else:
             viewer.add_labels(value, name=key)
@@ -70,13 +72,12 @@ def visualize_data(data):
 
 
 def _segment(pred,
-             block_shape=(32, 256, 256),
-             halo=(16, 64, 64),
-             seed_distance=18,
-             boundary_threshold=0.15,
+             block_shape=(128, 256, 256),
+             halo=(48, 48, 48),
+             seed_distance=6 * 1,
+             boundary_threshold=0.25,
              min_size=50000*8,
-             area_threshold=1000,
-             with_hmp_max_value=True,
+             area_threshold=1000 * 15,
              dist=None
              ):
     foreground, boundaries = pred
@@ -85,11 +86,9 @@ def _segment(pred,
         dist = parallel.distance_transform(boundaries < boundary_threshold, halo=halo, verbose=True, block_shape=block_shape)
     # # data["pred_dist_without_fore"] = parallel.distance_transform((boundaries) < boundary_threshold, halo=halo, verbose=True, block_shape=block_shape)
     hmap = ((dist.max() - dist) / dist.max())
-    if with_hmp_max_value:
-        hmap[boundaries > boundary_threshold] = (hmap + boundaries).max()
-    else:
-        hmap = hmap + boundaries
-        hmap[boundaries > boundary_threshold] = hmap.max()
+
+    hmap[np.logical_and(boundaries > boundary_threshold, foreground < boundary_threshold)] = (hmap + boundaries).max()
+
     # # hmap = hmap.clip(min=0)
     seeds = np.logical_and(foreground > 0.5, dist > seed_distance)
     seeds = parallel.label(seeds, block_shape=block_shape, verbose=True)
@@ -127,7 +126,7 @@ def visualize():
     statistics = {}
 
     for path in tqdm(paths):
-        #print(path)
+        print(path)
 
         keys = get_all_keys_from_h5(path)
         if "labels/cristae" not in keys:
@@ -138,8 +137,17 @@ def visualize():
         data = {}
         for key in keys:
             data[key] = _read_h5(path, key, args.scale_factor, z_offset=(args.z_offset))
-            # if "raw" in key:
-            #     data[key] = util.normalize_percentile_with_channel(data[key], lower=1, upper=99, channel=0)
+            if "raw" in key:
+                if data[key].ndim == 4:
+                    data[key] = util.normalize_percentile_with_channel(data[key], lower=1, upper=99, channel=0)
+                else:
+                    data[key] = torch_em.transform.raw.normalize_percentile(data[key], lower=1, upper=99)
+            if "pred" in key:
+                seg_data = _segment(data["pred"])
+                for key, val in seg_data.items():
+                    data[key] = val
+            
+            # if "mitos" in key:
                 # data[key] = np.stack([torch_em.transform.raw.normalize_percentile(data[key][0]), data[key][1]], axis=0)
                 # data["mitos"] = data[key][1]
 
@@ -149,24 +157,26 @@ def visualize():
             #     continue
 
         filtered_data = {}
+        # seg_data = _segment(data["pred"])
+        # for key, val in seg_data.items():
+        #     data[key] = val
 
         if data and not args.no_visualize:
             if filtered_data:
                 visualize_data(filtered_data)
             else:
                 visualize_data(data)
-        else:
-            #print("Calculate Statistics...")
-            block_shape = (32, 256, 256)
-            statistics[path] = {
-                "#mitos": len(np.unique((data["labels/mitochondria"]))),
-            }
-    print("statistics:")
-    mitos = 0
-    for key in statistics.keys():
-        mitos += statistics[key]["#mitos"]
-        print(statistics[key])
-    print("amount of all mitos", mitos)
+        # else:
+        #     #print("Calculate Statistics...")
+        #     statistics[path] = {
+        #         "#mitos": len(np.unique(data["labels/mitochondria"])),
+        #     }
+    # print("statistics:")
+    # mitos = 0
+    # for key in statistics.keys():
+    #     mitos += statistics[key]["#mitos"]
+    #     print(statistics[key])
+    # print("amount of all mitos", mitos)
 
 
 if __name__ == "__main__":
