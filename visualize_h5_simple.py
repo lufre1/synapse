@@ -8,9 +8,11 @@ import numpy as np
 import torch_em
 import napari
 import elf.parallel as parallel
+from elf.io import open_file
 from scipy.ndimage import binary_erosion, binary_fill_holes, binary_closing
 from tqdm import tqdm
 from synapse_net.inference.util import apply_size_filter, get_prediction, _Scaler, _postprocess_seg_3d
+from skimage.measure import regionprops, label
 
 
 def _read_h5(path, key, scale_factor, z_offset=None):
@@ -34,6 +36,16 @@ def _read_h5(path, key, scale_factor, z_offset=None):
             return None  # Indicate error
 
         return image
+
+
+def export_to_h5(data, export_path):
+    with h5py.File(export_path, mode='a') as h5f:
+        for key in data.keys():
+            if key in h5f:
+                print(f"Skipping {key} as it already exists in {export_path}")
+                continue
+            h5f.create_dataset(key, data=data[key], compression="gzip")
+    print("exported to", export_path)
 
 
 def get_all_keys_from_h5(file_path):
@@ -111,6 +123,92 @@ def _segment(pred,
     return seg_data
         
 
+def _extract_and_save_regions_h5(data, save_dir, prefix="mito"):
+    """
+    Extracts mitochondria regions and corresponding raw regions, then saves them to HDF5 files.
+
+    Parameters:
+    - data (dict): Dictionary with labeled "mitochondria" data and "raw" image data.
+    - save_dir (str): Directory to save the extracted regions.
+    - prefix (str): Prefix for saved files.
+
+    Returns:
+    - None (saves files to `save_dir`)
+    """
+    import os
+    os.makedirs(save_dir, exist_ok=True)
+
+    if "raw" not in data:
+        raise ValueError("No 'raw' key found in the dataset.")
+
+    for key, value in data.items():
+        if "mitochondria" in key:
+            labeled_mito = label(value)  # Ensure the input is labeled
+            props = regionprops(labeled_mito)
+
+            for i, prop in enumerate(props):
+                # Get bounding box
+                min_z, min_y, min_x, max_z, max_y, max_x = prop.bbox
+                max_z = max_z // 8
+                max_y = max_y // 2
+                max_x = max_x // 2
+
+                # Extract mitochondria mask
+                mito_mask = np.zeros_like(value, dtype=np.uint8)
+                mito_mask[prop.coords[:, 0], prop.coords[:, 1], prop.coords[:, 2]] = prop.label
+                mito_cropped = mito_mask[min_z:max_z, min_y:max_y, min_x:max_x]
+
+                # Extract corresponding raw region
+                raw_cropped = data["raw"][min_z:max_z, min_y:max_y, min_x:max_x]
+
+                # Prepare data for export
+                export_data = {"labels/mitochondria": mito_cropped, "raw": raw_cropped}
+
+                # Save to HDF5
+                export_path = os.path.join(save_dir, f"{prefix}_object_{i+1}.h5")
+                export_to_h5(export_data, export_path)
+
+
+def _extract_zdim_and_save_h5(data, save_dir, start_z, end_z, prefix="cropped"):
+    """
+    Crops mitochondria and raw data based on given z-dimension range, then saves them to HDF5.
+
+    Parameters:
+    - data (dict): Dictionary with labeled "mitochondria" data and "raw" image data.
+    - save_dir (str): Directory to save the extracted regions.
+    - start_z (int): Starting slice of the z-dimension.
+    - end_z (int): Ending slice of the z-dimension.
+    - prefix (str): Prefix for saved files.
+
+    Returns:
+    - None (saves files to `save_dir`)
+    """
+    os.makedirs(save_dir, exist_ok=True)
+    export_data = {}
+
+    if "raw" not in data:
+        raise ValueError("No 'raw' key found in the dataset.")
+
+    for key, value in data.items():
+
+        # Crop the mitochondria and raw data along the given z range
+        cropped = value[start_z:end_z]  # Cropped 
+        #raw_cropped = data["raw"][start_z:end_z]  # Corresponding raw data
+
+        # Downscale y and x dimensions
+        max_y, max_x = cropped.shape[1], cropped.shape[2]
+        cropped = cropped[:, :max_y, :max_x]
+        #raw_cropped = raw_cropped[:, :max_y, :max_x]
+
+        # Prepare data for export
+        export_data[key] = cropped
+
+    # Save to HDF5
+    export_path = os.path.join(save_dir, f"{prefix}_z{start_z}-{end_z}.h5")
+    export_to_h5(export_data, export_path)
+
+
+
 def visualize():
     parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
     parser.add_argument("--path", "-p", type=str, required=True, help="Path to the data directory or single file")
@@ -129,19 +227,19 @@ def visualize():
         print(path)
 
         keys = get_all_keys_from_h5(path)
-        if "labels/cristae" not in keys:
-            continue
+        # if "labels/cristae" not in keys:
+        #     continue
         keys.sort(reverse=True)
         print("\ndata keys", keys)
         print("in path", path)
         data = {}
         for key in keys:
             data[key] = _read_h5(path, key, args.scale_factor, z_offset=(args.z_offset))
-            if "raw" in key:
-                if data[key].ndim == 4:
-                    data[key] = util.normalize_percentile_with_channel(data[key], lower=1, upper=99, channel=0)
-                else:
-                    data[key] = torch_em.transform.raw.normalize_percentile(data[key], lower=1, upper=99)
+            # if "raw" in key:
+            #     if data[key].ndim == 4:
+            #         data[key] = util.normalize_percentile_with_channel(data[key], lower=1, upper=99, channel=0)
+            #     else:
+            #         data[key] = torch_em.transform.raw.normalize_percentile(data[key], lower=1, upper=99)
             if "pred" in key:
                 seg_data = _segment(data["pred"])
                 for key, val in seg_data.items():
@@ -157,10 +255,12 @@ def visualize():
             #     continue
 
         filtered_data = {}
+        export_path = "/home/freckmann15/data/vesicles/cooper/20241102_TOMO_DATA_Imig2014/exported/Munc13DKO_cropped"
+        _extract_zdim_and_save_h5(data, export_path, start_z=30, end_z=75)
+
         # seg_data = _segment(data["pred"])
         # for key, val in seg_data.items():
         #     data[key] = val
-
         if data and not args.no_visualize:
             if filtered_data:
                 visualize_data(filtered_data)

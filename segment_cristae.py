@@ -139,7 +139,8 @@ def main(visualize=False):
         
     # ]
     # test_file_paths = ['/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT20_eb7_AZ1_model2_combined.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT20_syn7_model2_combined.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT20_syn2_model2_combined.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-KO_P10/M1_eb1_model_combined.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_in_endbuld/Otof_AVCN03_429C_WT_M.Stim_G3_1_model_combined.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT13_syn6_model2_combined.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-KO_P22/M7_eb12_model_combined.h5']
-    test_file_paths = ["/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2/37371_O5_66K_TS_SP_35_rec_2Kb1dawbp_crop3_combined.h5", "/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2/36859_J1_66K_TS_PS_01_rec_2kb1dawbp_crop_combined.h5"]
+    #test_file_paths = ["/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2/37371_O5_66K_TS_SP_35_rec_2Kb1dawbp_crop3_combined.h5", "/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2/36859_J1_66K_TS_PS_01_rec_2kb1dawbp_crop_combined.h5"]
+    test_file_paths = h5_paths
     print("len(h5_paths)", len(h5_paths))
     tiling = {"tile": ts, "halo": halo}  # prediction function automatically subtracts the 2*halo from tile
     print("tiling:", tiling)
@@ -166,6 +167,8 @@ def main(visualize=False):
                 # if "raw" in key:
                 #     data[key] = f[key][:]
             image = util.normalize_percentile_with_channel(data["raw_mitos_combined"])
+            # image = util.normalize_percentile_with_channel_cgpt(data["raw_mitos_combined"])
+            print("image shape", image.shape)
             # raw = torch_em.transform.raw.normalize_percentile(data["raw_mitos_combined"][0])
             # image = np.stack([raw, data["raw_mitos_combined"][1]], axis=0)
         seg, pred = segment_cristae(

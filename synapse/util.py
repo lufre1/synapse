@@ -22,21 +22,28 @@ from typing import List, Union, Tuple, Optional, Any
 
 
 def normalize_percentile_with_channel(raw, lower=1, upper=99, channel=0):
-    """raw normalize with channel = 2
+    """
+    Normalize a specific channel of a multi-channel array using percentile normalization.
 
     Args:
         raw (np.ndarray): Input array of shape (C, Z, Y, X).
         lower (float): Lower percentile for normalization.
         upper (float): Upper percentile for normalization.
-        channel (int, optional): Which channel to normalize. Defaults to 0.
+        channel (int, optional): The channel index to normalize. Defaults to 0.
 
     Returns:
         np.ndarray: Normalized array with shape (C, Z, Y, X).
     """
-    # assert raw.ndim == 4, "Raw data must be 4D"
-    raw_norm = torch_em.transform.raw.normalize_percentile(raw=raw[channel], lower=lower, upper=upper)
+    if raw.ndim != 4:
+        raise ValueError(f"Expected a 4D input (C, Z, Y, X), got shape {raw.shape}")
 
-    return np.stack([raw_norm, raw[1-channel]], axis=0)
+    if not (0 <= channel < raw.shape[0]):
+        raise ValueError(f"Invalid channel index {channel}, must be in range [0, {raw.shape[0]-1}]")
+
+    raw_norm = np.float32(raw)
+    raw_norm[channel] = torch_em.transform.raw.normalize_percentile(raw[channel], lower=lower, upper=upper)
+
+    return raw_norm
 
 
 def get_all_datasets(file_path):
