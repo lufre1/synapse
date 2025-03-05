@@ -70,15 +70,15 @@ def main():
     metric_function = util.get_loss_function(metric_name)
     in_channels, out_channels = 1, 2
     # depth = 4
-    gain = 2
+    # gain = 2
 
     # scale_factors = 4*[[2, 2, 2]]
-    scale_factors = [
-        [1, 2, 2],
-        [1, 2, 2],
-        [2, 2, 2],
-        [2, 2, 2]
-    ]
+    # scale_factors = [
+    #     [1, 2, 2],
+    #     [1, 2, 2],
+    #     [2, 2, 2],
+    #     [2, 2, 2]
+    # ]
 
     final_activation = None
     if final_activation is None and loss_name == "dice":
@@ -105,6 +105,7 @@ def main():
         for path in data_paths:
             if "combined" in path:
                 data_paths.remove(path)
+                print("Found path with multiple channels as raw and removed:", path)
         random.seed(42)
         random.shuffle(data_paths)
         # data_paths.sort(reverse=True)
@@ -133,7 +134,7 @@ def main():
         # model.load_state_dict(state_dict)
 
         model.to(device)
-    print(model)
+    #print(model)
     with_channels = False
     with_label_channels = False
     sampler = MinInstanceSampler(p_reject=0.95)
@@ -141,25 +142,25 @@ def main():
     print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
     print("data['test']", data["test"])
     
-    transform = torch_em.transform.get_augmentations(3)
+    # transform = torch_em.transform.get_augmentations(3)
 
-    if with_rois:
-        train_loader = torch_em.default_segmentation_loader(
-            raw_paths=data["train"], raw_key="raw",
-            label_paths=data["train"], label_key="labels/mitochondria",
-            patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
-            label_transform=label_transform, num_workers=n_workers,
-            with_channels=with_channels, with_label_channels=with_label_channels,
-            rois=rois_dict["train"], transform=transform
-        )
-        val_loader = torch_em.default_segmentation_loader(
-            raw_paths=data["val"], raw_key="raw",
-            label_paths=data["val"], label_key="labels/mitochondria",
-            patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
-            label_transform=label_transform, num_workers=n_workers,
-            with_channels=with_channels, with_label_channels=with_label_channels,
-            rois=rois_dict["val"], transform=transform
-        )
+    # if with_rois:
+    #     train_loader = torch_em.default_segmentation_loader(
+    #         raw_paths=data["train"], raw_key="raw",
+    #         label_paths=data["train"], label_key="labels/mitochondria",
+    #         patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+    #         label_transform=label_transform, num_workers=n_workers,
+    #         with_channels=with_channels, with_label_channels=with_label_channels,
+    #         rois=rois_dict["train"], transform=transform
+    #     )
+    #     val_loader = torch_em.default_segmentation_loader(
+    #         raw_paths=data["val"], raw_key="raw",
+    #         label_paths=data["val"], label_key="labels/mitochondria",
+    #         patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+    #         label_transform=label_transform, num_workers=n_workers,
+    #         with_channels=with_channels, with_label_channels=with_label_channels,
+    #         rois=rois_dict["val"], transform=transform
+    #     )
     # else:
     #     train_loader = get_supervised_loader(
     #         data_paths=data["train"], raw_key="raw", label_key="labels/mitochondria",
