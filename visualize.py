@@ -34,7 +34,6 @@ def get_file_paths(path, ext=".h5", reverse=False):
 
 
 def visualize_data(data):
-    napari.viewer.Viewer(app='pyqt5')
     viewer = napari.Viewer()
     for key, value in data.items():
         if key == "raw" or "raw" in key:
