@@ -10,11 +10,10 @@
 #SBATCH --constraint 80gb
 
 source /user/freckmann15/u12103/.bashrc
-micromamba activate synapse
+micromamba activate /mnt/lustre-grete/usr/u12103/envs/synapse
 
 python /user/freckmann15/u12103/synapse-net/scripts/cooper/run_mitochondria_segmentation.py\
-  -i /scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi/20250212_test_I/ \
-  -o /scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi/20250212_test_O/ \
+  -i /scratch-grete/projects/nim00007/data/mitochondria/cooper/20250228_for_Mito_Seg/ \
+  -o /scratch-grete/projects/nim00007/data/mitochondria/cooper/20250228_for_Mito_Seg/out\
   --tile_shape 48 512 512 \
-  --halo 8 64 64
-
+  --halo 4 128 128
