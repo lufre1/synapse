@@ -1,6 +1,7 @@
 import os
 from glob import glob
 import h5py
+import mrcfile
 from tqdm import tqdm
 import napari
 import torch
@@ -19,6 +20,76 @@ from typing import List, Union, Tuple, Optional, Any
 # Define the data path and filename
 # data_path = "/scratch-grete/projects/nim00007/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt/170_2_rec.h5"
 # data_format = "*.h5"
+
+
+def export_to_h5(data, export_path):
+    with h5py.File(export_path, mode='a') as h5f:
+        for key in data.keys():
+            if key in h5f:
+                print(f"Skipping {key} as it already exists in {export_path}")
+                continue
+            h5f.create_dataset(key, data=data[key], compression="gzip")
+    print("exported to", export_path)
+
+
+def _extract_zdim_and_save_h5(data, save_dir, start_z, end_z, prefix="cropped"):
+    """
+    Crops mitochondria and raw data based on given z-dimension range, then saves them to HDF5.
+
+    Parameters:
+    - data (dict): Dictionary with labeled "mitochondria" data and "raw" image data.
+    - save_dir (str): Directory to save the extracted regions.
+    - start_z (int): Starting slice of the z-dimension.
+    - end_z (int): Ending slice of the z-dimension.
+    - prefix (str): Prefix for saved files.
+
+    Returns:
+    - None (saves files to `save_dir`)
+    """
+    os.makedirs(save_dir, exist_ok=True)
+    export_data = {}
+
+    if "raw" not in data:
+        raise ValueError("No 'raw' key found in the dataset.")
+
+    for key, value in data.items():
+
+        # Crop the mitochondria and raw data along the given z range
+        cropped = value[start_z:end_z]  # Cropped 
+        #raw_cropped = data["raw"][start_z:end_z]  # Corresponding raw data
+
+        # Downscale y and x dimensions
+        max_y, max_x = cropped.shape[1], cropped.shape[2]
+        cropped = cropped[:, :max_y, :max_x]
+        #raw_cropped = raw_cropped[:, :max_y, :max_x]
+
+        # Prepare data for export
+        export_data[key] = cropped
+
+    # Save to HDF5
+    export_path = os.path.join(save_dir, f"{prefix}_z{start_z}-{end_z}-mito.h5")
+    export_to_h5(export_data, export_path)
+
+def export_mrc(filename: str, data: np.ndarray, voxel_size: tuple[float, float, float]):
+    """
+    Export a 3D NumPy array to an .mrc file with a specified voxel size.
+
+    Args:
+        filename (str): Output .mrc file path.
+        data (np.ndarray): 3D NumPy array (Z, Y, X).
+        voxel_size (tuple[float, float, float]): Voxel size in (Z, Y, X) order.
+    """
+    assert data.ndim == 3, "Input data must be a 3D array (Z, Y, X)."
+    assert len(voxel_size) == 3, "Voxel size must be a tuple of (Z, Y, X)."
+
+    with mrcfile.new(filename, overwrite=True) as mrc:
+        mrc.set_data(data.astype(np.float32))  # Ensure data is in correct dtype
+        mrc.voxel_size = voxel_size  # Set voxel size metadata
+        mrc.update_header_from_data()  # Ensure header consistency
+        mrc.header.d = np.array(voxel_size, dtype=np.float32)  # Alternative metadata setting
+        mrc.flush()  # Write changes to disk
+
+    print(f"Saved {filename} with voxel size {voxel_size}")
 
 
 def normalize_percentile_with_channel(raw, lower=1, upper=99, channel=0):

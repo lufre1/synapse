@@ -34,6 +34,7 @@ def get_file_paths(path, ext=".h5", reverse=False):
 
 
 def visualize_data(data):
+    napari.viewer.Viewer(app='pyqt5')
     viewer = napari.Viewer()
     for key, value in data.items():
         if key == "raw" or "raw" in key:
@@ -95,6 +96,8 @@ def main(path: str, ext: str = None, scale: int = 1, upsample: bool = False):
         paths = get_file_paths(path, ".h5")
         paths.extend(get_file_paths(path, ".n5"))
         paths.extend(get_file_paths(path, ".zarr"))
+        paths.extend(get_file_paths(path, ".mrc"))
+        paths.extend(get_file_paths(path, ".rec"))
     else:
         paths = get_file_paths(path, ext)
     print("Found files:", len(paths))
@@ -102,7 +105,7 @@ def main(path: str, ext: str = None, scale: int = 1, upsample: bool = False):
         print("\n", path)
         with open_file(path, mode="r") as f:
             data = {}
-            if ".mrc" in path:
+            if ".mrc" in path or ".rec" in path:
                 ndim = f["data"].ndim
                 slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
                 data["raw"] = f["data"][slicing] if scale > 1 else f["data"][:]
