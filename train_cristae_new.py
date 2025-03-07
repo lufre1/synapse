@@ -143,7 +143,7 @@ def main():
     # transofrm not needed with synapse-net supvervied training:
     # it is added by default
     # transform = torch_em.transform.get_augmentations(3)
-    raw_transform = util.normalize_percentile_with_channel
+    raw_transform = util.standardize_channel
     
     loader_kwargs = {
         "raw_transform": raw_transform,
