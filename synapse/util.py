@@ -113,6 +113,19 @@ def export_mrc(filename: str, data: np.ndarray, voxel_size: tuple[float, float, 
     print(f"Saved {filename} with voxel size {voxel_size}")
 
 
+def standardize_channel(raw, channel=0):
+
+    if raw.ndim != 4:
+        raise ValueError(f"Expected a 4D input (C, Z, Y, X), got shape {raw.shape}")
+
+    if not (0 <= channel < raw.shape[0]):
+        raise ValueError(f"Invalid channel index {channel}, must be in range [0, {raw.shape[0]-1}]")
+
+    raw_norm = np.float32(raw)
+    raw_norm[channel] = torch_em.transform.raw.standardize(raw[channel])
+
+    return raw_norm
+
 def normalize_percentile_with_channel(raw, lower=1, upper=99, channel=0):
     """
     Normalize a specific channel of a multi-channel array using percentile normalization.
