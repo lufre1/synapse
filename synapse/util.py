@@ -22,6 +22,27 @@ from typing import List, Union, Tuple, Optional, Any
 # data_format = "*.h5"
 
 
+def find_label_file(raw_path: str, label_paths: list) -> str:
+    """
+    Find the corresponding label file for a given raw file.
+
+    Args:
+        raw_path (str): The path to the raw file.
+        label_paths (list): A list of label file paths.
+
+    Returns:
+        str: The path to the matching label file, or None if no match is found.
+    """
+    raw_base = os.path.splitext(os.path.basename(raw_path))[0]  # Remove extension
+
+    for label_path in label_paths:
+        label_base = os.path.splitext(os.path.basename(label_path))[0]  # Remove extension
+        if raw_base in label_base:  # Ensure raw name is contained in label name
+            return label_path
+
+    return None  # No match found
+
+
 def export_to_h5(data, export_path):
     with h5py.File(export_path, mode='a') as h5f:
         for key in data.keys():

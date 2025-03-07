@@ -15,6 +15,7 @@ from elf.io import open_file
 from tqdm import tqdm
 import z5py
 import mrcfile
+from tifffile import imread
 from skimage.transform import resize
 
 from synapse_net.inference.cristae import _run_segmentation
@@ -89,21 +90,34 @@ def upsample_data(data, factor):
     return upsampled_data
 
 
-def main(path: str, ext: str = None, scale: int = 1, upsample: bool = False):
+def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False, root_label_path: str = None):
     if ext is None:
         print("Loading h5, n5 and zarr files")
-        paths = get_file_paths(path, ".h5")
-        paths.extend(get_file_paths(path, ".n5"))
-        paths.extend(get_file_paths(path, ".zarr"))
-        paths.extend(get_file_paths(path, ".mrc"))
-        paths.extend(get_file_paths(path, ".rec"))
+        paths = get_file_paths(root_path, ".h5")
+        paths.extend(get_file_paths(root_path, ".n5"))
+        paths.extend(get_file_paths(root_path, ".zarr"))
+        paths.extend(get_file_paths(root_path, ".mrc"))
+        paths.extend(get_file_paths(root_path, ".rec"))
     else:
-        paths = get_file_paths(path, ext)
+        paths = get_file_paths(root_path, ext)
+    if root_label_path is not None:
+        label_paths = get_file_paths(root_label_path, ".tif")
+    else:
+        label_paths = None
     print("Found files:", len(paths))
     for path in paths:
         print("\n", path)
+        if label_paths is not None:
+            label_path = util.find_label_file(path, label_paths)
+        else:
+            label_path = None
         with open_file(path, mode="r") as f:
             data = {}
+            if label_path is not None:
+                ndim = f["data"].ndim
+                slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+                data["label"] = imread(label_path)[slicing] if scale > 1 else f["data"][:]
+                    # data["label"] = file["data"][:]
             if ".mrc" in path or ".rec" in path:
                 ndim = f["data"].ndim
                 slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
@@ -142,9 +156,11 @@ if __name__ == "__main__":
     parser.add_argument("--ext", "-e", type=str, default=None)
     parser.add_argument("--scale", "-s", type=int, default=1)
     parser.add_argument("--upsample", "-u", type=int, default=None)
+    parser.add_argument("--label_path", "-lp", type=str, default=None)
     args = parser.parse_args()
     path = args.path
     ext = args.ext
     scale = args.scale
     upsample = args.upsample
-    main(path, ext, scale, upsample)
+    label_path = args.label_path
+    main(path, ext, scale, upsample, label_path)
