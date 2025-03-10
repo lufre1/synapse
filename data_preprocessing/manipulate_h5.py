@@ -17,6 +17,7 @@ from skimage.segmentation import relabel_sequential
 from skimage.morphology import binary_closing, remove_small_objects, label
 import tifffile
 import zarr
+import synapse.util as util
 
 
 def rename_h5_key(file_path, old_key, new_key):
@@ -204,38 +205,20 @@ def main():
     # label_path = "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/new_labels_tif"
     base_path = "/scratch-grete/projects/nim00007/data/mitochondria/cooper/test_segmentations/"
 
-    h5_paths = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
+    paths = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
     # h5_label_paths = sorted(glob(os.path.join(label_path, "**", "*.tif"), recursive=True))
     # skip = True
     # wait_1 = False
-    for h5_path in tqdm(h5_paths):
-        output_path = os.path.join(export_path, os.path.basename(h5_path).replace(".h5", ".zarr").replace("_with_pred", ""))
+    for path in tqdm(paths):
+        output_path = os.path.join(export_path, os.path.basename(path).replace(".tif", "_refined.tif"))
         if os.path.exists(output_path):
             print("output path already exists:", output_path)
             continue
+        seg = open_file(path, mode="r")
+        seg = util.refine_seg(seg)
+        util.export_data(output_path, seg)
 
-        keys = get_all_keys_from_h5(h5_path)
-        data = {}
-        for key in keys:
-            if "pred" in key:
-                continue
-            else:
-                data[key] = read_h5(h5_path, key, scale_factor)
-
-        # new_labels = data["labels/mitochondria"] # tifffile.imread(label_path)
-        # binary_labels = new_labels > 0
-        # new_labels = label(binary_labels)
-        # new_labels = remove_small_objects(new_labels.astype(np.uint8), min_size=500)
-
-        # data["labels/mitochondria"] = new_labels
-
-        export_to_zarr(data, output_path)
-
-        # v = napari.Viewer()
-        # v.add_image(data["raw"])
-        # # v.add_labels(data["labels/mitochondria"], name="original_labels")
-        # v.add_labels(new_labels, name="new_labels")
-        # napari.run()
+        # export_to_zarr(data, output_path)
 
 
 if __name__ == "__main__":

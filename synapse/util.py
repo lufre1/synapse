@@ -2,6 +2,8 @@ import os
 from glob import glob
 import h5py
 import mrcfile
+import tifffile
+import zarr
 from tqdm import tqdm
 import napari
 import torch
@@ -12,7 +14,8 @@ import numpy as np
 import yaml
 import random
 from skimage.measure import regionprops
-
+from scipy.ndimage import label, sum_labels
+from synapse_net.inference.util import apply_size_filter, _postprocess_seg_3d
 
 # used for combined_datasets
 from typing import List, Union, Tuple, Optional, Any
@@ -20,6 +23,126 @@ from typing import List, Union, Tuple, Optional, Any
 # Define the data path and filename
 # data_path = "/scratch-grete/projects/nim00007/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt/170_2_rec.h5"
 # data_format = "*.h5"
+
+
+def export_data(data, export_path: str):
+    """Export data to the specified path, determining format from the file extension.
+    
+    Args:
+        data (np.ndarray | dict): The data to save. For HDF5/Zarr, a dict of named datasets is required.
+        export_path (str): The file path where the data should be saved.
+    
+    Raises:
+        ValueError: If the file format is unsupported or if data format does not match the expected type.
+    """
+    ext = export_path.lower().split(".")[-1]
+
+    if ext == "tif":
+        if not isinstance(data, np.ndarray):
+            raise ValueError("For .tif format, data must be a NumPy array.")
+        tifffile.imwrite(export_path, data.astype(np.float32))
+    
+    elif ext in {"mrc", "rec"}:
+        if not isinstance(data, np.ndarray):
+            raise ValueError("For .mrc and .rec formats, data must be a NumPy array.")
+        with mrcfile.new(export_path, overwrite=True) as mrc:
+            mrc.set_data(data.astype(np.float32))
+    
+    elif ext == "zarr":
+        if not isinstance(data, dict):
+            raise ValueError("For .zarr format, data must be a dictionary with dataset names as keys.")
+        root = zarr.open(export_path, mode="w")
+        for key, value in data.items():
+            root.create_dataset(key, data=value.astype(np.float32))
+
+    elif ext in {"h5", "hdf5"}:
+        if not isinstance(data, dict):
+            raise ValueError("For .h5 and .hdf5 formats, data must be a dictionary with dataset names as keys.")
+        with h5py.File(export_path, "w") as f:
+            for key, value in data.items():
+                f.create_dataset(key, data=value.astype(np.float32))
+    
+    else:
+        raise ValueError(f"Unsupported file format: {ext}")
+
+    print(f"Data successfully exported to {export_path}")
+
+
+def filter_segmentation(segmentation: np.ndarray) -> np.ndarray:
+    """Removes small objects and keeps only the largest connected component per label.
+
+    Args:
+        segmentation (np.ndarray): Labeled segmentation array.
+        min_size (int): Minimum allowed size for connected components.
+
+    Returns:
+        np.ndarray: Cleaned segmentation with small components removed.
+    """
+    unique_labels = np.unique(segmentation)
+    cleaned_seg = np.zeros_like(segmentation)
+
+    for lbl in unique_labels:
+        if lbl == 0:  # Skip background
+            continue
+        
+        # Isolate current label
+        mask = segmentation == lbl
+
+        # Label connected components within this mask
+        labeled_mask, num_features = label(mask)
+
+        if num_features == 1:  # If there's only one connected component, keep it
+            cleaned_seg[mask] = lbl
+            continue
+
+        # Compute sizes of each component
+        sizes = sum_labels(mask, labeled_mask, index=np.arange(1, num_features + 1))
+
+        # Find the largest component
+        largest_component = np.argmax(sizes) + 1  # +1 because labels start at 1
+
+        # Keep only the largest component
+        cleaned_seg[labeled_mask == largest_component] = lbl
+
+    return cleaned_seg
+
+
+def filter_small_objects(segmentation: np.ndarray, min_size: int) -> np.ndarray:
+    """Removes small connected components from a labeled segmentation.
+
+    Args:
+        segmentation (np.ndarray): Labeled segmentation array.
+        min_size (int): Minimum allowed size for connected components.
+
+    Returns:
+        np.ndarray: Cleaned segmentation with small components removed.
+    """
+    # Label connected components
+    labeled_array, num_features = label(segmentation)
+    
+    # Compute size of each component
+    sizes = sum_labels(segmentation > 0, labeled_array, index=np.arange(1, num_features + 1))
+    
+    # Find small components
+    small_components = np.where(sizes < min_size)[0] + 1  # +1 because labels start at 1
+    
+    # Remove small components
+    mask = np.isin(labeled_array, small_components)
+    segmentation[mask] = 0  # Set small components to background (0)
+    
+    return segmentation
+
+
+def refine_seg(seg,
+               min_size=50000*1,
+               area_threshold=1000 * 2,
+               block_shape=(128, 256, 256),
+               halo=(48, 48, 48)
+               ):
+    seg = filter_segmentation(seg)
+    seg = filter_small_objects(seg, min_size)
+    seg = _postprocess_seg_3d(seg, area_threshold=area_threshold, iterations=4, iterations_3d=8)
+    return seg
 
 
 def find_label_file(raw_path: str, label_paths: list) -> str:

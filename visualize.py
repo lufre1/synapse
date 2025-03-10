@@ -147,6 +147,7 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
             #     target_shape = tuple(dim * upsample for dim in data[key].shape)
             #     print(f"Upsampling {key} in {os.path.basename(path)} from original shape {data[key].shape} to shape {target_shape}")
             #     data[key] = resize(data[key][:], target_shape, order=0, preserve_range=True, anti_aliasing=False).astype(data[key].dtype)
+        # data["new_seg"] = util.refine_seg(np.copy(data["label"]))
         visualize_data(data)
 
 
