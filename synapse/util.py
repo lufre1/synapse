@@ -3,6 +3,7 @@ from glob import glob
 import h5py
 import mrcfile
 import tifffile
+import imageio.v3 as iio
 import zarr
 from tqdm import tqdm
 import napari
@@ -25,7 +26,7 @@ from typing import List, Union, Tuple, Optional, Any
 # data_format = "*.h5"
 
 
-def export_data(data, export_path: str):
+def export_data(export_path: str, data):
     """Export data to the specified path, determining format from the file extension.
     
     Args:
@@ -40,27 +41,28 @@ def export_data(data, export_path: str):
     if ext == "tif":
         if not isinstance(data, np.ndarray):
             raise ValueError("For .tif format, data must be a NumPy array.")
-        tifffile.imwrite(export_path, data.astype(np.float32))
+        tifffile.imwrite(export_path, data, dtype=data.dtype, compression="zlib")
+        # iio.imwrite(export_path, data, compression="zlib")
     
     elif ext in {"mrc", "rec"}:
         if not isinstance(data, np.ndarray):
             raise ValueError("For .mrc and .rec formats, data must be a NumPy array.")
         with mrcfile.new(export_path, overwrite=True) as mrc:
-            mrc.set_data(data.astype(np.float32))
+            mrc.set_data(data.astype(data.dtype))
     
     elif ext == "zarr":
         if not isinstance(data, dict):
             raise ValueError("For .zarr format, data must be a dictionary with dataset names as keys.")
         root = zarr.open(export_path, mode="w")
         for key, value in data.items():
-            root.create_dataset(key, data=value.astype(np.float32))
+            root.create_dataset(key, data=value.astype(data.dtype))
 
     elif ext in {"h5", "hdf5"}:
         if not isinstance(data, dict):
             raise ValueError("For .h5 and .hdf5 formats, data must be a dictionary with dataset names as keys.")
         with h5py.File(export_path, "w") as f:
             for key, value in data.items():
-                f.create_dataset(key, data=value.astype(np.float32))
+                f.create_dataset(key, data=value.astype(data.dtype))
     
     else:
         raise ValueError(f"Unsupported file format: {ext}")
@@ -96,6 +98,7 @@ def filter_segmentation(segmentation: np.ndarray) -> np.ndarray:
             continue
 
         # Compute sizes of each component
+        # sizes = sum_labels(np.array(mask, dtype=np.uint8), np.array(labeled_mask, dtype=np.uint8), index=np.arange(1, num_features + 1))
         sizes = sum_labels(mask, labeled_mask, index=np.arange(1, num_features + 1))
 
         # Find the largest component
@@ -213,6 +216,7 @@ def _extract_zdim_and_save_h5(data, save_dir, start_z, end_z, prefix="cropped"):
     # Save to HDF5
     export_path = os.path.join(save_dir, f"{prefix}_z{start_z}-{end_z}-mito.h5")
     export_to_h5(export_data, export_path)
+
 
 def export_mrc(filename: str, data: np.ndarray, voxel_size: tuple[float, float, float]):
     """

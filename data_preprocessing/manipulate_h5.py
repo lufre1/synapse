@@ -201,11 +201,11 @@ def main():
     scale_factor = args.scale_factor
 
     ### cluster
-    export_path = "/scratch-grete/projects/nim00007/data/mitochondria/cooper/test_segmentations/without_pred"
+    export_path = "/scratch-grete/projects/nim00007/data/mitochondria/cooper/20250308_Mito_Seg_Done/refined"
     # label_path = "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/new_labels_tif"
-    base_path = "/scratch-grete/projects/nim00007/data/mitochondria/cooper/test_segmentations/"
+    base_path = "/scratch-grete/projects/nim00007/data/mitochondria/cooper/20250308_Mito_Seg_Done/done"
 
-    paths = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
+    paths = sorted(glob(os.path.join(base_path, "**", "*.tif"), recursive=True))
     # h5_label_paths = sorted(glob(os.path.join(label_path, "**", "*.tif"), recursive=True))
     # skip = True
     # wait_1 = False
@@ -214,8 +214,12 @@ def main():
         if os.path.exists(output_path):
             print("output path already exists:", output_path)
             continue
-        seg = open_file(path, mode="r")
+        print("Processing:", path)
+        seg = tifffile.imread(path)
+        seg = seg.astype(np.uint8)
+        # print("seg ndim and dtype:", seg.ndim, seg.dtype)
         seg = util.refine_seg(seg)
+        # print("seg ndim and dtype:", seg.ndim, seg.dtype)
         util.export_data(output_path, seg)
 
         # export_to_zarr(data, output_path)
