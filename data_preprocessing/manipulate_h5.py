@@ -15,7 +15,7 @@ from elf.evaluation.matching import label_overlap, intersection_over_union
 from elf.parallel import label as parallel_label
 from skimage.segmentation import relabel_sequential
 from skimage.morphology import binary_closing, remove_small_objects, label
-import tifffile
+from tifffile import imread
 import zarr
 import synapse.util as util
 
@@ -214,7 +214,8 @@ def main():
         if os.path.exists(output_path):
             print("output path already exists:", output_path)
             continue
-        seg = open_file(path, mode="r")
+        seg = imread(path, mode="r")
+        
         seg = util.refine_seg(seg)
         util.export_data(output_path, seg)
 

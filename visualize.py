@@ -114,10 +114,12 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
         with open_file(path, mode="r") as f:
             data = {}
             if label_path is not None:
+                print("Loading label data from", label_path)
                 ndim = f["data"].ndim
                 slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-                data["label"] = imread(label_path)[slicing] if scale > 1 else f["data"][:]
-                    # data["label"] = file["data"][:]
+                data["label"] = imread(label_path)[slicing] if scale > 1 else imread(label_path)
+            else:
+                print("No specific label path loaded.")
             if ".mrc" in path or ".rec" in path:
                 ndim = f["data"].ndim
                 slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
@@ -148,6 +150,11 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
             #     print(f"Upsampling {key} in {os.path.basename(path)} from original shape {data[key].shape} to shape {target_shape}")
             #     data[key] = resize(data[key][:], target_shape, order=0, preserve_range=True, anti_aliasing=False).astype(data[key].dtype)
         # data["new_seg"] = util.refine_seg(np.copy(data["label"]))
+        # statistics = {
+        #     "file": os.path.basename(path),
+        #     "amount mitos": len(np.unique(data["label"]))
+        # }
+        # print("Statistics:", statistics)
         visualize_data(data)
 
 

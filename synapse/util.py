@@ -214,6 +214,7 @@ def _extract_zdim_and_save_h5(data, save_dir, start_z, end_z, prefix="cropped"):
     export_path = os.path.join(save_dir, f"{prefix}_z{start_z}-{end_z}-mito.h5")
     export_to_h5(export_data, export_path)
 
+
 def export_mrc(filename: str, data: np.ndarray, voxel_size: tuple[float, float, float]):
     """
     Export a 3D NumPy array to an .mrc file with a specified voxel size.
