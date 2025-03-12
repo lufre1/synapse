@@ -39,6 +39,7 @@ def main(base_path: str, ext: str = ".mrc", scale: int = 1, export_path=None):
                     print("Size after downsampling", data["raw"].shape)
             else:
                 print(f"Could not load file:\n{path}")
+        os.makedirs(export_path, exist_ok=True)
         output_path = os.path.join(export_path, os.path.basename(path).replace(".mrc", ".h5"))
         if os.path.exists(output_path):
             print("Output path already exist; skipping:", output_path)

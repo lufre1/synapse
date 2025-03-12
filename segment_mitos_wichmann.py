@@ -157,6 +157,7 @@ def main(visualize=False):
         # if skip:
         #     continue
         print("opening file", path)
+        os.makedirs(args.export_path, exist_ok=True)
         output_path = os.path.join(args.export_path, "only_net_" + os.path.basename(args.model_path).replace(".pt", "") + "_sd18_bt015_with_pred_" + os.path.basename(path))
         if os.path.exists(output_path):
             print("Skipping... output path exists", output_path)
@@ -183,7 +184,7 @@ def main(visualize=False):
             tiling=tiling,
             return_predictions=True,
             min_size=50000*8,
-            seed_distance=18,  # default 6
+            seed_distance=6*3,  # default 6
             ws_block_shape=(128, 256, 256),
             ws_halo=(64, 128, 128),
             boundary_threshold=0.15,

@@ -13,7 +13,7 @@ from scipy.ndimage import binary_erosion, binary_fill_holes, binary_closing
 from tqdm import tqdm
 from synapse_net.inference.util import apply_size_filter, get_prediction, _Scaler, _postprocess_seg_3d
 from skimage.measure import regionprops, label
-from tifffile import imwrite
+from tifffile import imread
 
 
 def _read_h5(path, key, scale_factor, z_offset=None):
@@ -148,55 +148,20 @@ def visualize():
             #         data[key] = util.normalize_percentile_with_channel(data[key], lower=1, upper=99, channel=0)
             #     else:
             #         data[key] = torch_em.transform.raw.normalize_percentile(data[key], lower=1, upper=99)
-            
-            if "pred" in key and False:
+
+            if "pred" in key:
                 seg_data = _segment(data["pred"])
                 for key, val in seg_data.items():
                     data[key] = val
-            
-            # if "mitos" in key:
-                # data[key] = np.stack([torch_em.transform.raw.normalize_percentile(data[key][0]), data[key][1]], axis=0)
-                # data["mitos"] = data[key][1]
-
-            # if "mito" in key:
-            #     data[key] = _read_h5(path, key, args.scale_factor, z_offset=(args.z_offset))
-            # else:
-            #     continue
 
         filtered_data = {}
-        output_path = "/scratch-grete/projects/nim00007/data/mitochondria/cooper/20250308_Mito_Seg_Done/final"
-        os.makedirs(output_path, exist_ok=True)
-        export_path = os.path.join(output_path, os.path.basename(path)).replace(".h5", ".tif")
-        for key in data.keys():
-            # if "raw" in key:
-            #     filtered_data[key] = util.upsample_data(data[key], 2, False)
-            if "seg" in key:
-                imwrite(export_path, util.upsample_data(data[key], 2, True))
-        # export_path = "/home/freckmann15/data/vesicles/cooper/20241102_TOMO_DATA_Imig2014/exported/Munc13DKO_cropped"
-        # filename = os.path.basename(path).replace(".h5", "")
-        # factor = 2
-        # util.export_mrc(os.path.join(export_path, f"{filename}_raw.mrc"), data["raw"], voxel_size=(8.694*factor, 8.694*factor, 8.694*factor)) #for cooper mito 8.694 8.694 8.694 || 15.4, 15.4, 15.4
-        # util.export_mrc(os.path.join(export_path, f"{filename}_raw.mrc"), data["raw"], voxel_size=(15.4, 15.4, 15.4)) #for cooper mito 8.694 8.694 8.694 || 
 
-        # seg_data = _segment(data["pred"])
-        # for key, val in seg_data.items():
-        #     data[key] = val
         if data and not args.no_visualize:
             if filtered_data:
                 visualize_data(filtered_data)
             else:
                 visualize_data(data)
-        # else:
-        #     #print("Calculate Statistics...")
-        #     statistics[path] = {
-        #         "#mitos": len(np.unique(data["labels/mitochondria"])),
-        #     }
-    # print("statistics:")
-    # mitos = 0
-    # for key in statistics.keys():
-    #     mitos += statistics[key]["#mitos"]
-    #     print(statistics[key])
-    # print("amount of all mitos", mitos)
+
 
 
 if __name__ == "__main__":

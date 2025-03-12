@@ -27,8 +27,22 @@ from typing import List, Union, Tuple, Optional, Any
 # data_format = "*.h5"
 
 
-def upsample_data(data, factor, is_segmentation=True):
-    out_shape = tuple(dim * factor for dim in data.shape)
+def get_file_paths(path, ext=".h5", reverse=False):
+    if ext in path:
+        return [path]
+    else:
+        paths = sorted(glob(os.path.join(path, "**", f"*{ext}"), recursive=True), reverse=reverse)
+        return paths
+
+
+def upsample_data(data, factor, is_segmentation=True, target_size=None):
+    if factor is None and target_size is None:
+        print("Need factor or target size!")
+        return
+    if factor:
+        out_shape = tuple(dim * factor for dim in data.shape)
+    elif target_size:
+        out_shape = target_size
     if is_segmentation:
         output = resize(data, out_shape, preserve_range=True, order=0, anti_aliasing=False).astype(data.dtype)
     else:
