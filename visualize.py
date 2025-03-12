@@ -84,7 +84,7 @@ def upsample_data(data, factor):
     for z in range(data.shape[0]):
         upsampled_data[z * factor : (z + 1) * factor] = resize(
             data[z], 
-            (factor * data.shape[1], factor * data.shape[2]), 
+            (factor * data.shape[1], factor * data.shape[2]),
             order=0, preserve_range=True, anti_aliasing=False
         ).astype(data.dtype)
     return upsampled_data
@@ -143,7 +143,7 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
         if upsample:
             del data["pred"]
             del data["raw"]
-            
+
             for key in data.keys():
                 data[key] = upsample_data(data[key], upsample)
             #     target_shape = tuple(dim * upsample for dim in data[key].shape)

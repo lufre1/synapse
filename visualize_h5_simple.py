@@ -13,6 +13,7 @@ from scipy.ndimage import binary_erosion, binary_fill_holes, binary_closing
 from tqdm import tqdm
 from synapse_net.inference.util import apply_size_filter, get_prediction, _Scaler, _postprocess_seg_3d
 from skimage.measure import regionprops, label
+from tifffile import imwrite
 
 
 def _read_h5(path, key, scale_factor, z_offset=None):
@@ -79,7 +80,7 @@ def _segment(pred,
              seed_distance=6 * 1,
              boundary_threshold=0.25,
              min_size=50000*8,
-             area_threshold=1000 * 15,
+             area_threshold=1000 * 5,
              dist=None
              ):
     foreground, boundaries = pred
@@ -113,7 +114,6 @@ def _segment(pred,
     return seg_data
 
 
-
 def visualize():
     parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
     parser.add_argument("--path", "-p", type=str, required=True, help="Path to the data directory or single file")
@@ -138,7 +138,7 @@ def visualize():
         print("\ndata keys", keys)
         print("in path", path)
         data = {}
-        flip_y = True
+        flip_y = False
         for key in keys:
             data[key] = _read_h5(path, key, args.scale_factor, z_offset=(args.z_offset))
             if flip_y:
@@ -148,7 +148,8 @@ def visualize():
             #         data[key] = util.normalize_percentile_with_channel(data[key], lower=1, upper=99, channel=0)
             #     else:
             #         data[key] = torch_em.transform.raw.normalize_percentile(data[key], lower=1, upper=99)
-            if "pred" in key:
+            
+            if "pred" in key and False:
                 seg_data = _segment(data["pred"])
                 for key, val in seg_data.items():
                     data[key] = val
@@ -163,6 +164,14 @@ def visualize():
             #     continue
 
         filtered_data = {}
+        output_path = "/scratch-grete/projects/nim00007/data/mitochondria/cooper/20250308_Mito_Seg_Done/final"
+        os.makedirs(output_path, exist_ok=True)
+        export_path = os.path.join(output_path, os.path.basename(path)).replace(".h5", ".tif")
+        for key in data.keys():
+            # if "raw" in key:
+            #     filtered_data[key] = util.upsample_data(data[key], 2, False)
+            if "seg" in key:
+                imwrite(export_path, util.upsample_data(data[key], 2, True))
         # export_path = "/home/freckmann15/data/vesicles/cooper/20241102_TOMO_DATA_Imig2014/exported/Munc13DKO_cropped"
         # filename = os.path.basename(path).replace(".h5", "")
         # factor = 2

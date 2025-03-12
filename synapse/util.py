@@ -16,6 +16,7 @@ import yaml
 import random
 from skimage.measure import regionprops
 from scipy.ndimage import label, sum_labels
+from skimage.transform import resize
 from synapse_net.inference.util import apply_size_filter, _postprocess_seg_3d
 
 # used for combined_datasets
@@ -24,6 +25,15 @@ from typing import List, Union, Tuple, Optional, Any
 # Define the data path and filename
 # data_path = "/scratch-grete/projects/nim00007/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt/170_2_rec.h5"
 # data_format = "*.h5"
+
+
+def upsample_data(data, factor, is_segmentation=True):
+    out_shape = tuple(dim * factor for dim in data.shape)
+    if is_segmentation:
+        output = resize(data, out_shape, preserve_range=True, order=0, anti_aliasing=False).astype(data.dtype)
+    else:
+        output = resize(data, out_shape, preserve_range=True).astype(data.dtype)
+    return output
 
 
 def export_data(export_path: str, data):
