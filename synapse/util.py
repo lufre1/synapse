@@ -4,7 +4,9 @@ import h5py
 import mrcfile
 import tifffile
 import imageio.v3 as iio
+import z5py
 import zarr
+from elf.io import open_file
 from tqdm import tqdm
 import napari
 import torch
@@ -20,11 +22,56 @@ from skimage.transform import resize
 from synapse_net.inference.util import apply_size_filter, _postprocess_seg_3d
 
 # used for combined_datasets
-from typing import List, Union, Tuple, Optional, Any
+from typing import Dict, List, Union, Tuple, Optional, Any
 
 # Define the data path and filename
 # data_path = "/scratch-grete/projects/nim00007/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt/170_2_rec.h5"
 # data_format = "*.h5"
+
+
+def read_data(path, scale=1):
+    data = {}
+    if ".tif" in path:
+        img = tifffile.imread(path)
+        ndim = img.ndim
+        slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+        data["label"] = img[slicing] if scale > 1 else img
+    elif (".mrc" in path or ".rec" in path):
+        with open_file(path, "r") as f:
+            ndim = f["data"].ndim
+            slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+            data["raw"] = f["data"][slicing] if scale > 1 else f["data"][:]
+    elif (".h5" in path or ".zarr" in path or ".n5" in path):
+        with open_file(path, "r") as f:
+            for key in f.keys():
+                if isinstance(f[key], (zarr.Group, h5py.Group, z5py.Group)):
+                    print(f"Loading group: {key}")
+                    extract_data(f[key], data, scale=scale)
+                    continue
+            ndim = f["data"].ndim
+            slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+            data[key] = f[key][slicing] if scale > 1 else f[key][:]
+    return data
+
+
+def extract_data(group: Any, data: Dict[str, Any], prefix: str = "", scale: int = 1):
+    """
+    Recursively extract datasets from a group and store them in a dictionary.
+    """
+    for key, item in group.items():
+        full_key = f"{prefix}/{key}" if prefix else key
+        if isinstance(item, (zarr.Group, h5py.Group, z5py.Group)):
+            # Recursively extract data from subgroups
+            extract_data(item, data, prefix=full_key, scale=scale)
+        else:
+            ndim = item.ndim
+            # Generate a slicing tuple based on the number of dimensions
+            slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+            
+            # Apply downsampling while preserving batch/channel dimensions
+            data[full_key] = item[slicing] if scale > 1 else item[:]
+            # # Store the dataset in the dictionary
+            # data[full_key] = item[:]
 
 
 def get_file_paths(path, ext=".h5", reverse=False):
@@ -63,6 +110,8 @@ def export_data(export_path: str, data):
     ext = export_path.lower().split(".")[-1]
 
     if ext == "tif":
+        if isinstance(data, dict):
+            data = next(iter(data.values()))
         if not isinstance(data, np.ndarray):
             raise ValueError("For .tif format, data must be a NumPy array.")
         tifffile.imwrite(export_path, data, dtype=data.dtype, compression="zlib")
