@@ -1,0 +1,12 @@
+name: cryoet
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - s3fs
+  - botocore=1.37.1
+  - aiobotocore=2.21.1
+  - pip
+  - pip:
+      - cryoet_data_portal  # Ensures installation if not found in Conda
+

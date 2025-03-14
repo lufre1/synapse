@@ -18,8 +18,6 @@ import mrcfile
 from tifffile import imread
 from skimage.transform import resize
 
-from synapse_net.inference.cristae import _run_segmentation
-
 from scipy import ndimage as ndi
 from skimage.feature import peak_local_max
 from skimage.segmentation import watershed
@@ -105,7 +103,7 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
     else:
         label_paths = None
     print("Found files:", len(paths))
-    for path in paths:
+    for path in tqdm(paths):
         print("\n", path)
         if label_paths is not None:
             label_path = util.find_label_file(path, label_paths)
