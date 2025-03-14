@@ -96,7 +96,7 @@ def _segment(pred,
     seeds = np.logical_and(foreground > 0.5, dist > seed_distance)
     seeds = parallel.label(seeds, block_shape=block_shape, verbose=True)
     # # #seeds = binary_fill_holes(seeds)
-    
+
     mask = (foreground + boundaries) > 0.5
     seg = np.zeros_like(seeds)
     seg = parallel.seeded_watershed(
