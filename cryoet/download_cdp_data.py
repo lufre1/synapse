@@ -1,11 +1,10 @@
 import argparse
 from glob import glob
 import os
-from typing import Dict, List, Optional, Tuple, Union
+import synapse.label_utils as lutils
+# from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
-import zarr
-import pooch
 
 try:
     import cryoet_data_portal as cdp
@@ -66,7 +65,7 @@ def check_result(tomogram, deposition_id, processing_type, download=False):
         )
     output_file = os.path.join(output_folder, f"{tomogram.run.name}.zarr")
     if os.path.exists(output_folder):
-        print("Try reading segmenations from:", output_folder)
+        print("Found segmenations in:", output_folder)
         present = True
     else:
         present = False
@@ -82,7 +81,7 @@ def check_result(tomogram, deposition_id, processing_type, download=False):
     for segmentation_path in segmentation_paths:
         labels, _voxel_size = read_ome_zarr(segmentation_path)
         segmentations[segmentation_path] = np.flip(labels, axis=1) if labels.ndim == 3 else np.flip(labels, axis=0)
-    
+
     if not os.path.exists(output_file) and download:
         print("Downloading tomogram data and saving to", output_file)
         # Read tomogram data on the fly.
@@ -93,21 +92,35 @@ def check_result(tomogram, deposition_id, processing_type, download=False):
     elif os.path.exists(output_file):
         print("Reading tomogram data from", output_file)
         data, voxel_size = read_ome_zarr(output_file)
+
     else:
         print("Streaming tomogram data")
         # Read tomogram data on the fly.
         data, voxel_size = read_data_from_cryo_et_portal_run(
             tomogram.run_id, id_field="run_id", processing_type=processing_type
         )
+    key_with_inner = next((k for k in segmentations if "inner" in k), None)
+    key_with_outer = next((k for k in segmentations if "outer" in k), None)
+    print("Processing labels...")
+    new_labels_dict = lutils.segment_mitos_from_labels(
+        outer=segmentations[key_with_outer],
+        inner=segmentations[key_with_inner]
+    )
+    for key, val in new_labels_dict.items():
+        segmentations[key] = val
 
     v = napari.Viewer()
     # print("data", data)
     # print("voxel_size", voxel_size)
     # print("segmentation", segmentation)
-    v.add_image(data)
+    if data is not None:
+        v.add_image(data)
     if segmentations is not None:
-        for key, segmentation in segmentations.items():
-            v.add_labels(segmentation, name=key)
+        for key, val in segmentations.items():
+            if np.issubdtype(val.dtype, np.floating):  # Check if array contains floats
+                v.add_image(val, name=key)
+            else:
+                v.add_labels(val, name=key)
     napari.run()
 
 
@@ -127,22 +140,23 @@ def main():
     parser = argparse.ArgumentParser()
     # Whether to check the result with napari instead of running the prediction.
     parser.add_argument("-c", "--check", action="store_true")
-    parser.add_argument("-o", "--output_folder", default="out")
+    parser.add_argument("-o", "--output_folder", default="/home/freckmann15/data/cryo-et")
+    parser.add_argument("-d", "--download", action="store_true", default=False)
     args = parser.parse_args()
 
     # deposition with mitos annotated 10010
     deposition_id = 10010  # 10313
-    processing_type = None  # "denoised" 
+    processing_type = None  # "denoised"
 
     # Get all the (processed) tomogram ids in the deposition.
     tomograms = get_tomograms(deposition_id, processing_type)
-    #annotations = get_annotations(deposition_id, search_string="mito")
+    # annotations = get_annotations(deposition_id, search_string="mito")
 
     # Process each tomogram.
     for tomogram in tqdm(tomograms, desc="Downloading tomograms"):
         # Read tomogram data on the fly.
         if args.check:
-            check_result(tomogram, deposition_id, processing_type)
+            check_result(tomogram, deposition_id, processing_type, download=args.download)
             # data, voxel_size = read_data_from_cryo_et_portal_run(
             #     tomogram.run_id, processing_type=processing_type
             # )
@@ -150,9 +164,14 @@ def main():
             data, voxel_size = read_data_from_cryo_et_portal_run(
                 tomogram.run_id, processing_type=processing_type
             )
+            output_folder = os.path.join(
+                args.output_folder,
+                f"upload_CZCDP-{deposition_id}",
+                str(tomogram.run_id)
+                )
+            output_file = os.path.join(output_folder, f"{tomogram.run.name}.zarr")
             # Write the data to a zarr file.
-            output_path = os.path.join(args.output_folder, f"upload_CZCDP-{deposition_id}", str(tomogram.run.dataset_id))
-            write_ome_zarr(os.path.join(output_path, f"{tomogram.run.name}.zarr"), data, voxel_size)
+            write_ome_zarr(os.path.join(output_file, f"{tomogram.run.name}.zarr"), data, voxel_size)
 
 
 if __name__ == "__main__":
