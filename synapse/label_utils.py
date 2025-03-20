@@ -1,8 +1,6 @@
 import elf.parallel as parallel
 import numpy as np
 from synapse_net.inference.util import apply_size_filter, _postprocess_seg_3d
-from skimage.segmentation import watershed
-from scipy.ndimage import distance_transform_edt, label
 import skimage.segmentation as seg
 import skimage.filters as filters
 from skimage.draw import polygon
@@ -64,7 +62,20 @@ def segment_mitos_from_labels_gemini(outer: np.ndarray, inner: np.ndarray):
     return {"labels/mito": final_mask}
 
 
-def broaden_and_close_boundaries(outer_boundary: np.ndarray, iterations: int = 3, closing_radius: int = 2) -> np.ndarray:
+def broaden_and_close_boundaries(
+    outer_boundary: np.ndarray, iterations: int = 3, closing_radius: int = 2
+) -> np.ndarray:
+    """
+    Broadens and closes outer boundaries in 3D volumetric data.
+
+    Parameters:
+        outer_boundary (np.ndarray): 3D binary array where 1 represents the boundary.
+        iterations (int): Number of dilation iterations to broaden the boundary.
+        closing_radius (int): Radius for morphological closing.
+
+    Returns:
+        np.ndarray: Processed 3D array with broadened and closed boundaries.
+    """
     """
     Broadens and closes outer boundaries in 3D volumetric data.
 
@@ -239,8 +250,12 @@ def segment_from_pred(pred,
     foreground, boundaries = pred
     # # #boundaries = binary_erosion(boundaries < boundary_threshold, structure=np.ones((1, 3, 3)))
     if dist is None:
-        dist = parallel.distance_transform(boundaries < boundary_threshold, halo=halo, verbose=True, block_shape=block_shape)
-    # # data["pred_dist_without_fore"] = parallel.distance_transform((boundaries) < boundary_threshold, halo=halo, verbose=True, block_shape=block_shape)
+        dist = parallel.distance_transform(
+            boundaries < boundary_threshold,
+            halo=halo,
+            verbose=True,
+            block_shape=block_shape
+            )
     hmap = ((dist.max() - dist) / dist.max())
 
     hmap[np.logical_and(boundaries > boundary_threshold, foreground < boundary_threshold)] = (hmap + boundaries).max()
