@@ -1,7 +1,7 @@
 import argparse
 from glob import glob
 import os
-import synapse.label_utils as lutils
+# import synapse.label_utils as lutils
 # from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -60,15 +60,15 @@ def filter_annotations_shape(annotations, field="shape_type", shape_type="Segmen
     return annotations
 
 
-def check_result(tomogram, deposition_id, processing_type, download=False):
-    import napari
+def check_result(tomogram, deposition_id, processing_type, download=False, output_folder=None):
+    # import napari
     annotations = get_annotations(tomogram.run_id, id_field="run_id", search_string="mito")
     filtered_annotations = [anno for anno in annotations if any(shape.shape_type == "SegmentationMask" for shape in anno.annotation_shapes)]
     # check for run_id in annotation and download
 
     # Read the output file if it exists.
     output_folder = os.path.join(
-        "/home/freckmann15/data/cryo-et",
+        output_folder if output_folder is not None else ".",
         f"upload_CZCDP-{deposition_id}",
         str(tomogram.run_id)
         )
@@ -121,19 +121,16 @@ def check_result(tomogram, deposition_id, processing_type, download=False):
     # for key, val in new_labels_dict.items():
     #     segmentations[key] = val
 
-    v = napari.Viewer()
-    # print("data", data)
-    # print("voxel_size", voxel_size)
-    # print("segmentation", segmentation)
-    if data is not None:
-        v.add_image(data)
-    if segmentations is not None:
-        for key, val in segmentations.items():
-            if np.issubdtype(val.dtype, np.floating):  # Check if array contains floats
-                v.add_image(val, name=key)
-            else:
-                v.add_labels(val, name=key)
-    napari.run()
+    # v = napari.Viewer()
+    # if data is not None:
+    #     v.add_image(data)
+    # if segmentations is not None:
+    #     for key, val in segmentations.items():
+    #         if np.issubdtype(val.dtype, np.floating):  # Check if array contains floats
+    #             v.add_image(val, name=key)
+    #         else:
+    #             v.add_labels(val, name=key)
+    # napari.run()
 
 
 def write_ome_zarr(output_file, data, voxel_size):
@@ -168,7 +165,8 @@ def main():
     for tomogram in tqdm(tomograms, desc="Downloading tomograms"):
         # Read tomogram data on the fly.
         if args.check:
-            check_result(tomogram, deposition_id, processing_type, download=args.download)
+            check_result(tomogram, deposition_id, processing_type,
+                         download=args.download, output_folder=args.output_folder)
             # data, voxel_size = read_data_from_cryo_et_portal_run(
             #     tomogram.run_id, processing_type=processing_type
             # )
@@ -177,7 +175,7 @@ def main():
                 tomogram.run_id, processing_type=processing_type
             )
             output_folder = os.path.join(
-                "/home/freckmann15/data/cryo-et",
+                args.output_folder,
                 f"upload_CZCDP-{deposition_id}",
                 str(tomogram.run_id)
                 )

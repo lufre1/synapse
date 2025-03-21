@@ -4,9 +4,15 @@ channels:
 dependencies:
   - python=3.10
   - s3fs
-  - botocore=1.37.1
-  - aiobotocore=2.21.1
+  # - botocore=1.37.1
+  # - aiobotocore=2.1.0
+  # - aiobotocore
+  # - botocore
+  - python-elf
+  - ome-zarr
+  - pooch
   - pip
   - pip:
-      - cryoet_data_portal  # Ensures installation if not found in Conda
+    - "aiobotocore>=2.21.1"
+    - cryoet_data_portal
 
