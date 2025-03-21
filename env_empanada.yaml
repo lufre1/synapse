@@ -1,0 +1,11 @@
+name: empanada
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  # - opencv
+  # - pyqt
+  - pip
+  - pip:
+    - napari[all]
+    - empanada-napari

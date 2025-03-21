@@ -52,9 +52,18 @@ def get_annotations(id, id_field, search_string=None):
     return annotations
 
 
+def filter_annotations_shape(annotations, field="shape_type", shape_type="SegmentationMask"):
+    assert shape_type in ("SegmentationMask", "OrientedPoint", "Point", "InstanceSegmentation", "Mesh")
+    client = cdp.Client()
+    new_annotations = cdp.AnnotationShape.find(client, [getattr(cdp.AnnotationShape, field) == shape_type])
+    
+    return annotations
+
+
 def check_result(tomogram, deposition_id, processing_type, download=False):
     import napari
     annotations = get_annotations(tomogram.run_id, id_field="run_id", search_string="mito")
+    filtered_annotations = [anno for anno in annotations if any(shape.shape_type == "SegmentationMask" for shape in anno.annotation_shapes)]
     # check for run_id in annotation and download
 
     # Read the output file if it exists.
@@ -70,13 +79,16 @@ def check_result(tomogram, deposition_id, processing_type, download=False):
     else:
         present = False
     if download or not present:
-        for annotation in tqdm(annotations, desc="Downloading annotations"):
+        for annotation in tqdm(filtered_annotations, desc="Downloading annotations"):
             annotation.download(dest_path=output_folder, format="zarr")
 
     # get all segmentations for corresponding tomogram (run_id)
     segmentation_paths = glob(os.path.join(output_folder, "**", "*.zarr"), recursive=True)
     # filter for only segmentations via mask
     segmentation_paths[:] = [path for path in segmentation_paths if "mask" in path.lower()]
+    if segmentation_paths == []:
+        print("No segmentations found for tomogram", tomogram.run_id)
+        return
     segmentations = {}
     for segmentation_path in segmentation_paths:
         labels, _voxel_size = read_ome_zarr(segmentation_path)
@@ -102,12 +114,12 @@ def check_result(tomogram, deposition_id, processing_type, download=False):
     key_with_inner = next((k for k in segmentations if "inner" in k), None)
     key_with_outer = next((k for k in segmentations if "outer" in k), None)
     print("Processing labels...")
-    new_labels_dict = lutils.segment_mitos_from_labels(
-        outer=segmentations[key_with_outer],
-        inner=segmentations[key_with_inner]
-    )
-    for key, val in new_labels_dict.items():
-        segmentations[key] = val
+    # new_labels_dict = lutils.segment_mitos_from_labels(
+    #     outer=segmentations[key_with_outer],
+    #     inner=segmentations[key_with_inner]
+    # )
+    # for key, val in new_labels_dict.items():
+    #     segmentations[key] = val
 
     v = napari.Viewer()
     # print("data", data)
@@ -165,7 +177,7 @@ def main():
                 tomogram.run_id, processing_type=processing_type
             )
             output_folder = os.path.join(
-                args.output_folder,
+                "/home/freckmann15/data/cryo-et",
                 f"upload_CZCDP-{deposition_id}",
                 str(tomogram.run_id)
                 )
