@@ -16,16 +16,14 @@ def compute_embeddings(path, output_path):
     model_type = "vit_b_em_organelles"
     predictor = get_sam_model(model_type=model_type, device=device)
     data, voxel_size = read_ome_zarr(path)
-    precompute_image_embeddings(
-            predictor, input_=data,
-            save_path=out_filenpath, tile_shape=(512, 512), halo=(128, 128)                      
-        )
-    # with open_file(path, "r") as f:
-    #     raw = f["raw"][:]
-    #     precompute_image_embeddings(
-    #         predictor, input_=raw,
+    # precompute_image_embeddings(
+    #         predictor, input_=data,
     #         save_path=out_filenpath, tile_shape=(512, 512), halo=(128, 128)                      
     #     )
+    precompute_image_embeddings(
+            predictor, input_=data,
+            save_path=out_filenpath,           
+        )
 
 
 if __name__ == "__main__":
@@ -38,8 +36,10 @@ if __name__ == "__main__":
     if not os.path.exists(output_path):
         os.makedirs(output_path)
     paths = sorted(glob(os.path.join(base_path, "**", "*.zarr"), recursive=True))
-    paths[:] = [path for path in paths if "mask" not in path.lower()]  # exclude masks
+    # exclude masks and other embeddings
+    paths[:] = [path for path in paths if "mask" not in path.lower() and "embeddings" not in path.lower()]
     for path in tqdm(paths):
-        output_path = path.replace(".zarr", "_embeddings.zarr")
+        print("Precomputing embeddings for:", path)
+        output_path = path.replace(".zarr", "_embeddings")
         compute_embeddings(path, output_path)
         print("Precomuted embeddings and saved to:", output_path)
