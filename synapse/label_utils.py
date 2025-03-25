@@ -1,5 +1,6 @@
 import elf.parallel as parallel
 import numpy as np
+import skimage
 from synapse_net.inference.util import apply_size_filter, _postprocess_seg_3d
 import skimage.segmentation as seg
 import skimage.filters as filters
@@ -7,6 +8,27 @@ from skimage.draw import polygon
 import skimage.morphology as morph
 import scipy.ndimage as ndi
 from skimage.morphology import binary_closing, ball, binary_dilation, convex_hull_image
+import torch_em
+
+
+class CombinedLabelTransform:
+    def __init__(self, add_binary_target=True, dilation_footprint=np.ones((3, 3))):
+        self.boundary_transform = torch_em.transform.BoundaryTransform(add_binary_target=add_binary_target)
+        self.dilation_footprint = dilation_footprint
+
+    def __call__(self, label):
+        # Apply torch_em boundary transform
+        target = self.boundary_transform(label)
+        
+        # Create an empty array for the transformed result
+        dilated_target = np.zeros_like(target[1], dtype=bool)
+        
+        # Apply 2D dilation slice by slice
+        for z in range(target[1].shape[0]):
+            dilated_target[z] = skimage.morphology.binary_dilation(target[1][z], footprint=self.dilation_footprint)
+        
+        return np.array([target[0], dilated_target])
+    
 
 
 def segment_mitos_from_labels_gemini(outer: np.ndarray, inner: np.ndarray):

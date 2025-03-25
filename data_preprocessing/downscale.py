@@ -55,6 +55,8 @@ def main():
     efe = args.export_file_extension
 
     paths = sorted(glob(os.path.join(args.base_path, "**", f"*{ife}"), recursive=True))
+    # filter all raw files
+    paths = [path for path in paths if "embedding" not in path and "mask" not in path]
 
     for path in tqdm(paths):
         export_file_name, rel_path = get_filename_and_inter_dirs(path, args.base_path)
@@ -63,7 +65,7 @@ def main():
         if os.path.exists(export_file_path):
             print("File already exists:", export_file_path)
             continue
-        data = util.read_data(path, scale=2)
+        data = util.read_data(path, scale=scale)
         util.export_data(export_file_path, data)
 
 

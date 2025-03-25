@@ -20,6 +20,7 @@ from skimage.measure import regionprops
 from scipy.ndimage import label, sum_labels
 from skimage.transform import resize
 from synapse_net.inference.util import apply_size_filter, _postprocess_seg_3d
+from synapse_net.file_utils import read_ome_zarr
 
 # used for combined_datasets
 from typing import Dict, List, Union, Tuple, Optional, Any
@@ -41,7 +42,7 @@ def read_data(path, scale=1):
             ndim = f["data"].ndim
             slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
             data["raw"] = f["data"][slicing] if scale > 1 else f["data"][:]
-    elif (".h5" in path or ".zarr" in path or ".n5" in path):
+    elif (".h5" in path or ".n5" in path):
         with open_file(path, "r") as f:
             for key in f.keys():
                 if isinstance(f[key], (zarr.Group, h5py.Group, z5py.Group)):
@@ -51,6 +52,12 @@ def read_data(path, scale=1):
             ndim = f["data"].ndim
             slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
             data[key] = f[key][slicing] if scale > 1 else f[key][:]
+    elif (".zarr" in path):
+        img, voxel_size = read_ome_zarr(path)
+        ndim = img.ndim
+        slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+        data["raw"] = img[slicing] if scale > 1 else img
+        
     return data
 
 
@@ -135,7 +142,7 @@ def export_data(export_path: str, data):
             raise ValueError("For .h5 and .hdf5 formats, data must be a dictionary with dataset names as keys.")
         with h5py.File(export_path, "w") as f:
             for key, value in data.items():
-                f.create_dataset(key, data=value.astype(data.dtype))
+                f.create_dataset(key, data=value.astype(value.dtype))
     
     else:
         raise ValueError(f"Unsupported file format: {ext}")
@@ -1142,69 +1149,3 @@ def load_metadata(data_path):
     print("Average Image Sizes:", average_image_sizes)
     # Return None if any exceptions occur
     return metadata
-
-
-# def load_all_hdf5_data(data_dir, data_format="*.h5", amount=None):
-#     """
-#     Loads all HDF5 data files from a directory and its subdirectories.
-
-#     Args:
-#         data_dir (str): Path to the directory containing HDF5 files.
-#         data_format (str, optional): File format to search for (default: "*.h5").
-
-#     Returns:
-#         list: A list of dictionaries containing loaded data (raw and labels) 
-#                 from each HDF5 file in the directory and its subdirectories.
-#     """
-
-#     # Get all file paths matching the format in the main directory and subdirectories
-#     data_paths = glob(os.path.join(data_dir, "**", data_format), recursive=True)
-
-#     # List to store loaded data information
-#     all_data = []
-
-#     for data_path in tqdm(data_paths):
-#         # Load data from each file (unchanged logic)
-#         data = load_single_hdf5_data(data_path)
-
-#         if data is not None:  # Check if data loaded successfully
-#             # Extract filename without extension
-#             filename = data_path.split("/")[-1].split(".")[0]
-#             all_data.append({"filename": filename, **data})  # Unpack data dictionary
-#         if amount is not None and amount == len(all_data):
-#             return all_data
-#     return all_data
-
-
-# def load_single_hdf5_data(data_path):
-#     """
-#     Loads raw data and available labels from a single HDF5 file.
-
-#     Args:
-#         data_path (str): Path to the HDF5 file.
-
-#     Returns:
-#         dict: A dictionary containing loaded raw data and all available labels 
-#             (or None if error).
-#     """
-
-#     # Open the HDF5 file in read-only mode
-#     with h5py.File(data_path, "r") as f:
-
-#         # Check for existence of datasets
-#         if "raw" not in f:
-#             print(f"Error: 'raw' dataset not found in {data_path}")
-#             return None  # Indicate error
-
-#         # Get the raw data as a NumPy array
-#         raw_data = f["raw"][()]
-
-#         # Load all datasets within the "labels" group (if it exists)
-#         labels_data = {}
-#         if "labels" in f:
-#             labels_group = f["labels"]
-#             for key in labels_group.keys():
-#                 labels_data[key] = labels_group[key][()]
-
-#         # Return data as a dictionary
-#         return {"raw": raw_data, "labels": labels_data}
