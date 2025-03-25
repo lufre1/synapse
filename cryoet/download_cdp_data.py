@@ -111,6 +111,7 @@ def check_result(tomogram, deposition_id, processing_type, download=False, outpu
         data, voxel_size = read_data_from_cryo_et_portal_run(
             tomogram.run_id, id_field="run_id", processing_type=processing_type
         )
+    print("Voxel size:", voxel_size)
     key_with_inner = next((k for k in segmentations if "inner" in k), None)
     key_with_outer = next((k for k in segmentations if "outer" in k), None)
     print("Processing labels...")

@@ -1,3 +1,4 @@
+import skimage
 import synapse.util as util
 from config import *
 import h5py
@@ -155,6 +156,22 @@ def visualize():
                     data[key] = val
 
         filtered_data = {}
+        
+        show_labels = True
+        if show_labels:
+            label_transform = torch_em.transform.BoundaryTransform(add_binary_target=True)
+            for key, value in data.items():
+                filtered_data[key] = value
+                if "labels" in key and "mito" in key:
+                    target = label_transform(value)
+                    # filtered_data[key+"_transformed"] = np.array([target[0], skimage.morphology.binary_dilation(target[1], footprint=np.ones((1, 3, 3)))])
+                    # filtered_data[key+"_transformed"] = target
+                    
+                    dilated_target_1 = np.zeros_like(target[1], dtype=bool)
+
+                    for z in range(target[1].shape[0]):  # Iterate over Z-axis
+                        dilated_target_1[z] = skimage.morphology.binary_dilation(target[1][z], footprint=np.ones((3, 3)))
+                    filtered_data[key+"_transformed"] = np.array([target[0], dilated_target_1])
 
         if data and not args.no_visualize:
             if filtered_data:
