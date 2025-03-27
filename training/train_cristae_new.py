@@ -21,13 +21,13 @@ from synapse_net.training.supervised_training import supervised_training, get_su
 # Import your util.py for data loading
 import synapse.util as util
 # import data_classes
-from config import DATA_DIR, SAVE_DIR, TEST_DATA_DIR
+SAVE_DIR = "/scratch-grete/usr/nimlufre/synapse/mito_segmentation"
 # from unet import UNet3D
 
 
 def main():
     parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
-    parser.add_argument("--data_dir", type=str, default=DATA_DIR, help="Path to the data directory")
+    parser.add_argument("--data_dir", type=str, default=None, help="Path to the data directory")
     parser.add_argument("--data_dir2", type=str, default=None, help="Path to a second data directory")
     parser.add_argument("--patch_shape", type=int, nargs=3, default=(32, 256, 256), help="Patch shape for data loading (3D tuple)")
     parser.add_argument("--n_iterations", type=int, default=10000, help="Number of training iterations")
@@ -38,6 +38,7 @@ def main():
     parser.add_argument("--feature_size", type=int, default=32, help="Initial feature size of the 3D UNet")
     parser.add_argument("--with_rois", type=bool, default=False, help="Train with Regions Of Interest (ROI)")
     parser.add_argument("--early_stopping", type=int, default=10, help="Number of epochs without improvement before stopping training")
+    parser.add_argument("--check", "-c", action="store_true", help="Check the data")
 
     # Parse arguments
     args = parser.parse_args()
@@ -183,7 +184,8 @@ def main():
     #         with_channels=with_channels, with_label_channels=with_label_channels,
     #         sampler=sampler
     #     )
-
+    if args.check:
+        return
     supervised_training(
         name=experiment_name,
         train_paths=data["train"],

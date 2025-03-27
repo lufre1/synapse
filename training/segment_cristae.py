@@ -102,6 +102,19 @@ def get_all_keys_from_h5(file_path):
         h5file.visititems(collect_keys)  # Visit all groups and datasets
     return keys
 
+def _get_data_paths():
+    # this is train split for cristae
+    data_paths = [
+        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT20_eb7_AZ1_model2_combined.h5',
+        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT20_syn7_model2_combined.h5',
+        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT20_syn2_model2_combined.h5',
+        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-KO_P10/M1_eb1_model_combined.h5',
+        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_in_endbuld/Otof_AVCN03_429C_WT_M.Stim_G3_1_model_combined.h5',
+        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT13_syn6_model2_combined.h5',
+        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-KO_P22/M7_eb12_model_combined.h5'
+    ]
+    return data_paths
+
 def main(visualize=False):
     parser = argparse.ArgumentParser()
     parser.add_argument("--base_path", "-b",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/wichmann/extracted/", help="Path to the root data directory")
@@ -125,6 +138,7 @@ def main(visualize=False):
     # halo = {'z': 12, 'y': 128, 'x': 128}
     ts = {'z': ts["z"]+2*halo["z"], 'y': ts["y"]+2*halo["y"], 'x': ts["x"]+2*halo["x"]}
     h5_paths = sorted(glob(os.path.join(args.base_path, "**", "*.h5"), recursive=True), reverse=True)
+    h5_paths = _get_data_paths()
     # test_file_paths = [
         # "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M2_eb10_model.h5",
         # '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5',
@@ -166,16 +180,18 @@ def main(visualize=False):
                 data[key] = f[key][:]
                 # if "raw" in key:
                 #     data[key] = f[key][:]
-            image = util.normalize_percentile_with_channel(data["raw_mitos_combined"])
+            image = util.standardize_channel(data["raw_mitos_combined"])
             # image = util.normalize_percentile_with_channel_cgpt(data["raw_mitos_combined"])
             print("image shape", image.shape)
             # raw = torch_em.transform.raw.normalize_percentile(data["raw_mitos_combined"][0])
             # image = np.stack([raw, data["raw_mitos_combined"][1]], axis=0)
+        kwargs = {"extra_segmentation": image[1]}
         seg, pred = segment_cristae(
-            image, args.model_path,
+            image[0], args.model_path,
             scale=scale,
             tiling=tiling,
             return_predictions=True,
+            **kwargs
             )
         with open_file(output_path, "w", ".n5") as f1:
             print("output_path", output_path)
