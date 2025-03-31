@@ -25,7 +25,7 @@ def segment(args, paths):
             "extra_segmentation": volume[1]
         }
         seg, pred = segment_cristae(volume[0], args.checkpoint_path, tiling, return_predictions=True,
-                                    krwargs=kwargs)
+                                    **kwargs)
         filename = os.path.basename(path).replace(".h5", "cristae_seg.h5")
         out_path = os.path.join(args.output_path, filename)
         os.makedirs(args.output_path, exist_ok=True)
