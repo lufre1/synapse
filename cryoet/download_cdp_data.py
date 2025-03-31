@@ -61,7 +61,7 @@ def filter_annotations_shape(annotations, field="shape_type", shape_type="Segmen
 
 
 def check_result(tomogram, deposition_id, processing_type, download=False, output_folder=None):
-    # import napari
+    import napari
     annotations = get_annotations(tomogram.run_id, id_field="run_id", search_string="mito")
     filtered_annotations = [anno for anno in annotations if any(shape.shape_type == "SegmentationMask" for shape in anno.annotation_shapes)]
     # check for run_id in annotation and download
@@ -122,16 +122,16 @@ def check_result(tomogram, deposition_id, processing_type, download=False, outpu
     # for key, val in new_labels_dict.items():
     #     segmentations[key] = val
 
-    # v = napari.Viewer()
-    # if data is not None:
-    #     v.add_image(data)
-    # if segmentations is not None:
-    #     for key, val in segmentations.items():
-    #         if np.issubdtype(val.dtype, np.floating):  # Check if array contains floats
-    #             v.add_image(val, name=key)
-    #         else:
-    #             v.add_labels(val, name=key)
-    # napari.run()
+    v = napari.Viewer()
+    if data is not None:
+        v.add_image(data)
+    if segmentations is not None:
+        for key, val in segmentations.items():
+            if np.issubdtype(val.dtype, np.floating):  # Check if array contains floats
+                v.add_image(val, name=key)
+            else:
+                v.add_labels(val, name=key)
+    napari.run()
 
 
 def write_ome_zarr(output_file, data, voxel_size):

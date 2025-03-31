@@ -1,7 +1,7 @@
-import time
+# import time
 from typing import Any, Dict
 import synapse.util as util
-from config import *
+# from config import *
 import h5py
 import zarr
 import argparse
@@ -10,18 +10,12 @@ from glob import glob
 import numpy as np
 import torch_em
 import napari
-import elf.parallel as parallel
+# import elf.parallel as parallel
 from elf.io import open_file
 from tqdm import tqdm
 import z5py
-import mrcfile
 from tifffile import imread
 from skimage.transform import resize
-
-from scipy import ndimage as ndi
-from skimage.feature import peak_local_max
-from skimage.segmentation import watershed
-from skimage.morphology import remove_small_objects, binary_closing, ball
 
 
 def get_file_paths(path, ext=".h5", reverse=False):
@@ -80,8 +74,8 @@ def upsample_data(data, factor):
     """Upsample a 3D dataset in chunks to avoid memory overload."""
     upsampled_data = np.zeros(tuple(dim * factor for dim in data.shape), dtype=data.dtype)
     for z in range(data.shape[0]):
-        upsampled_data[z * factor : (z + 1) * factor] = resize(
-            data[z], 
+        upsampled_data[z * factor: (z + 1) * factor] = resize(
+            data[z],
             (factor * data.shape[1], factor * data.shape[2]),
             order=0, preserve_range=True, anti_aliasing=False
         ).astype(data.dtype)
@@ -153,6 +147,9 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
         #     "amount mitos": len(np.unique(data["label"]))
         # }
         # print("Statistics:", statistics)
+        # out = np.zeros(shape=data["raw_mitos_combined"][1])
+        # data["raw_mitos_combined"][1] = parallel.label(data["raw_mitos_combined"][1], block_shape=(128, 256, 256), verbose=True)
+        # data["new_cristae_seg"][data["raw_mitos_combined"][1] != 1] = 0
         visualize_data(data)
 
 
