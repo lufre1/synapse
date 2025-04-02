@@ -35,7 +35,6 @@ def segment(args, paths):
             f.create_dataset(name="pred", data=pred)
             f.create_dataset(name="seg", data=seg, compression="gzip", dtype=np.dtype("uint8"))
         print(f"Saved segmentation to {out_path}")
-    
 
 
 def _get_data_paths():

@@ -63,11 +63,13 @@ def find_additional_objects(
 
     return additional_objects
 
+
 def export_to_h5(data, export_path):
     with h5py.File(export_path, 'x') as h5f:
         for key in data.keys():
             h5f.create_dataset(key, data=data[key], compression="gzip")
     print("exported to", export_path)
+
 
 def _read_h5(path, key, scale_factor, z_offset=None):
     with h5py.File(path, "r") as f:
@@ -125,14 +127,16 @@ def main(visualize=False):
     # halo = {'z': 12, 'y': 128, 'x': 128}
     ts = {'z': ts["z"]+2*halo["z"], 'y': ts["y"]+2*halo["y"], 'x': ts["x"]+2*halo["x"]}
     h5_paths = sorted(glob(os.path.join(args.base_path, "**", "*.h5"), recursive=True), reverse=True)
-    # test_file_paths = [
-        # "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M2_eb10_model.h5",
-        # '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5',
-        # '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5',
-        # '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5',
-        # '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5',
-        # '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5'
-    # ]
+    test_file_paths = [
+        "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M2_eb10_model.h5",
+        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5',
+        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5',
+        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5',
+        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5',
+        '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5'
+    ]
+    h5_paths = test_file_paths
+
     ### fidi
     # test_file_paths = [
     #     '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M2_eb10_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5'
@@ -158,7 +162,7 @@ def main(visualize=False):
         #     continue
         print("opening file", path)
         os.makedirs(args.export_path, exist_ok=True)
-        output_path = os.path.join(args.export_path, "only_net_" + os.path.basename(args.model_path).replace(".pt", "") + "_sd18_bt015_with_pred_" + os.path.basename(path))
+        output_path = os.path.join(args.export_path, os.path.basename(args.model_path).replace(".pt", "") + "_sd18_bt015_with_pred_" + os.path.basename(path))
         if os.path.exists(output_path):
             print("Skipping... output path exists", output_path)
             continue
@@ -183,7 +187,7 @@ def main(visualize=False):
             scale=scale,
             tiling=tiling,
             return_predictions=True,
-            min_size=50000*8,
+            min_size=50000*5,
             seed_distance=6*3,  # default 6
             ws_block_shape=(128, 256, 256),
             ws_halo=(64, 128, 128),
