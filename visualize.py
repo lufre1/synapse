@@ -63,7 +63,7 @@ def extract_data(group: Any, data: Dict[str, Any], prefix: str = "", scale: int 
             ndim = item.ndim
             # Generate a slicing tuple based on the number of dimensions
             slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-            
+
             # Apply downsampling while preserving batch/channel dimensions
             data[full_key] = item[slicing] if scale > 1 else item[:]
             # # Store the dataset in the dictionary
