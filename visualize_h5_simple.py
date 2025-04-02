@@ -1,4 +1,5 @@
 import skimage
+import tifffile
 import synapse.util as util
 from config import *
 import h5py
@@ -78,10 +79,10 @@ def visualize_data(data):
 def _segment(pred,
              block_shape=(128, 256, 256),
              halo=(48, 48, 48),
-             seed_distance=6 * 1,
-             boundary_threshold=0.25,
-             min_size=50000*8,
-             area_threshold=1000 * 5,
+             seed_distance=6 * 3,
+             boundary_threshold=0.25 - 0.1,
+             min_size=50000*3,
+             area_threshold=5000 * 1,
              dist=None
              ):
     foreground, boundaries = pred
@@ -152,6 +153,11 @@ def visualize():
 
             if "pred" in key:
                 seg_data = _segment(data["pred"])
+                if args.no_visualize:
+                    util.export_data(path.replace(".h5", "_seg.tif"),
+                                     data=seg_data,
+                                     )
+                    
                 for key, val in seg_data.items():
                     data[key] = val
 
@@ -162,16 +168,16 @@ def visualize():
             label_transform = torch_em.transform.BoundaryTransform(add_binary_target=True)
             for key, value in data.items():
                 filtered_data[key] = value
-                if "labels" in key and "mito" in key:
-                    target = label_transform(value)
+                # if "labels" in key and "mito" in key:
+                #     target = label_transform(value)
                     # filtered_data[key+"_transformed"] = np.array([target[0], skimage.morphology.binary_dilation(target[1], footprint=np.ones((1, 3, 3)))])
                     # filtered_data[key+"_transformed"] = target
                     
-                    dilated_target_1 = np.zeros_like(target[1], dtype=bool)
+                    # dilated_target_1 = np.zeros_like(target[1], dtype=bool)
 
-                    for z in range(target[1].shape[0]):  # Iterate over Z-axis
-                        dilated_target_1[z] = skimage.morphology.binary_dilation(target[1][z], footprint=np.ones((3, 3)))
-                    filtered_data[key+"_transformed"] = np.array([target[0], dilated_target_1])
+                    # for z in range(target[1].shape[0]):  # Iterate over Z-axis
+                    #     dilated_target_1[z] = skimage.morphology.binary_dilation(target[1][z], footprint=np.ones((3, 3)))
+                    # filtered_data[key+"_transformed"] = np.array([target[0], dilated_target_1])
 
         if data and not args.no_visualize:
             if filtered_data:

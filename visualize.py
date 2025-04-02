@@ -107,7 +107,13 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
             data = {}
             if label_path is not None:
                 print("Loading label data from", label_path)
-                ndim = f["data"].ndim
+                if "data" in f.keys():
+                    ndim = f["data"].ndim
+                elif "raw" in f.keys():
+                    ndim = f["raw"].ndim
+                else:
+                    print("Warning! Assuming NDIM = 3")
+                    ndim = 3
                 slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
                 data["label"] = imread(label_path)[slicing] if scale > 1 else imread(label_path)
             else:
