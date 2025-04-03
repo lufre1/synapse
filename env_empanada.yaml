@@ -3,9 +3,19 @@ channels:
   - conda-forge
 dependencies:
   - python=3.9
+  # - numpy
+  # - numpy>=1.25.0
+  # - skan >=0.12.1
+  # - nifty=1.2.1=*_4
+  - napari 
+  - qt
+  - pyqt
   # - opencv
-  # - pyqt
+  # - torch_em
+  # - python-elf
+  - h5py
+  - tifffile
+  - mrcfile
   - pip
   - pip:
-    - napari[all]
     - empanada-napari

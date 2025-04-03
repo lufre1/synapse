@@ -1,17 +1,63 @@
 import h5py
 from typing import Any, Dict
+import mrcfile
+import tifffile
 import zarr
 import os
 from glob import glob
 import numpy as np
-import torch_em
-import napari
 import z5py
 from skimage.transform import resize
 import synapse.util as util
 from tqdm import tqdm
 from elf.io import open_file
 from tifffile import imread
+
+
+def export_data(export_path: str, data):
+    """Export data to the specified path, determining format from the file extension.
+    
+    Args:
+        data (np.ndarray | dict): The data to save. For HDF5/Zarr, a dict of named datasets is required.
+        export_path (str): The file path where the data should be saved.
+    
+    Raises:
+        ValueError: If the file format is unsupported or if data format does not match the expected type.
+    """
+    ext = export_path.lower().split(".")[-1]
+
+    if ext == "tif":
+        if isinstance(data, dict):
+            data = next(iter(data.values()))
+        if not isinstance(data, np.ndarray):
+            raise ValueError("For .tif format, data must be a NumPy array.")
+        tifffile.imwrite(export_path, data, dtype=data.dtype, compression="zlib")
+        # iio.imwrite(export_path, data, compression="zlib")
+    
+    elif ext in {"mrc", "rec"}:
+        if not isinstance(data, np.ndarray):
+            raise ValueError("For .mrc and .rec formats, data must be a NumPy array.")
+        with mrcfile.new(export_path, overwrite=True) as mrc:
+            mrc.set_data(data.astype(data.dtype))
+    
+    elif ext == "zarr":
+        if not isinstance(data, dict):
+            raise ValueError("For .zarr format, data must be a dictionary with dataset names as keys.")
+        root = zarr.open(export_path, mode="w")
+        for key, value in data.items():
+            root.create_dataset(key, data=value.astype(data.dtype))
+
+    elif ext in {"h5", "hdf5"}:
+        if not isinstance(data, dict):
+            raise ValueError("For .h5 and .hdf5 formats, data must be a dictionary with dataset names as keys.")
+        with h5py.File(export_path, "w") as f:
+            for key, value in data.items():
+                f.create_dataset(key, data=value.astype(value.dtype))
+    
+    else:
+        raise ValueError(f"Unsupported file format: {ext}")
+
+    print(f"Data successfully exported to {export_path}")
 
 
 def load_file_paths(root_path: str, ext: str = None,
@@ -150,28 +196,28 @@ def get_file_paths(path, ext=".h5", reverse=False):
         return paths
 
 
-def visualize_data(data):
-    viewer = napari.Viewer()
-    for key, value in data.items():
-        if key == "raw" or "raw" in key:
-            if data[key].ndim == 4:
-                data[key] = util.normalize_percentile_with_channel(data[key], lower=1, upper=99, channel=0)
-            else:
-                value = torch_em.transform.raw.normalize_percentile(value, lower=1, upper=99)
-            viewer.add_image(value, name=key)
-        elif key == "prediction" or "pred" in key:
-            viewer.add_image(value, name=key, blending="additive")
-        else:
-            viewer.add_labels(value, name=key)
-    # Get the "raw" layer
-    raw_layer = next((layer for layer in viewer.layers if "raw" in layer.name), None)
-    if raw_layer:
-        # Remove the "raw" layer from its current position
-        viewer.layers.remove(raw_layer)
-        # Add the "raw" layer to the beginning of the layer list
-        viewer.layers.insert(0, raw_layer)
+# def visualize_data(data):
+#     viewer = napari.Viewer()
+#     for key, value in data.items():
+#         if key == "raw" or "raw" in key:
+#             if data[key].ndim == 4:
+#                 data[key] = util.normalize_percentile_with_channel(data[key], lower=1, upper=99, channel=0)
+#             else:
+#                 value = torch_em.transform.raw.normalize_percentile(value, lower=1, upper=99)
+#             viewer.add_image(value, name=key)
+#         elif key == "prediction" or "pred" in key:
+#             viewer.add_image(value, name=key, blending="additive")
+#         else:
+#             viewer.add_labels(value, name=key)
+#     # Get the "raw" layer
+#     raw_layer = next((layer for layer in viewer.layers if "raw" in layer.name), None)
+#     if raw_layer:
+#         # Remove the "raw" layer from its current position
+#         viewer.layers.remove(raw_layer)
+#         # Add the "raw" layer to the beginning of the layer list
+#         viewer.layers.insert(0, raw_layer)
 
-    napari.run()
+#     napari.run()
 
 
 def extract_data(group: Any, data: Dict[str, Any], prefix: str = "", scale: int = 1):

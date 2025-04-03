@@ -10,7 +10,7 @@ authors = [
     { name = "Luca Freckmann", email = "luca.freckmann@uni-goettingen.de" }
 ]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 dependencies = []
 
 [tool.setuptools]
