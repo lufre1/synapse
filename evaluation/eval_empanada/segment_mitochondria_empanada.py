@@ -62,8 +62,8 @@ def _get_file_paths():
     return input_files
 
 
-def segment_mitochondria(path, visualize=False):
-    path = "/home/freckmann15/.cache/synapse-net/sample_data/mito_small.mrc"
+def segment_mitochondria(path, visualize=False, scale=1) -> dict:
+    # path = "/home/freckmann15/.cache/synapse-net/sample_data/mito_small.mrc"
 
     config = get_empanada_config()
     engine = Engine3d(model_config=config, save_panoptic=True)
@@ -72,19 +72,26 @@ def segment_mitochondria(path, visualize=False):
     if ".mrc" in path:
         with mrcfile.open(path) as mrc:
             data = mrc.data
-    elif ".h5" in path: 
+    elif ".h5" in path:
         with h5py.File(path, "r") as f:
             keys = list(f.keys())
             print(keys)
             if "raw" in keys:
-                data = f["raw"][:]
+                ndim = f["raw"].ndim
+                slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+
+                # Apply downsampling while preserving batch/channel dimensions
+                data = f["raw"][slicing] if scale > 1 else f["raw"][:]
+                # data = f["raw"][:]
             else:
                 print("Could not find raw data in file", path)
                 return
             # mito_key = [key for key in data.keys() if "labels/mitochondria" in key] or None
-            mito_key = None #"labels/mitochondria"
+            mito_key = "labels/mitochondria"
             if mito_key is not None:
-                mitos = f[mito_key][:]
+                ndim = f[mito_key].ndim
+                slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+                mitos = f[mito_key][slicing] if scale > 1 else f[mito_key][:]
             else:
                 mitos = None
     # print(mito_key)
@@ -96,26 +103,24 @@ def segment_mitochondria(path, visualize=False):
         import napari
         v = napari.Viewer()
         v.add_image(data)
-        v.add_labels(stack, name=f"segmentation")
+        v.add_labels(stack, name="segmentation")
         if mitos:
             v.add_labels(mitos, name=mito_key)
         napari.run()
     else:
         return {
             "raw": data,
-            # "labels/mitochondria": mitos,
-            "segmentation/mitochondria": stack
+            "labels/mitochondria": mitos,
+            "seg": stack
         }
-        filename = os.path.basename(path).split(".")[0]
-        export_data(os.path.join())
 
 
 def main(args):
     if args.path is None:
-        root_path = _get_file_paths()
+        raw_paths = _get_file_paths()
     else:
         root_path = args.path
-    raw_paths = sorted(glob(os.path.join(root_path, "**", "*.h5"), recursive=True), reverse=True)
+        raw_paths = sorted(glob(os.path.join(root_path, "**", "*.h5"), recursive=True), reverse=True)
     print(f"Found {len(raw_paths)} files:")
     for path in raw_paths:
         data = segment_mitochondria(path)
@@ -125,12 +130,11 @@ def main(args):
             os.makedirs(args.output_path)
             print("Created output folder:", args.output_path)
         export_data(export_path, data)
-        print("exported data to:", export_path)
 
 
 if __name__ == "__main__":
     argsparse = argparse.ArgumentParser()
-    argsparse.add_argument("--path", "-p", type=str, default="/home/freckmann15/data/mitochondria/eval_mitov3/script_luca_with_pred_and_tifs_exported")
-    argsparse.add_argument("--output_path", "-o", type=str, default="empanada_out")
+    argsparse.add_argument("--path", "-p", type=str, default=None)  # /home/freckmann15/data/mitochondria/eval_mitov3/script_luca_with_pred_and_tifs_exported
+    argsparse.add_argument("--output_path", "-o", type=str, default="out_empanada")
     args = argsparse.parse_args()
     main(args)
