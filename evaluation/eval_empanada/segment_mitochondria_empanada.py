@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 import tifffile
 import mrcfile
-from empanada_napari.inference import Engine3d
+from empanada_napari.inference import Engine3d, Engine2d
 from glob import glob
 import argparse
 import os
@@ -66,7 +66,8 @@ def segment_mitochondria(path, visualize=False, scale=1) -> dict:
     # path = "/home/freckmann15/.cache/synapse-net/sample_data/mito_small.mrc"
 
     config = get_empanada_config()
-    engine = Engine3d(model_config=config, save_panoptic=True)
+    # engine = Engine3d(model_config=config, save_panoptic=True)
+    engine = Engine2d(model_config=config, tile_size=512)
 
     # load data
     if ".mrc" in path:
@@ -97,7 +98,8 @@ def segment_mitochondria(path, visualize=False, scale=1) -> dict:
     # print(mito_key)
     volume = data.astype(np.uint8)
 
-    stack, trackers = engine.infer_on_axis(volume=volume, axis_name="xy")  # {'xy': 0, 'xz': 1, 'yz': 2}
+    # stack, trackers = engine.infer_on_axis(volume=volume, axis_name="xy")  # {'xy': 0, 'xz': 1, 'yz': 2}
+    stack = engine.infer(volume)
 
     if visualize:
         import napari
