@@ -62,12 +62,8 @@ def _get_file_paths():
     return input_files
 
 
-def segment_mitochondria(path, visualize=False, scale=1) -> dict:
+def segment_mitochondria(path, visualize=False, scale=1, z_slice=None, args=None) -> dict:
     # path = "/home/freckmann15/.cache/synapse-net/sample_data/mito_small.mrc"
-
-    config = get_empanada_config()
-    # engine = Engine3d(model_config=config, save_panoptic=True)
-    engine = Engine2d(model_config=config, tile_size=512)
 
     # load data
     if ".mrc" in path:
@@ -98,8 +94,25 @@ def segment_mitochondria(path, visualize=False, scale=1) -> dict:
     # print(mito_key)
     volume = data.astype(np.uint8)
 
-    # stack, trackers = engine.infer_on_axis(volume=volume, axis_name="xy")  # {'xy': 0, 'xz': 1, 'yz': 2}
-    stack = engine.infer(volume)
+    config = get_empanada_config()
+
+    if z_slice is not None:
+        engine = Engine2d(model_config=config, tile_size=args.tile_size, inference_scale=args.downsample)
+        volume = volume[z_slice, :, :]
+        mitos = mitos[z_slice, :, :]
+        stack = engine.infer(volume)
+        data = data[z_slice, :, :]
+    elif args.z_range is not None:
+        start, end = args.z_range
+        engine = Engine2d(model_config=config, tile_size=args.tile_size, inference_scale=args.downsample)
+        mitos = mitos[start:end, :, :]
+        data = data[start:end, :, :]
+        stack = np.zeros(shape=data.shape, dtype=np.uint8)
+        for z in range(volume[start:end, :, :].shape[0]):
+            stack[z] = engine.infer(volume[z])
+    else:
+        engine = Engine3d(model_config=config, save_panoptic=True, inference_scale=args.downsample)
+        stack, trackers = engine.infer_on_axis(volume=volume, axis_name="xy")  # {'xy': 0, 'xz': 1, 'yz': 2}
 
     if visualize:
         import napari
@@ -112,8 +125,8 @@ def segment_mitochondria(path, visualize=False, scale=1) -> dict:
     else:
         return {
             "raw": data,
-            "labels/mitochondria": mitos,
-            "seg": stack
+            "labels/mitochondria": mitos.astype(np.uint8),
+            "seg": stack.astype(np.uint8)
         }
 
 
@@ -122,12 +135,22 @@ def main(args):
         raw_paths = _get_file_paths()
     else:
         root_path = args.path
-        raw_paths = sorted(glob(os.path.join(root_path, "**", "*.h5"), recursive=True), reverse=True)
+        if os.path.isdir(root_path):
+            raw_paths = sorted(glob(os.path.join(root_path, "**", "*.h5"), recursive=True), reverse=True)
+        else:
+            raw_paths = [root_path]
     print(f"Found {len(raw_paths)} files:")
     for path in raw_paths:
-        data = segment_mitochondria(path)
+        data = segment_mitochondria(path, args.visualize,
+                                    z_slice=args.z_slice, scale=args.scale,
+                                    args=args)
         filename = os.path.basename(path).split(".")[0]
-        export_path = os.path.join(args.output_path, f"{filename}.h5")
+        if args.tile_size > 0 or args.z_slice:  # 2d
+            export_path = os.path.join(args.output_path, f"{filename}_ts{args.tile_size}_z{args.z_slice}_ds{args.downsample}.h5")
+        elif args.z_range is not None:  # 3d with z_range (stacked 2d)
+            export_path = os.path.join(args.output_path, f"{filename}_z{args.z_range[0]}-{args.z_range[1]}_ds{args.downsample}.h5")
+        else:  # 3d with full volume (panoptic from empanada)
+            export_path = os.path.join(args.output_path, f"{filename}_ds{args.downsample}.h5")
         if not os.path.exists(args.output_path):
             os.makedirs(args.output_path)
             print("Created output folder:", args.output_path)
@@ -138,5 +161,11 @@ if __name__ == "__main__":
     argsparse = argparse.ArgumentParser()
     argsparse.add_argument("--path", "-p", type=str, default=None)  # /home/freckmann15/data/mitochondria/eval_mitov3/script_luca_with_pred_and_tifs_exported
     argsparse.add_argument("--output_path", "-o", type=str, default="out_empanada")
+    argsparse.add_argument("--visualize", "-v", action="store_true", default=False)
+    argsparse.add_argument("--z_slice", "-z", type=int, default=None)
+    argsparse.add_argument("--z_range", "-r", type=int, nargs=2, default=None)
+    argsparse.add_argument("--scale", "-s", type=int, default=1)
+    argsparse.add_argument("--tile_size", "-t", type=int, default=0)
+    argsparse.add_argument("--downsample", "-d", type=int, default=1)
     args = argsparse.parse_args()
     main(args)
