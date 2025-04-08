@@ -2,7 +2,6 @@ import h5py
 import numpy as np
 import tifffile
 import mrcfile
-from empanada_napari.inference import Engine3d, Engine2d
 from glob import glob
 import argparse
 import os
@@ -63,6 +62,7 @@ def _get_file_paths():
 
 
 def segment_mitochondria(path, visualize=False, scale=1, z_slice=None, args=None) -> dict:
+    from empanada_napari.inference import Engine3d, Engine2d
     # path = "/home/freckmann15/.cache/synapse-net/sample_data/mito_small.mrc"
 
     # load data
@@ -79,12 +79,18 @@ def segment_mitochondria(path, visualize=False, scale=1, z_slice=None, args=None
 
                 # Apply downsampling while preserving batch/channel dimensions
                 data = f["raw"][slicing] if scale > 1 else f["raw"][:]
+                print("data.shape", data.shape)
+                data = data[::6, ::2, ::2]
+                print("data.shape", data.shape)
                 # data = f["raw"][:]
             else:
                 print("Could not find raw data in file", path)
                 return
             # mito_key = [key for key in data.keys() if "labels/mitochondria" in key] or None
-            mito_key = "labels/mitochondria"
+            if "labels/mitochondria" in keys:
+                mito_key = "labels/mitochondria"
+            else:
+                mito_key = None
             if mito_key is not None:
                 ndim = f[mito_key].ndim
                 slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
@@ -123,11 +129,17 @@ def segment_mitochondria(path, visualize=False, scale=1, z_slice=None, args=None
             v.add_labels(mitos, name=mito_key)
         napari.run()
     else:
-        return {
-            "raw": data,
-            "labels/mitochondria": mitos.astype(np.uint8),
-            "seg": stack.astype(np.uint8)
-        }
+        if mitos is None:
+            return {
+                "raw": data,
+                "seg": stack.astype(np.uint8)
+            }
+        else:
+            return {
+                "raw": data,
+                "labels/mitochondria": mitos.astype(np.uint8),
+                "seg": stack.astype(np.uint8)
+            }
 
 
 def main(args):
@@ -139,6 +151,10 @@ def main(args):
             raw_paths = sorted(glob(os.path.join(root_path, "**", "*.h5"), recursive=True), reverse=True)
         else:
             raw_paths = [root_path]
+    if args.lucchi:
+        raw_paths = [
+            "/home/freckmann15/data/lucchi/lucchi_test.h5"
+            ]
     print(f"Found {len(raw_paths)} files:")
     for path in raw_paths:
         data = segment_mitochondria(path, args.visualize,
@@ -167,5 +183,6 @@ if __name__ == "__main__":
     argsparse.add_argument("--scale", "-s", type=int, default=1)
     argsparse.add_argument("--tile_size", "-t", type=int, default=0)
     argsparse.add_argument("--downsample", "-d", type=int, default=1)
+    argsparse.add_argument("--lucchi", "-l", action="store_true", default=False)
     args = argsparse.parse_args()
     main(args)

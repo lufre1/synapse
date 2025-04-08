@@ -163,12 +163,11 @@ def visualize():
 
         filtered_data = {}
         
-        show_labels = True
-        if show_labels:
-            label_transform = torch_em.transform.BoundaryTransform(add_binary_target=True)
+        filter_labels = None
+        if filter_labels is not None:
             for key, value in data.items():
-                filtered_data[key] = value
-                # if "labels" in key and "mito" in key:
+                if ("label" in key and "mito" in key) or "raw" in key:
+                    filtered_data[key] = value
                 #     target = label_transform(value)
                     # filtered_data[key+"_transformed"] = np.array([target[0], skimage.morphology.binary_dilation(target[1], footprint=np.ones((1, 3, 3)))])
                     # filtered_data[key+"_transformed"] = target

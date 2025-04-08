@@ -67,8 +67,17 @@ def check_result(uri, params, download=True, output_folder=None):
     segmentations = {}
     if output_folder is None:
         print("no ouptut folder given")
+        return
+    elif download:
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+        print("uri", uri)
+        data, voxel_size = read_ome_zarr(uri,
+                                         client_kwargs={'endpoint_url': 'https://s3.embl.de'}
+                                         )
     else:
-        data, voxel_size = read_ome_zarr(uri)
+        print("no in-memory feature implemented yet")
+        return
     v = napari.Viewer()
     if data is not None:
         v.add_image(data)
@@ -97,12 +106,14 @@ def main():
     parser = argparse.ArgumentParser()
     # Whether to check the result with napari instead of running the prediction.
     parser.add_argument("-c", "--check", action="store_true")
-    parser.add_argument("-o", "--output_folder", default="/home/freckmann15/data/cryo-et/embl")
+    parser.add_argument("-o", "--output_folder", default="/home/freckmann15/data/embl")
     parser.add_argument("-d", "--download", action="store_true", default=False)
     args = parser.parse_args()
 
     uris = [
-        "s3.embl.de/i2k-2020/experimental/mitos"
+        # "s3.embl.de/i2k-2020/experimental/mitos",
+        "s3://i2k-2020/experimental/mitos/4007/images/ome-zarr/mitos.ome.zarr",
+        # "https://s3.embl.de/i2k-2020/experimental/mitos/4007/images/ome-zarr"
     ]
     params = {}
 
