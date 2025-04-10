@@ -30,10 +30,10 @@ def visualize_data(data):
     viewer = napari.Viewer()
     for key, value in data.items():
         if key == "raw" or "raw" in key:
-            if data[key].ndim == 4:
-                data[key] = util.normalize_percentile_with_channel(data[key], lower=1, upper=99, channel=0)
-            else:
-                value = torch_em.transform.raw.normalize_percentile(value, lower=1, upper=99)
+            # if data[key].ndim == 4:
+            #     data[key] = util.normalize_percentile_with_channel(data[key], lower=1, upper=99, channel=0)
+            # else:
+            #     value = torch_em.transform.raw.normalize_percentile(value, lower=1, upper=99)
             viewer.add_image(value, name=key)
         elif key == "prediction" or "pred" in key:
             viewer.add_image(value, name=key, blending="additive")
@@ -136,26 +136,24 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
                     # Apply downsampling while preserving batch/channel dimensions
                     data[key] = f[key][slicing] if scale > 1 else f[key][:]
 
-        # new_seg = _run_segmentation(data["pred"][0], min_size=1000, verbose=True)
-        # data["new_segmentation"] = new_seg
         if upsample:
             del data["pred"]
             del data["raw"]
 
             for key in data.keys():
                 data[key] = upsample_data(data[key], upsample)
-            #     target_shape = tuple(dim * upsample for dim in data[key].shape)
-            #     print(f"Upsampling {key} in {os.path.basename(path)} from original shape {data[key].shape} to shape {target_shape}")
-            #     data[key] = resize(data[key][:], target_shape, order=0, preserve_range=True, anti_aliasing=False).astype(data[key].dtype)
-        # data["new_seg"] = util.refine_seg(np.copy(data["label"]))
-        # statistics = {
-        #     "file": os.path.basename(path),
-        #     "amount mitos": len(np.unique(data["label"]))
-        # }
-        # print("Statistics:", statistics)
-        # out = np.zeros(shape=data["raw_mitos_combined"][1])
-        # data["raw_mitos_combined"][1] = parallel.label(data["raw_mitos_combined"][1], block_shape=(128, 256, 256), verbose=True)
-        # data["new_cristae_seg"][data["raw_mitos_combined"][1] != 1] = 0
+
+        raw_shape = None
+        for k in data.keys():
+            if "raw" in k:
+                raw_shape = data[k].shape
+        if raw_shape:
+            for k in data.keys():
+                if "raw" not in k:
+                    if raw_shape != data[k].shape:
+                        print(f"Resizing {k} from {data[k].shape} to {raw_shape}")
+                        data[k] = util.downsample_to_shape(data[k], raw_shape)
+        
         visualize_data(data)
 
 

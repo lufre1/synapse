@@ -81,6 +81,37 @@ def extract_data(group: Any, data: Dict[str, Any], prefix: str = "", scale: int 
             # data[full_key] = item[:]
 
 
+def downsample_to_shape(arr: np.ndarray, target_shape: tuple) -> np.ndarray:
+    """
+    Downsample an array to the target shape by selecting voxels evenly (every ith voxel) along each axis.
+
+    Parameters:
+    - arr: np.ndarray
+        The input array to be downsampled.
+    - target_shape: tuple
+        The desired shape. Each dimension must be <= the corresponding input dimension.
+
+    Returns:
+    - np.ndarray
+        The downsampled array with the exact target_shape.
+    """
+    if len(target_shape) != arr.ndim:
+        raise ValueError("Target shape must have the same number of dimensions as input array.")
+    
+    for i, (s, t) in enumerate(zip(arr.shape, target_shape)):
+        if t > s:
+            raise ValueError(f"Target shape {target_shape} must not exceed input shape {arr.shape}")
+
+    slices = tuple(
+        np.linspace(0, s - 1, t, dtype=int)
+        for s, t in zip(arr.shape, target_shape)
+    )
+    
+    # Use np.ix_ for advanced indexing in N-D
+    mesh = np.ix_(*slices)
+    return arr[mesh]
+
+
 def get_file_paths(path, ext=".h5", reverse=False):
     if ext in path:
         return [path]

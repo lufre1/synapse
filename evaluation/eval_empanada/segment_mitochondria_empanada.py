@@ -75,12 +75,13 @@ def segment_mitochondria(path, visualize=False, scale=1, z_slice=None, args=None
             print(keys)
             if "raw" in keys:
                 ndim = f["raw"].ndim
+                print("data.shape", f["raw"].shape)
                 slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
 
                 # Apply downsampling while preserving batch/channel dimensions
                 data = f["raw"][slicing] if scale > 1 else f["raw"][:]
-                print("data.shape", data.shape)
-                data = data[::6, ::2, ::2]
+
+                # data = data[::, ::6, ::6]
                 print("data.shape", data.shape)
                 # data = f["raw"][:]
             else:
@@ -161,6 +162,7 @@ def main(args):
                                     z_slice=args.z_slice, scale=args.scale,
                                     args=args)
         filename = os.path.basename(path).split(".")[0]
+        filename = filename + f"_scale{args.scale}"
         if args.tile_size > 0 or args.z_slice:  # 2d
             export_path = os.path.join(args.output_path, f"{filename}_ts{args.tile_size}_z{args.z_slice}_ds{args.downsample}.h5")
         elif args.z_range is not None:  # 3d with z_range (stacked 2d)

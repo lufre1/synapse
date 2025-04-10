@@ -22,7 +22,6 @@ def main(args):
                 v.add_labels(f[k])
             elif "raw" in k:
                 v.add_image(f[k])
-                
 
 
 if __name__ == "__main__":
