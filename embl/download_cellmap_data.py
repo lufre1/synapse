@@ -1,8 +1,6 @@
 import argparse
-import napari
 from  torch_em.data.datasets.electron_microscopy.cellmap import get_cellmap_paths
-
-from elf.io import open_file
+# from elf.io import open_file
 
 
 def main(args):
@@ -14,6 +12,7 @@ def main(args):
                                  download=True)
     else:
         path = get_cellmap_paths(path=path, padding=0, download=True)
+    # import napari
     # with open_file(path, "r") as f:
     #     print(f.keys())
     #     v = napari.Viewer()
@@ -22,6 +21,7 @@ def main(args):
     #             v.add_labels(f[k])
     #         elif "raw" in k:
     #             v.add_image(f[k])
+
 
 if __name__ == "__main__":
     argsparse = argparse.ArgumentParser()
