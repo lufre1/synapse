@@ -122,7 +122,7 @@ def visualize():
     parser.add_argument("--scale_factor", "-s", type=int, default=1, help="Scale factor for the data")
     parser.add_argument("--no_visualize", "-nv", action="store_true", default=False, help="Don't visualize data with napari")
     parser.add_argument("--z_offset", "-z", type=int, nargs=2, default=None, help="Z offset for the data e.g. 5 -5")
-    parser.add_argument("--key", "-k", type=str, default="mito", help="Key to visualize")
+    parser.add_argument("--key", "-k", type=str, default=None, help="If given, only load key and raw from file to visualize")
     args = parser.parse_args()
 
     paths = get_file_paths(args.path, reverse=False)
@@ -137,11 +137,13 @@ def visualize():
         all_keys = get_all_keys_from_h5(path)
         # filter keys for raw and mito
         keys = []
-        for k in all_keys:
-            if "raw" in k or args.key in k:
-                keys.append(k)
-        # if "labels/cristae" not in keys:
-        #     continue
+        if args.key is not None:
+            for k in all_keys:
+                if "raw" in k or args.key in k:
+                    keys.append(k)
+        else:
+            keys = all_keys
+
         keys.sort(reverse=True)
         print("\ndata keys", keys)
         print("in path", path)
