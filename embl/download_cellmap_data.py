@@ -14,15 +14,14 @@ def main(args):
                                  download=True)
     else:
         path = get_cellmap_paths(path=path, padding=0, download=True)
-    with open_file(path, "r") as f:
-        print(f.keys())
-        v = napari.Viewer()
-        for k in f.keys():
-            if "label" in k and "mito" in k:
-                v.add_labels(f[k])
-            elif "raw" in k:
-                v.add_image(f[k])
-                
+    # with open_file(path, "r") as f:
+    #     print(f.keys())
+    #     v = napari.Viewer()
+    #     for k in f.keys():
+    #         if "label" in k and "mito" in k:
+    #             v.add_labels(f[k])
+    #         elif "raw" in k:
+    #             v.add_image(f[k])
 
 
 if __name__ == "__main__":
