@@ -23,7 +23,6 @@ def main(args):
     #         elif "raw" in k:
     #             v.add_image(f[k])
 
-
 if __name__ == "__main__":
     argsparse = argparse.ArgumentParser()
     argsparse.add_argument("--path", "-p", type=str, default=None)

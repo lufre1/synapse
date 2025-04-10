@@ -122,6 +122,7 @@ def visualize():
     parser.add_argument("--scale_factor", "-s", type=int, default=1, help="Scale factor for the data")
     parser.add_argument("--no_visualize", "-nv", action="store_true", default=False, help="Don't visualize data with napari")
     parser.add_argument("--z_offset", "-z", type=int, nargs=2, default=None, help="Z offset for the data e.g. 5 -5")
+    parser.add_argument("--key", "-k", type=str, default="mito", help="Key to visualize")
     args = parser.parse_args()
 
     paths = get_file_paths(args.path, reverse=False)
@@ -133,7 +134,12 @@ def visualize():
     for path in tqdm(paths):
         print(path)
 
-        keys = get_all_keys_from_h5(path)
+        all_keys = get_all_keys_from_h5(path)
+        # filter keys for raw and mito
+        keys = []
+        for k in all_keys:
+            if "raw" in k or args.key in k:
+                keys.append(k)
         # if "labels/cristae" not in keys:
         #     continue
         keys.sort(reverse=True)
@@ -157,33 +163,34 @@ def visualize():
                     util.export_data(path.replace(".h5", "_seg.tif"),
                                      data=seg_data,
                                      )
-                    
+
                 for key, val in seg_data.items():
                     data[key] = val
 
+        raw_shape = None
+        for k in data.keys():
+            if "raw" in k:
+                raw_shape = data[k].shape
+        if raw_shape:
+            for k in data.keys():
+                if "raw" not in k:
+                    if raw_shape != data[k].shape:
+                        print(f"Resizing {k} from {data[k].shape} to {raw_shape}")
+                        data[k] = util.downsample_to_shape(data[k], raw_shape)
+
         filtered_data = {}
-        
+
         filter_labels = None
         if filter_labels is not None:
             for key, value in data.items():
                 if ("label" in key and "mito" in key) or "raw" in key:
                     filtered_data[key] = value
-                #     target = label_transform(value)
-                    # filtered_data[key+"_transformed"] = np.array([target[0], skimage.morphology.binary_dilation(target[1], footprint=np.ones((1, 3, 3)))])
-                    # filtered_data[key+"_transformed"] = target
-                    
-                    # dilated_target_1 = np.zeros_like(target[1], dtype=bool)
-
-                    # for z in range(target[1].shape[0]):  # Iterate over Z-axis
-                    #     dilated_target_1[z] = skimage.morphology.binary_dilation(target[1][z], footprint=np.ones((3, 3)))
-                    # filtered_data[key+"_transformed"] = np.array([target[0], dilated_target_1])
 
         if data and not args.no_visualize:
             if filtered_data:
                 visualize_data(filtered_data)
             else:
                 visualize_data(data)
-
 
 
 if __name__ == "__main__":
