@@ -27,39 +27,6 @@ from synapse_net.file_utils import read_data_from_cryo_et_portal_run, read_ome_z
 from tqdm import tqdm
 
 
-def get_tomograms(deposition_id, processing_type=None):
-    client = cdp.Client()
-    if processing_type is not None:
-        tomograms = cdp.Tomogram.find(
-            client, [cdp.Tomogram.deposition_id == deposition_id, cdp.Tomogram.processing == processing_type]
-        )
-    else:
-        tomograms = cdp.Tomogram.find(
-            client, [cdp.Tomogram.deposition_id == deposition_id]
-        )
-
-    return tomograms
-
-
-def get_annotations(id, id_field, search_string=None):
-    assert id_field in ("id", "run_id", "deposition_id")
-    client = cdp.Client()
-    if search_string is None:
-        annotations = cdp.Annotation.find(client, [getattr(cdp.Annotation, id_field) == id])
-    else:
-        annotations = cdp.Annotation.find(client, [getattr(cdp.Annotation, id_field) == id,
-                                                   cdp.Annotation.object_name.ilike(f"%{search_string}%")])
-    return annotations
-
-
-def filter_annotations_shape(annotations, field="shape_type", shape_type="SegmentationMask"):
-    assert shape_type in ("SegmentationMask", "OrientedPoint", "Point", "InstanceSegmentation", "Mesh")
-    client = cdp.Client()
-    new_annotations = cdp.AnnotationShape.find(client, [getattr(cdp.AnnotationShape, field) == shape_type])
-    
-    return annotations
-
-
 def check_result(uri, params, download=True, output_folder=None):
     import napari
 
@@ -71,10 +38,15 @@ def check_result(uri, params, download=True, output_folder=None):
     elif download:
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
-        print("uri", uri)
-        data, voxel_size = read_ome_zarr(uri,
-                                         client_kwargs={'endpoint_url': 'https://s3.embl.de'}
+        print("Downloading from URI:", uri)
+        s3_uri = uri.replace("s3://", "")
+        data, voxel_size = read_ome_zarr(s3_uri,
+                                        #  client_kwargs={'endpoint_url': 'https://s3.embl.de'},
                                          )
+        # Save the data to the output folder
+        output_file = os.path.join(output_folder, os.path.basename(s3_uri)) + ".zarr"
+        write_ome_zarr(output_file, data, voxel_size)
+        print("Saved to", output_file)
     else:
         print("no in-memory feature implemented yet")
         return
@@ -102,6 +74,24 @@ def write_ome_zarr(output_file, data, voxel_size):
     print("Wrote", output_file)
 
 
+def download_ome_zarr_data(uri: str, out_dir: str, scale_level: int = 0):
+    """Download data from an OME-Zarr store and save locally.
+
+    Args:
+        uri: URL or path to OME-Zarr store.
+        out_dir: Output directory to save data and metadata.
+        scale_level: Multiscale level to download.
+    """
+    os.makedirs(out_dir, exist_ok=True)
+
+    # Read data and voxel size using your function
+    data, voxel_size = read_ome_zarr(uri, scale_level=scale_level)
+
+    # Save data
+    out_file = os.path.join(out_dir, ".zarr")
+    write_ome_zarr(out_file, data, voxel_size=voxel_size)
+
+
 def main():
     parser = argparse.ArgumentParser()
     # Whether to check the result with napari instead of running the prediction.
@@ -112,7 +102,9 @@ def main():
 
     uris = [
         # "s3.embl.de/i2k-2020/experimental/mitos",
-        "s3://i2k-2020/experimental/mitos/4007/images/ome-zarr/mitos.ome.zarr",
+        "https://s3.embl.de/i2k-2020/experimental/mitos/4007/images/ome-zarr/mitos.ome.zarr"
+
+        # "s3://i2k-2020/experimental/mitos/4007/images/ome-zarr/mitos.ome.zarr",
         # "https://s3.embl.de/i2k-2020/experimental/mitos/4007/images/ome-zarr"
     ]
     params = {}
@@ -120,12 +112,22 @@ def main():
     # Process each tomogram.
     for uri in tqdm(uris, desc="Downloading Data"):
         # Read tomogram data on the fly.
-        if args.check:
-            check_result(uri,
-                         params,
-                         download=args.download,
-                         output_folder=args.output_folder
-                         )
+        try:
+            data, voxel_size = read_ome_zarr(uri, scale_level="s0")
+            print(f"Successfully read data from {uri} without downloading.")
+            print("Data shape:", data.shape)
+            print("Voxel size:", voxel_size)
+            # Add your further processing of the 'data' here
+        except ValueError as e:
+            print(f"Error reading data from {uri}: {e}")
+        # if args.check:
+        #     check_result(uri,
+        #                  params,
+        #                  download=args.download,
+        #                  output_folder=args.output_folder
+        #                  )
+        # else:
+        #     download_ome_zarr_data(uri, args.output_folder, scale_level="s0")
 
 
 if __name__ == "__main__":
