@@ -16,3 +16,5 @@ dependencies = []
 [tool.setuptools]
 packages = ["synapse"]
 
+[project.scripts]
+visualize_zarr = "synapse.visualize_zarr:main"

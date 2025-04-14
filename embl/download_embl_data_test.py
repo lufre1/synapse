@@ -123,6 +123,7 @@ def main():
             data, voxel_size = read_ome_zarr(path, args.resolution, fs=fs, client_kwargs={"endpoint_url": s3_prefix})
             
             print("Writing", out_path)
+            print("Voxel size", voxel_size)
             write_ome_zarr(out_path, data, voxel_size)
             print("Finished writing", out_path)
 
