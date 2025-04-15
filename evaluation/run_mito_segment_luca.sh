@@ -7,7 +7,7 @@
 #SBATCH --constraint 80gb
 
 source /user/freckmann15/u12103/.bashrc
-micromamba activate /mnt/lustre-grete/usr/u12103/envs/synapse
+micromamba activate /mnt/lustre-grete/usr/u12103/micromamba/envs/synapse
 
 python /user/freckmann15/u12103/synapse/evaluation/segment_mitos_wichmann.py \
   -b /scratch-grete/projects/nim00007/data/mitochondria/cooper/20250308_Mito_Seg_Done/done_h5_s2 \

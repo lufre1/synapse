@@ -25,7 +25,7 @@ def main(args):
 
 if __name__ == "__main__":
     argsparse = argparse.ArgumentParser()
-    argsparse.add_argument("--path", "-p", type=str, default=None)
+    argsparse.add_argument("--path", "-p", type=str, default="/scratch-grete/projects/nim00007/data/cellmap/")
     argsparse.add_argument("--resolution", "-r", type=str, default="s0")
     args = argsparse.parse_args()
     main(args)

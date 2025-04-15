@@ -70,7 +70,10 @@ def load_file_paths(root_path: str, ext: str = None,
         paths.extend(get_file_paths(root_path, ".mrc"))
         paths.extend(get_file_paths(root_path, ".rec"))
     else:
-        paths = get_file_paths(root_path, ext)
+        if os.path.isdir(root_path):
+            paths = get_file_paths(root_path, ext)
+        elif os.path.isfile(root_path):
+            paths = [root_path]
     if root_label_path is not None:
         label_paths = get_file_paths(root_label_path, ".tif")
         return paths, label_paths
