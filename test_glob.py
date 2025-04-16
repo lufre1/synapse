@@ -1,4 +1,5 @@
 import argparse
+import csv
 import os
 from glob import glob
 from tqdm import tqdm
@@ -6,6 +7,8 @@ import mrcfile
 import numpy as np
 from collections import Counter, defaultdict
 import h5py
+from elf.io import open_file
+import synapse.cellmap_util as cutil
 
 
 def collect_dataset_shapes(h5file, group=None, prefix=""):
@@ -45,40 +48,73 @@ def percentage_files_with_inconsistent_shapes(file_paths):
     print(f"\n{num_inconsistent}/{num_total} files have internally inconsistent dataset shapes.")
     print(f"That's {percentage:.2f}% inconsistent files.")
     return percentage
-# def check_hdf5_dataset_shapes(paths):
-#     stats = {}
-#     all_shapes = defaultdict(list)
-#     mismatched_files = []
 
-#     for path in tqdm(paths):
-#         with h5py.File(path, "r") as f:
-#             shapes = collect_dataset_shapes(f)
-#             stats[path] = shapes
 
-#             # Save all shapes for each dataset key (full paths)
-#             shape_list = list(shapes.values())
-#             for k, v in shapes.items():
-#                 all_shapes[k].append(v)
+def write_h5_paths_to_csv(paths, output_path="h5_paths_with_mitos_new.csv", ):
+    h5_files = paths
 
-#             # Check if all datasets in this file have the same shape
-#             if len(set(shape_list)) > 1:
-#                 mismatched_files.append(path)
+    with open(output_path, "w", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["h5_file_path"])
+        for h5 in h5_files:
+            full_path = os.path.abspath(h5)
+            writer.writerow([full_path])
 
-#     # Print summary
-#     print("\n=== Summary ===")
-#     print(f"Total files checked: {len(paths)}")
-#     print(f"Files with mismatched dataset shapes: {len(mismatched_files)}")
-#     if mismatched_files:
-#         print("Example mismatched file:", mismatched_files[0])
+    print(f"Wrote {len(h5_files)} paths to {output_path}")
 
-#     print("\nShape statistics per dataset (across files):")
-#     for k, shape_list in all_shapes.items():
-#         unique_shapes, counts = np.unique(shape_list, return_counts=True, axis=0)
-#         # print(f"- {k}:")
-#         # for shape, count in zip(unique_shapes, counts):
-#         #     print(f"    shape {shape} occurs {count} times")
 
-#     return stats, mismatched_files
+def find_files_with_exact_mito_key(h5_paths):
+    """
+    Returns a list of .h5 file paths that contain a dataset with the exact key 'mito'.
+    """
+    matching_files = []
+
+    for path in h5_paths:
+        try:
+            with h5py.File(path, 'r') as f:
+                found = False
+
+                def visitor(name, obj):
+                    nonlocal found
+                    if isinstance(obj, h5py.Dataset):
+                        key_name = name.split('/')[-1]
+                        if key_name == "mito":
+                            found = True
+
+                f.visititems(visitor)
+
+                if found:
+                    matching_files.append(path)
+
+        except Exception as e:
+            print(f"Could not read {path}: {e}")
+
+    return matching_files
+
+
+def print_shape_stats(shapes):
+    """
+    Prints the mean of the (z, y, x) shapes and the prevalence of each unique shape.
+    
+    Parameters:
+        shapes (list of tuple): List of (z, y, x) tuples.
+    """
+    if not shapes:
+        print("No shapes provided.")
+        return
+
+    # Convert to NumPy array for easier computation
+    shape_array = np.array(shapes)  # shape: (N, 3)
+    mean_shape = shape_array.mean(axis=0)
+
+    print(f"Mean shape (z, y, x): ({mean_shape[0]:.2f}, {mean_shape[1]:.2f}, {mean_shape[2]:.2f})")
+
+    # Count occurrences of each unique shape
+    counter = Counter(shapes)
+    print("\nPrevalence of unique shapes:")
+    for shape, count in counter.most_common():
+        print(f"  Shape {shape}: {count} times")
+
 
 def main(visualize=False):
     parser = argparse.ArgumentParser()
@@ -92,62 +128,21 @@ def main(visualize=False):
     b1_paths = sorted(glob(os.path.join(args.base_path, "**", "*.h5"), recursive=True))#, reverse=True)
     b2_paths = sorted(glob(os.path.join(args.base_path2, "**", "*.h5"), recursive=True))#, reverse=True)
     
-    stats = percentage_files_with_inconsistent_shapes(b1_paths)
-    print("stats", stats)
-    # print("mismatched_files", mismatched_files)
-    # stats = {}
-    # for path in tqdm(b1_paths):
-    #         stats = {}
-    #         all_shapes = defaultdict(list)
-    #         mismatched_files = []
+    # stats = percentage_files_with_inconsistent_shapes(b1_paths)
+    # print("stats", stats)
+    paths = find_files_with_exact_mito_key(b1_paths)
+    # paths = cutil.get_cellmap_mito_paths()
+    #write_h5_paths_to_csv(paths, output_path="h5_paths_mitos.csv")
+    print(len(paths))
+    shapes = []
+    for path in paths:
+        print(path)
+        with open_file(path, mode="r") as f:
+            shapes.append(f["label_crop/mito"].shape)
+            print("np.unique", np.unique(f["label_crop/mito"], return_counts=True))
 
-    #         for path in tqdm(b1_paths):
-    #             stats[path] = {}
-    #             with h5py.File(path, "r") as f:
-    #                 shapes = []
-    #                 for k in f.keys():
-    #                     shape = f[k].shape
-    #                     stats[path][k] = shape
-    #                     all_shapes[k].append(shape)
-    #                     shapes.append(shape)
-
-    #                 # Check if all shapes in this file are the same
-    #                 if len(set(shapes)) > 1:
-    #                     mismatched_files.append(path)
-    # # Print summary
-    # print("\n=== Summary ===")
-    # print(f"Total files checked: {len(b1_paths)}")
-    # print(f"Files with mismatched dataset shapes: {len(mismatched_files)}")
-    # if mismatched_files:
-    #     print("Example mismatched file:", mismatched_files[0])
-    
-    # # Dataset-wise shape counts
-    # print("\nShape statistics per dataset:")
-    # for k, shape_list in all_shapes.items():
-    #     unique_shapes, counts = np.unique(shape_list, return_counts=True, axis=0)
-    #     print(f"- {k}:")
-    #     for shape, count in zip(unique_shapes, counts):
-    #         print(f"    shape {shape} occurs {count} times")
-
-    
-    # print("len(b1_paths)", len(b1_paths))
-    # print("len(b2_paths)", len(b2_paths))
-    # for mod_path, mrc_path in tqdm(zip(mod_paths, mrc_paths)):
-    # vox_sizes = []
-    # b1_paths.extend(b2_paths)
-    # filenames = [path.split("/")[-1] for path in b1_paths]  # Extract filenames
-    # duplicates = [name for name, count in Counter(filenames).items() if count > 1]
-    # print("Duplicate filenames:", duplicates)
-
-    # for path in tqdm(b1_paths):
-        
-        # with mrcfile.open(mrc_path) as mrc:
-            # print(path)
-            # print(mrc.voxel_size, "\n")
-            # vox_sizes.append([mrc.voxel_size.x, mrc.voxel_size.y, mrc.voxel_size.z])
-        # print("\n", mod_path, "\n", mrc_path, "\n")
-    # use this for 06
-    # print("average voxel size", np.mean(vox_sizes))
+    print(len(shapes))
+    print_shape_stats(shapes)
 
 
 if __name__ == "__main__":

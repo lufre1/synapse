@@ -13,4 +13,5 @@ python evaluation/segment_mitochondria.py \
     -fe .zarr \
     -m '/user/freckmann15/u12103/synapse/models/mito-v3' \
     -k 0 \
-    -e /scratch-grete/projects/nim00007/data/mitochondria/embl/out_embl
+    -e /scratch-grete/projects/nim00007/data/mitochondria/embl/out_embl \
+    -r 
