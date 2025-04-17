@@ -84,12 +84,16 @@ def upsample_data(data, factor):
 
 def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False, root_label_path: str = None):
     if ext is None:
-        print("Loading h5, n5 and zarr files")
-        paths = get_file_paths(root_path, ".h5")
-        paths.extend(get_file_paths(root_path, ".n5"))
-        paths.extend(get_file_paths(root_path, ".zarr"))
-        paths.extend(get_file_paths(root_path, ".mrc"))
-        paths.extend(get_file_paths(root_path, ".rec"))
+        if os.path.isfile(root_path):
+            ext = os.path.splitext(root_path)[1]
+            paths = get_file_paths(root_path, ext)
+        else:
+            print("Loading h5, n5 and zarr files")
+            paths = get_file_paths(root_path, ".h5")
+            paths.extend(get_file_paths(root_path, ".n5"))
+            paths.extend(get_file_paths(root_path, ".zarr"))
+            paths.extend(get_file_paths(root_path, ".mrc"))
+            paths.extend(get_file_paths(root_path, ".rec"))
     else:
         paths = get_file_paths(root_path, ext)
     if root_label_path is not None:
@@ -122,6 +126,10 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
                 ndim = f["data"].ndim
                 slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
                 data["raw"] = f["data"][slicing] if scale > 1 else f["data"][:]
+            elif ".tif" in path:
+                ndim = f[""][:].ndim
+                slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+                data["label"] = f[""][slicing] if scale > 1 else f[""][:]  # tif has no keys
             else:
                 print(f.keys())
                 for key in f.keys():

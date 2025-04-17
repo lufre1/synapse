@@ -1,5 +1,3 @@
-import skimage
-import tifffile
 import synapse.util as util
 from config import *
 import h5py
@@ -64,7 +62,8 @@ def visualize_data(data):
     viewer = napari.Viewer()
     for key, value in data.items():
         if key == "raw" or "raw" in key:
-            #value = torch_em.transform.raw.normalize_percentile(value, lower=5, upper=95)
+            viewer.add_image(value, name=f"{key}_raw")
+            value = torch_em.transform.raw.normalize_percentile(value, lower=5, upper=95)
             viewer.add_image(value, name=key)
         elif key == "prediction" or "pred" in key:
             viewer.add_image(value, name=key, blending="additive")
@@ -133,6 +132,7 @@ def visualize():
 
     for path in tqdm(paths):
         print(path)
+        skip = False
 
         all_keys = get_all_keys_from_h5(path)
         # filter keys for raw and mito
@@ -146,6 +146,9 @@ def visualize():
 
         keys.sort(reverse=True)
         print("\ndata keys", keys)
+        if "label_crop/mito" not in keys:
+            print(f"  -> Skipping '{path}' does not contain mitochondria.")
+            continue
         print("in path", path)
         data = {}
         flip_y = False
@@ -159,6 +162,9 @@ def visualize():
             #     else:
             #         data[key] = torch_em.transform.raw.normalize_percentile(data[key], lower=1, upper=99)
 
+            if "label_crop/mito" == key and np.all(data[key] == 0):
+                print(f"  -> Skipping '{key}' because it contains 'mito' and all values are 0.")
+                skip = True
             if "pred" in key:
                 seg_data = _segment(data["pred"])
                 if args.no_visualize:
@@ -168,7 +174,8 @@ def visualize():
 
                 for key, val in seg_data.items():
                     data[key] = val
-
+        if skip:
+            continue
         raw_shape = None
         for k in data.keys():
             if "raw" in k:
@@ -185,7 +192,7 @@ def visualize():
         filter_labels = None
         if filter_labels is not None:
             for key, value in data.items():
-                if ("label" in key and "mito" in key) or "raw" in key:
+                if (key == "label_crop/mito") or "raw" in key:
                     filtered_data[key] = value
 
         if data and not args.no_visualize:
