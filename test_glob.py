@@ -3,7 +3,8 @@ import csv
 import os
 from glob import glob
 from tqdm import tqdm
-import mrcfile
+import synapse.io.util as io
+from tifffile import imread
 import numpy as np
 from collections import Counter, defaultdict
 import h5py
@@ -92,25 +93,39 @@ def find_files_with_exact_mito_key(h5_paths):
     return matching_files
 
 
-def print_shape_stats(shapes):
+def print_shape_stats(shapes, ):
     """
     Prints the mean of the (z, y, x) shapes and the prevalence of each unique shape.
-    
+
+    Accepts a list where each element is either a (z, y, x) tuple or a NumPy array of shape (3,).
+
     Parameters:
-        shapes (list of tuple): List of (z, y, x) tuples.
+        shapes (list): List containing either (z, y, x) tuples or NumPy arrays of shape (3,).
     """
     if not shapes:
         print("No shapes provided.")
         return
 
-    # Convert to NumPy array for easier computation
-    shape_array = np.array(shapes)  # shape: (N, 3)
+    processed_shapes = []
+    for shape in shapes:
+        if isinstance(shape, tuple) and len(shape) == 3:
+            processed_shapes.append(shape)
+        elif isinstance(shape, np.ndarray) and shape.shape == (3,):
+            processed_shapes.append(tuple(shape.tolist()))
+        else:
+            raise TypeError("Each element in the input list must be a (z, y, x) tuple or a NumPy array of shape (3,).")
+
+    if not processed_shapes:
+        print("No valid (z, y, x) shapes found in the input.")
+        return
+
+    shape_array = np.array(processed_shapes)  # shape: (N, 3)
     mean_shape = shape_array.mean(axis=0)
 
     print(f"Mean shape (z, y, x): ({mean_shape[0]:.2f}, {mean_shape[1]:.2f}, {mean_shape[2]:.2f})")
 
     # Count occurrences of each unique shape
-    counter = Counter(shapes)
+    counter = Counter(processed_shapes)
     print("\nPrevalence of unique shapes:")
     for shape, count in counter.most_common():
         print(f"  Shape {shape}: {count} times")
@@ -119,30 +134,46 @@ def print_shape_stats(shapes):
 def main(visualize=False):
     parser = argparse.ArgumentParser()
     # /mnt/lustre-emmy-hdd/projects/nim00007/data/synaptic-reconstruction/cooper/original_imod_data/20240909_cp_datatransfer
-    parser.add_argument("--base_path", "-p",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/cooper/mito_tomo", help="Path to the root data directory")
-    parser.add_argument("--base_path2", "-p2",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2", help="Path to the root data directory")
+    parser.add_argument("--path", "-p",  type=str, default="/scratch-grete/projects/nim00007/data/cellmap", help="Path to the root data directory")
+    parser.add_argument("--ext", "-e", type=str, default=".h5")
+    parser.add_argument("--path2", "-p2",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2", help="Path to the root data directory")
+    parser.add_argument("--ext2", "-e2", type=str, default=".tif")
     #parser.add_argument("--save_dir", type=str, default="", help="Path to save the data to")
     args = parser.parse_args()
     # print(args.base_path, "\n", args.base_path2)
+    # /scratch-grete/projects/nim00007/data/mitochondria/cooper/20250308_Mito_Seg_Done/refined
 
-    b1_paths = sorted(glob(os.path.join(args.base_path, "**", "*.h5"), recursive=True))#, reverse=True)
-    b2_paths = sorted(glob(os.path.join(args.base_path2, "**", "*.h5"), recursive=True))#, reverse=True)
+    b1_paths = sorted(glob(os.path.join(args.path, "**", f"*{args.ext}"), recursive=True))#, reverse=True)
+    b2_paths = sorted(glob(os.path.join(args.path2, "**", f"*{args.ext2}"), recursive=True))#, reverse=True)
     
     # stats = percentage_files_with_inconsistent_shapes(b1_paths)
     # print("stats", stats)
-    paths = find_files_with_exact_mito_key(b1_paths)
+    # paths = find_files_with_exact_mito_key(b1_paths)
     # paths = cutil.get_cellmap_mito_paths()
-    #write_h5_paths_to_csv(paths, output_path="h5_paths_mitos.csv")
-    print(len(paths))
-    shapes = []
-    for path in paths:
+    # write_h5_paths_to_csv(paths, output_path="h5_paths_mitos.csv")
+    # print(len(paths))
+    # shapes = []
+    # all_ids = 0
+    scales = []
+    for path in b1_paths:
         print(path)
-        with open_file(path, mode="r") as f:
-            shapes.append(f["label_crop/mito"].shape)
-            print("np.unique", np.unique(f["label_crop/mito"], return_counts=True))
+        if "247" in path:
+            continue
+        with open_file(path, "r") as f:
+            # breakpoint()
+            scales.append(f.attrs["scale"])
+            
+    #     data = imread(path)
+    #     uniq = np.unique(data)
+    #     mito_ids = uniq[uniq != 0]
+    #     print("np.unique", mito_ids)
+    #     all_ids += len(mito_ids)
+    # print("all mitos", all_ids)
+    #         shapes.append(f["label_crop/mito"].shape)
+    #         print("np.unique", np.unique(f["label_crop/mito"], return_counts=True))
 
-    print(len(shapes))
-    print_shape_stats(shapes)
+    # print(len(shapes))
+    print_shape_stats(scales)
 
 
 if __name__ == "__main__":
