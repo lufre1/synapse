@@ -172,6 +172,7 @@ if __name__ == "__main__":
     parser.add_argument("--scale", "-s", type=int, default=1)
     parser.add_argument("--upsample", "-u", type=int, default=None)
     parser.add_argument("--label_path", "-lp", type=str, default=None)
+    
     args = parser.parse_args()
     path = args.path
     ext = args.ext

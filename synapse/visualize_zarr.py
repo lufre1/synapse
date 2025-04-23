@@ -93,6 +93,8 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
         paths.extend(get_file_paths(root_path, ".rec"))
     else:
         paths = get_file_paths(root_path, ext)
+    paths[:] = [path for path in paths if "embedding" not in path]
+    paths[:] = [path for path in paths if "mitos.ome" not in path]
     if root_label_path is not None:
         label_paths = get_file_paths(root_label_path, ".tif")
     else:

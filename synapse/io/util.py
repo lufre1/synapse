@@ -62,7 +62,9 @@ def export_data(export_path: str, data):
 
 def load_file_paths(root_path: str, ext: str = None,
                     root_label_path: str = None) -> Dict[str, Any]:
-    if ext is None:
+    if os.path.isdir(root_path) and root_path.endswith(".zarr"):
+        paths = [root_path]
+    elif ext is None:
         print("Loading h5, n5, zarr, mrc and rec files")
         paths = get_file_paths(root_path, ".h5")
         paths.extend(get_file_paths(root_path, ".n5"))
