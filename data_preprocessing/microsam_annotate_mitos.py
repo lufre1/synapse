@@ -2,6 +2,7 @@ import h5py
 import os
 from glob import glob
 import numpy as np
+from tifffile import imread
 from tqdm import tqdm
 from skimage import measure
 import argparse
@@ -69,6 +70,7 @@ def main():
     parser.add_argument("--overlap_threshold", "-ot", type=float, default=0.5, help="Overlap threshold for filtering")
     parser.add_argument("--output_path", "-o",  type=str, default="/home/freckmann15/data/mitochondria/wichmann/manual_and_microsam_annotations", help="Path to the output data directory")
     parser.add_argument("--return_viewer", "-rv", action="store_true", default=False, help="Return viewer")
+    parser.add_argument("--checkpoint_path", "-cp", type=str, default="/home/freckmann15/data/embl/cutout_1/sam_model_finetuned_on_refined_corrections1/best.pt", help="Path to checkpoint used to load model's state_dict")
     args = parser.parse_args()
     base_path = args.base_path
     label_path = args.label_path
@@ -79,6 +81,10 @@ def main():
     output_path = args.output_path
     tile_shape, halo = None, None
     model_type = "vit_b_em_organelles"
+    if args.checkpoint_path is not None:
+        checkpoint_path = args.checkpoint_path
+    else:
+        checkpoint_path = None
     if "tile" in embeddings_path:
         tile_shape, halo = (512, 512), (128, 128)
 
@@ -114,6 +120,9 @@ def main():
         labels = io.load_data_from_file(label_path, scale=scale_factor)
         for k, v in labels.items():
             data["labels"] = v
+        
+        committed_objects = imread("/home/freckmann15/data/embl/cutout_1/images/committed_objects.tif") 
+        
 
         # data = read_h5(h5_path, "raw", scale_factor)
         # label = read_h5(h5_path, "labels/mitochondria", scale_factor)
@@ -126,10 +135,11 @@ def main():
         # orig_labels = relabel_sequential(orig_labels)[0]
 
         if tile_shape is None:
-            viewer = annotator_3d(model_type=model_type, image=data["raw"], segmentation_result=None,
-                         embedding_path=embeddings_path, return_viewer=args.return_viewer)
+            viewer = annotator_3d(model_type=model_type, image=data["raw"], segmentation_result=committed_objects,
+                                  embedding_path=embeddings_path, return_viewer=args.return_viewer,
+                                  checkpoint_path=checkpoint_path)
         else:
-            annotator_3d(model_type=model_type, image=data["raw"], segmentation_result=orig_labels, embedding_path=embeddings_path,
+            annotator_3d(model_type=model_type, image=data["raw"], segmentation_result=data["labels"], embedding_path=embeddings_path,
                          tile_shape=tile_shape, halo=halo)
         if args.return_viewer:
             viewer.add_labels(data["labels"], name="labels")
