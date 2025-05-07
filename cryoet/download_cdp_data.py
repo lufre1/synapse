@@ -25,6 +25,52 @@ from ome_zarr.io import parse_url
 from ome_zarr.writer import write_image
 from synapse_net.file_utils import read_data_from_cryo_et_portal_run, read_ome_zarr
 from tqdm import tqdm
+from numcodecs import Blosc
+
+
+# def write_ome_zarr(output_file, data, voxel_size):
+#     store = parse_url(output_file, mode="w").store
+#     root = zarr.group(store=store)
+
+#     scale = list(voxel_size.values())
+#     trafo = [
+#         [{"scale": scale, "type": "scale"}]
+#     ]
+#     write_image(data, root, axes="zyx", coordinate_transformations=trafo, scaler=None)
+#     print("Wrote", output_file)
+
+
+def write_ome_zarr(output_file, data, voxel_size, unit="nanometer"):
+    store = parse_url(output_file, mode="w").store
+    root = zarr.group(store=store)
+
+    scale = list(voxel_size.values())
+    trafo = [
+        [{"scale": scale, "type": "scale"}]
+    ]
+    axes = [
+        {"name": "z", "type": "space", "unit": unit},
+        {"name": "y", "type": "space", "unit": unit},
+        {"name": "x", "type": "space", "unit": unit},
+    ]
+
+    # Use Blosc with zstd (or lz4) — lossless and efficient
+    compressor = Blosc(cname="zstd", clevel=5, shuffle=Blosc.BITSHUFFLE)
+
+    # Optional: define a good chunk size (e.g., 64x64x64)
+    chunk_size = (64, 64, 64)
+
+    write_image(
+        data=data,
+        group=root,
+        axes=axes,
+        coordinate_transformations=trafo,
+        scaler=None,
+        chunks=chunk_size,
+        storage_options={"compressor": compressor}
+    )
+
+    print("Wrote", output_file)
 
 
 def get_tomograms(deposition_id, processing_type=None):
@@ -134,18 +180,6 @@ def check_result(tomogram, deposition_id, processing_type, download=False, outpu
     napari.run()
 
 
-def write_ome_zarr(output_file, data, voxel_size):
-    store = parse_url(output_file, mode="w").store
-    root = zarr.group(store=store)
-
-    scale = list(voxel_size.values())
-    trafo = [
-        [{"scale": scale, "type": "scale"}]
-    ]
-    write_image(data, root, axes="zyx", coordinate_transformations=trafo, scaler=None)
-    print("Wrote", output_file)
-
-
 def main():
     parser = argparse.ArgumentParser()
     # Whether to check the result with napari instead of running the prediction.
@@ -154,6 +188,7 @@ def main():
     parser.add_argument("-d", "--download", action="store_true", default=False)
     args = parser.parse_args()
 
+    # to test: 10301 and 10302
     # deposition with mitos annotated 10010
     deposition_id = 10010  # 10313
     processing_type = None  # "denoised"

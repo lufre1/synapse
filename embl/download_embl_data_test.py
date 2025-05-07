@@ -10,16 +10,66 @@ import numpy as np
 from typing import Dict
 
 
-def write_ome_zarr(output_file, data, voxel_size):
+def write_ome_zarr(
+    output_file,
+    data,
+    voxel_size,
+    axes="zyx",
+    compressor=None,
+    target_dtype=None,
+    chunk_size=(64, 64, 64),
+    normalize=False
+):
+    """
+    Write data to OME-Zarr with compression and optional dtype conversion.
+
+    Args:
+        output_file (str): Path to the output .zarr store.
+        data (ndarray): The data to store.
+        voxel_size (dict): Dict with keys ("z", "y", "x") → voxel sizes.
+        axes (str): Axes string (e.g. "zyx", "czyx").
+        compressor: Zarr compressor, e.g. GZip(level=4) or Blosc().
+        target_dtype: Target NumPy dtype (e.g. np.uint8, np.int16).
+        chunk_size: Chunk shape, matched to data dimensions.
+        normalize (bool): If True, normalize float data to [0, 255] and convert to uint8.
+    """
+    if target_dtype is not None:
+        if normalize and np.issubdtype(data.dtype, np.floating):
+            data = np.clip(data, a_min=0, a_max=1)  # or use data.min(), data.max() for dynamic range
+            data = (data * 255).astype(target_dtype)
+        else:
+            data = data.astype(target_dtype)
+
+    # Ensure chunk size has correct number of dims
+    chunk_size = tuple(min(c, s) for c, s in zip(chunk_size, data.shape[-len(chunk_size):]))
+
     store = parse_url(output_file, mode="w").store
     root = zarr.group(store=store)
 
-    scale = list(voxel_size.values())
-    trafo = [
-        [{"scale": scale, "type": "scale"}]
-    ]
-    write_image(data, root, axes="zyx", coordinate_transformations=trafo, scaler=None)
+    scale = [voxel_size[k] for k in axes[-3:]]  # Handle optional leading dims (e.g. 'c')
+    trafo = [[{"scale": scale, "type": "scale"}]]
+
+    write_image(
+        data,
+        root,
+        axes=axes,
+        coordinate_transformations=trafo,
+        scaler=None,
+        storage_options={"chunks": chunk_size, "compressor": compressor},
+    )
     print("Wrote", output_file)
+
+# # Luca's approach 
+# def write_ome_zarr(output_file, data, voxel_size):
+#     store = parse_url(output_file, mode="w").store
+#     root = zarr.group(store=store)
+
+#     scale = list(voxel_size.values())
+#     trafo = [
+#         [{"scale": scale, "type": "scale"}]
+#     ]
+#     write_image(data, root, axes="zyx", coordinate_transformations=trafo, scaler=None)
+#     print("Wrote", output_file)
 
 
 def list_s3_bucket(base_path="i2k-2020/", max_depth=2, include_dirs=True, fs=None):

@@ -6,12 +6,18 @@ from  torch_em.data.datasets.electron_microscopy.cellmap import get_cellmap_path
 def main(args):
     path = args.path
     if path is None:
-        path = get_cellmap_paths(path="",
+        get_cellmap_paths(path="",
                                  resolution=args.resolution,
                                  padding=0,
                                  download=True)
     else:
-        path = get_cellmap_paths(path=path, padding=0, download=True)
+        if args.crop_id is None:
+            get_cellmap_paths(path=path, padding=0, download=True)
+        else:
+            paths = get_cellmap_paths(path=path, crops=[args.crop_id], padding=0, download=True)
+            # for p in paths:
+            #     if f"{args.crop_id}" in p:
+            #         get_cellmap_paths(path=path, padding=0, download=True) 
     # import napari
     # with open_file(path, "r") as f:
     #     print(f.keys())
@@ -27,5 +33,6 @@ if __name__ == "__main__":
     argsparse = argparse.ArgumentParser()
     argsparse.add_argument("--path", "-p", type=str, default="/scratch-grete/projects/nim00007/data/cellmap/")
     argsparse.add_argument("--resolution", "-r", type=str, default="s0")
+    argsparse.add_argument("--crop_id", "-c", type=int, default=None, help="Crop id, if given only download the crop")
     args = argsparse.parse_args()
     main(args)

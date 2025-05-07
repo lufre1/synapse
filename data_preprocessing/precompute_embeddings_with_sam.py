@@ -22,7 +22,7 @@ def compute_embeddings(path, output_path):
     #     )
     precompute_image_embeddings(
             predictor, input_=data,
-            save_path=out_filenpath,           
+            save_path=out_filenpath,
         )
 
 
@@ -35,11 +35,18 @@ if __name__ == "__main__":
     output_path = args.output_path
     if not os.path.exists(output_path):
         os.makedirs(output_path)
-    paths = sorted(glob(os.path.join(base_path, "**", "*.zarr"), recursive=True))
+    if os.path.isdir(base_path) and base_path.endswith(".zarr"):
+        print("Loading single zarr file:", base_path)
+        paths = [base_path]
+    else:
+        paths = sorted(glob(os.path.join(base_path, "**", "*.zarr"), recursive=True))
     # exclude masks and other embeddings
-    paths[:] = [path for path in paths if "mask" not in path.lower() and "embeddings" not in path.lower()]
+    #paths[:] = [path for path in paths if "mask" not in path.lower() and "embeddings" not in path.lower()]
     for path in tqdm(paths):
         print("Precomputing embeddings for:", path)
         output_path = path.replace(".zarr", "_embeddings")
+        if os.path.exists(output_path):
+            print("Embeddings already precomputed for:", path)
+            continue
         compute_embeddings(path, output_path)
         print("Precomuted embeddings and saved to:", output_path)
