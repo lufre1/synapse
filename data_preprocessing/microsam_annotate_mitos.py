@@ -121,7 +121,7 @@ def main():
         for k, v in labels.items():
             data["labels"] = v
         
-        committed_objects = imread("/home/freckmann15/data/embl/cutout_1/images/committed_objects.tif") 
+        committed_objects = imread("/home/freckmann15/data/embl/cutout_1/images/committed_objects.tif")
         
 
         # data = read_h5(h5_path, "raw", scale_factor)

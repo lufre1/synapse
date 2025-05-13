@@ -61,7 +61,7 @@ def write_ome_zarr(output_file, data, voxel_size, unit="nanometer"):
     chunk_size = (64, 64, 64)
 
     write_image(
-        data=data,
+        image=data,
         group=root,
         axes=axes,
         coordinate_transformations=trafo,
@@ -189,9 +189,11 @@ def main():
     args = parser.parse_args()
 
     # to test: 10301 and 10302
+    # deposition with automated mito annotations: 10314
+    # 
     # deposition with mitos annotated 10010
-    deposition_id = 10010  # 10313
-    processing_type = None  # "denoised"
+    deposition_id = 10300  # 10010  # 10313
+    processing_type = "denoised"  # None  
 
     # Get all the (processed) tomogram ids in the deposition.
     tomograms = get_tomograms(deposition_id, processing_type)

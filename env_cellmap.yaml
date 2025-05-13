@@ -1,0 +1,29 @@
+# mamba env create --file=env.yaml
+name: cellmap
+channels:
+    - conda-forge
+dependencies:
+    - python=3.11
+    # - bioimageio.core
+    # - imagecodecs
+    # - kornia
+    # - magicgui
+    # - nifty=1.2.1=*_4
+    - napari
+    - pip
+    # - pooch
+    - pyqt
+    # - python-xxhash
+    - python-elf
+    - pytorch
+    # - segment-anything
+    - torch_em >=0.7.0
+    - tqdm
+    # - trimesh
+    - zarr < 3
+    - ome-zarr
+    - xxhash
+    - pip:
+        # - git+https://github.com/ChaoningZhang/MobileSAM.git
+        - napari-skimage-regionprops
+        # - PyQt5==5.15.11

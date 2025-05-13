@@ -30,7 +30,7 @@ def get_file_paths(path, ext=".h5", reverse=False):
 def visualize_data(data):
     viewer = napari.Viewer()
     for key, value in data.items():
-        if key == "raw" or "raw" in key:
+        if key == "raw" or "raw" in key or "0_0" in key:
             # if data[key].ndim == 4:
             #     data[key] = util.normalize_percentile_with_channel(data[key], lower=1, upper=99, channel=0)
             # else:
@@ -107,6 +107,8 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
                 data = io.load_data_from_file(path, scale=scale, upsample=upsample, label_paths=label_paths)
                 for key, value in data.items():
                     all_data[f"{key}_{i}"] = value
+            for k in all_data.keys():
+                print(k, all_data[k].shape)
             visualize_data(all_data)
             return
     for path in tqdm(paths):
@@ -165,7 +167,6 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
                     if raw_shape != data[k].shape:
                         print(f"Resizing {k} from {data[k].shape} to {raw_shape}")
                         data[k] = util.downsample_to_shape(data[k], raw_shape)
-        
         visualize_data(data)
 
 
