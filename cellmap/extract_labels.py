@@ -69,6 +69,7 @@ def extract_label_crop_ids(path, dataset, ids, fallback_key=None):
         if (result is None or not np.any(result)) and fallback_key:
             # print("fallback_key", fallback_key)
             keys = find_datasets_with_substring(f, fallback_key)
+            keys = [k for k in keys if "er" == fallback_key and "perox" not in k]
             # print("keys", keys)
             if not keys:
                 return None
