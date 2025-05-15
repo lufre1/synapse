@@ -146,9 +146,9 @@ def visualize():
 
         keys.sort(reverse=True)
         print("\ndata keys", keys)
-        if "label_crop/mito" not in keys:
-            print(f"  -> Skipping '{path}' does not contain mitochondria.")
-            continue
+        # if "label_crop/mito" not in keys:
+        #     print(f"  -> Skipping '{path}' does not contain mitochondria.")
+        #     continue
         print("in path", path)
         data = {}
         flip_y = False
