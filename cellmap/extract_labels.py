@@ -95,10 +95,10 @@ def extract_label_crop_ids(path, dataset, ids, fallback_key=None):
 
 def main(args):
     input_path = args.input
-    output_path = args.output
+    output_path = os.path.join(args.output, args.fallback_key)
     # for local
     input_path = "/home/freckmann15/data/cellmap/data_crops"
-    output_path = "/home/freckmann15/data/cellmap/extracted_crops"
+    output_path = os.path.join("/home/freckmann15/data/cellmap/extracted_crops", args.fallback_key)
     ##
     os.makedirs(output_path, exist_ok=True)
     # breakpoint()
