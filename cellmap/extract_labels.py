@@ -21,7 +21,7 @@ def find_datasets_with_substring(h5group, substring, prefix=""):
     return paths
 
 
-def save_labels_with_rescaled_voxel_size(path, out_path, labels, target_scale=(8, 8, 8)):
+def save_labels_with_rescaled_voxel_size(path, out_path, labels, target_scale=(8, 8, 8), key_name="mito"):
     with h5py.File(path, "r") as f:
         attrs = dict(f.attrs)
         raw = f["raw_crop"][:]
@@ -48,7 +48,7 @@ def save_labels_with_rescaled_voxel_size(path, out_path, labels, target_scale=(8
 
     with h5py.File(out_path, "a") as f:
         f.attrs.update(attrs)
-        f.create_dataset("labels/mitochondria", data=labels_resized, dtype=labels_resized.dtype)
+        f.create_dataset(f"labels/{key_name}", data=labels_resized, dtype=labels_resized.dtype)
         if "raw" not in f:
             f.create_dataset("raw", data=raw_resized, dtype=raw_resized.dtype, compression="gzip")
 
@@ -132,7 +132,12 @@ def main(args):
         # save with attributes
         # read attributes from h5
         
-        save_labels_with_rescaled_voxel_size(path, out_path, labels, target_scale=args.taget_voxel_size)
+        save_labels_with_rescaled_voxel_size(path,
+                                             out_path,
+                                             labels,
+                                             target_scale=args.taget_voxel_size,
+                                             key_name=args.fallback_key
+                                             )
         
         # with h5py.File(path, "r") as f:
         #     attrs = dict(f.attrs)
