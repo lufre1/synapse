@@ -22,20 +22,33 @@ import synapse.cellmap_util as cutil
 import synapse.label_utils as lutil
 # import data_classes
 SAVE_DIR = "/scratch-grete/usr/nimlufre/synapse/mito_segmentation"
-# from unet import UNet3D
+# ids from https://janelia.figshare.com/articles/online_resource/CellMap_Segmentation_Challenge/28034561?file=51215543 
+# page 9
+ID_GROUPS = [
+    [3, 4, 5, 50],             # mitochondria
+    [6, 7, 40],                # golgi
+    [14, 15, 44],              # liquid droplets
+    [
+        16, 17, 18, 19,
+        46, 51, 64
+    ],                         # endo reticulum
+    [47, 48, 49]               # peroxysomes
+    # Add more groups as desired
+]
+OUT_IDS = [1, 2, 3, 4, 5]  # Assigned class numbers in the output
 
 
 def main():
-    parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
-    parser.add_argument("--data_dir", type=str, default=None, help="Path to the data directory")
+    parser = argparse.ArgumentParser(description="3D UNet for medium organelle segmentation")
+    parser.add_argument("--data_dir", type=str, default="/scratch-grete/projects/nim00007/data/cellmap/resized_crops/",
+                        help="Path to the data directory")
     parser.add_argument("--data_dir2", type=str, default=None, help="Path to a second data directory")
-    parser.add_argument("--visualize", action="store_true", default=False, help="Visualize data with napari")
-    parser.add_argument("--patch_shape", type=int, nargs=3, default=(32, 256, 256), help="Patch shape for data loading (3D tuple)")
+    parser.add_argument("--patch_shape", type=int, nargs=3, default=(128, 128, 128), help="Patch shape for data loading (3D tuple)")
     parser.add_argument("--n_iterations", type=int, default=10000, help="Number of training iterations")
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate")
     parser.add_argument("--checkpoint_path", type=str, default="", help="Path to checkpoint used to load model's state_dict")
-    parser.add_argument("--experiment_name", type=str, default="default-mito-net", help="Name that is used for the experiment and store the model's weights")
-    parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
+    parser.add_argument("--experiment_name", type=str, default="cellmap-medium-organelles", help="Name that is used for the experiment and store the model's weights")
+    parser.add_argument("--batch_size", type=int, default=4, help="Batch size to be used")
     parser.add_argument("--feature_size", type=int, default=32, help="Initial feature size of the 3D UNet")
     parser.add_argument("--early_stopping", type=int, default=10, help="Number of epochs without improvement before stopping training")
 
@@ -52,22 +65,18 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"\n Experiment: {experiment_name}\n")
     print(f"Using {device} with {n_workers} workers.")
-    label_transform = lutil.CombinedLabelTransform(add_binary_target=True, dilation_footprint=np.ones((3, 3)))
+    mito_transform = lutil.CombinedLabelTransform(add_binary_target=True, dilation_footprint=np.ones((3, 3)))
     
+    label_transform = lutil.LabelAggregator(
+        id_groups=ID_GROUPS,
+        out_ids=OUT_IDS,
+        group_transforms={1: mito_transform}
+    )
+
     raw_transform = torch_em.transform.raw.normalize_percentile  # util.custom_raw_transform
 
-    loss_name = "dice"
-    metric_name = "dice"
-    ndim = 3
+    in_channels, out_channels = 1, len(ID_GROUPS) -1 + 2
 
-    loss_function = util.get_loss_function(loss_name)
-    metric_function = util.get_loss_function(metric_name)
-    in_channels, out_channels = 1, 2
-
-
-    final_activation = None
-    if final_activation is None and loss_name == "dice":
-        final_activation = "Sigmoid"
 
     # load data paths etc.
     start_time = time.time()
@@ -96,7 +105,7 @@ def main():
 
     print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
 
-    sampler = MinInstanceSampler(p_reject=0.95)
+    sampler = MinInstanceSampler(min_num_instances=3, p_reject=0.95)
 
     print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
     print("data['test']", data["test"])
@@ -106,13 +115,13 @@ def main():
         train_paths=data["train"],
         raw_key="raw_crop",
         val_paths=data["val"],
-        label_key="label_crop/mito",
+        label_key="label_crop/all",
         patch_shape=patch_shape,
         save_root=SAVE_DIR,
         batch_size=batch_size,
         n_iterations=n_iterations,
         sampler=sampler,
-        out_channels=2,
+        out_channels=out_channels,
         label_transform=label_transform,
         raw_transform=raw_transform,
     )

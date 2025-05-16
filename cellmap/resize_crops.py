@@ -21,7 +21,7 @@ def find_datasets_with_substring(h5group, substring, prefix=""):
     return paths
 
 
-def save_labels_with_rescaled_voxel_size(path, out_path, labels, target_scale=(8, 8, 8), key_name="mito"):
+def save_labels_with_rescaled_voxel_size(path, out_path, labels, dataset_key, target_scale=(8, 8, 8)):
     with h5py.File(path, "r") as f:
         attrs = dict(f.attrs)
         raw = f["raw_crop"][:]
@@ -31,6 +31,16 @@ def save_labels_with_rescaled_voxel_size(path, out_path, labels, target_scale=(8
     # Compute the rescaling factors for each axis
     scale_factors = input_scale / np.array(target_scale)
     out_shape = tuple(np.round(in_shape * scale_factors).astype(int))
+    # Check for drastic resizing (more than 2x up or down in any dimension)
+    ratio = out_shape / in_shape
+    # Use absolute ratio: either expansion or shrinkage should not go beyond factor 2
+    too_drastic = np.any((ratio > 2))  # | (ratio < 0.5))
+
+    if too_drastic:
+        print(f"Skipping {path}: resizing factor in at least one dimension is more than a factor of 2. "
+              f"in_shape={in_shape}, out_shape={out_shape}, ratios={ratio}"
+              f"out path would have been: {out_path}")
+        return None  # skip this sample
 
     # Resample raw (linear) and labels (nearest)
     # skip if in_shape == out_shape
@@ -48,55 +58,27 @@ def save_labels_with_rescaled_voxel_size(path, out_path, labels, target_scale=(8
 
     with h5py.File(out_path, "a") as f:
         f.attrs.update(attrs)
-        f.create_dataset(f"labels/{key_name}", data=labels_resized, dtype=labels_resized.dtype)
+        f.create_dataset(dataset_key, data=labels_resized, dtype=labels_resized.dtype)
         if "raw" not in f:
             f.create_dataset("raw", data=raw_resized, dtype=raw_resized.dtype, compression="gzip")
 
 
-def extract_label_crop_ids(path, dataset, ids, fallback_key=None):
+def extract_label_crop_ids(path, dataset):
     with open_file(path, "r") as f:
         result = None
         # Try the primary dataset first
         if dataset in f.keys():
             arr = f[dataset][:]
-            mask = np.isin(arr, ids)
-            result = mask.astype(np.uint8)
-
-        # debug
-        # print("np.unique(result)", np.unique(result))
-
-        # If no matches and we've specified a fallback_key
-        if (result is None or not np.any(result)) and fallback_key:
-            # print("fallback_key", fallback_key)
-            keys = find_datasets_with_substring(f, fallback_key)
-            keys = [k for k in keys if "er" == fallback_key and "perox" not in k]
-            # print("keys", keys)
-            if not keys:
-                return None
-            # print(f"Fallback: combining datasets: {keys}")
-            result = None
-            for k in keys:
-                arr_fb = f[k][:]
-                # All nonzero voxels are "selected"
-                mask_fb = (arr_fb != 0)
-                if result is None:
-                    result = mask_fb.astype(np.uint8)
-                else:
-                    result |= mask_fb.astype(np.uint8)
-            if result is None or not np.any(result):
-                print("No matches after fallback")
-                return None  # still nothing found
-
-        if result is not None and np.any(result):
-            result = label(result, block_shape=(32, 32, 32), verbose=True)
+            result = arr.astype(np.uint8)
             return result
         else:
+            print("Dataset", dataset, "not found in", path)
             return None
 
 
 def main(args):
     input_path = args.input
-    output_path = os.path.join(args.output, args.fallback_key)
+    output_path = args.output
     # for local
     # input_path = "/home/freckmann15/data/cellmap/data_crops"
     # output_path = os.path.join("/home/freckmann15/data/cellmap/extracted_crops", args.fallback_key)
@@ -115,7 +97,7 @@ def main(args):
         if os.path.exists(out_path):
             print("Output path already exist; skipping:", out_path)
             continue
-        labels = extract_label_crop_ids(path, dataset=args.dataset_key, ids=args.ids, fallback_key=args.fallback_key)
+        labels = extract_label_crop_ids(path, dataset=args.dataset_key)
         # debug
         if not np.any(labels):
             print("No labels found in", path)
@@ -129,33 +111,21 @@ def main(args):
             viewer.add_image(raw)
             viewer.add_labels(labels)
             napari.run()
-        # save with attributes
-        # read attributes from h5
         
         save_labels_with_rescaled_voxel_size(path,
                                              out_path,
                                              labels,
                                              target_scale=args.taget_voxel_size,
-                                             key_name=args.fallback_key
+                                             dataset_key=args.dataset_key
                                              )
-        
-        # with h5py.File(path, "r") as f:
-        #     attrs = dict(f.attrs)
-        #     raw = f["raw_crop"][:]
-        # with h5py.File(out_path, "a") as f:
-        #     f.attrs.update(attrs)
-        #     f.create_dataset("labels/mitochondria", data=labels)
-        #     if "raw_crop" not in f.keys():
-        #         f.create_dataset("raw", data=raw, dtype=raw.dtype, compression="gzip")
+
 
 
 if __name__ == "__main__":
     argsparse = argparse.ArgumentParser()
     argsparse.add_argument("--input", "-i", type=str, default="/scratch-grete/projects/nim00007/data/cellmap/data_crops/")
     argsparse.add_argument("--dataset_key", "-k", type=str, default="label_crop/all")
-    argsparse.add_argument("--ids", "-id", type=int, nargs='+', default=[3, 4, 5])
-    argsparse.add_argument("--fallback_key", "-f", type=str, default="mito")
-    argsparse.add_argument("--output", "-o", type=str, default="/scratch-grete/projects/nim00007/data/cellmap/extracted_crops/")
+    argsparse.add_argument("--output", "-o", type=str, default="/scratch-grete/projects/nim00007/data/cellmap/resized_crops/")
     argsparse.add_argument("--taget_voxel_size", "-tvs", type=int, nargs=3, default=(8, 8, 8))
     argsparse.add_argument("--debug", "-d", action="store_true", default=False)
     args = argsparse.parse_args()

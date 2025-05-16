@@ -11,6 +11,45 @@ from skimage.morphology import binary_closing, ball, binary_dilation, convex_hul
 import torch_em
 
 
+class LabelAggregator:
+    def __init__(self, id_groups, out_ids=None, group_transforms=None):
+        """
+        id_groups: list of lists of int
+            Each sublist contains source IDs to aggregate into one output class.
+        out_ids: list of int, optional
+            Output class IDs, must match the number of groups (defaults to 1,2,...).
+        group_transforms: dict, optional
+            Maps out_id to a function to be applied to the mask before assignment.
+            E.g., {2: lambda arr: ndimage.binary_dilation(arr, iterations=1)}
+        """
+        self.id_groups = id_groups
+        if out_ids is None:
+            self.out_ids = list(range(1, len(id_groups) + 1))
+        else:
+            self.out_ids = out_ids
+        if group_transforms is None:
+            group_transforms = {}
+        self.group_transforms = group_transforms
+
+    def __call__(self, label_arr):
+        # Collect all the masks and count output channels
+        output_channels = []
+        for i, (group, out_id) in enumerate(zip(self.id_groups, self.out_ids)):
+            mask = np.isin(label_arr, group)
+            transform = self.group_transforms.get(out_id, None)
+            if transform is not None:
+                out = transform(mask)
+                if isinstance(out, np.ndarray) and out.ndim > mask.ndim:
+                    # Multi-channel output: shape (C, ...)
+                    for cidx in range(out.shape[0]):
+                        output_channels.append(out[cidx].astype(np.uint8))
+                else:
+                    output_channels.append(out.astype(np.uint8))
+            else:
+                output_channels.append(mask.astype(np.uint8))
+        return np.stack(output_channels, axis=0)
+
+
 class CombinedLabelTransform:
     def __init__(self, add_binary_target=True, dilation_footprint=np.ones((3, 3))):
         self.boundary_transform = torch_em.transform.BoundaryTransform(add_binary_target=add_binary_target)
@@ -28,7 +67,6 @@ class CombinedLabelTransform:
             dilated_target[z] = skimage.morphology.binary_dilation(target[1][z], footprint=self.dilation_footprint)
         
         return np.array([target[0], dilated_target])
-    
 
 
 def segment_mitos_from_labels_gemini(outer: np.ndarray, inner: np.ndarray):
