@@ -75,7 +75,7 @@ def main():
 
     raw_transform = torch_em.transform.raw.normalize_percentile  # util.custom_raw_transform
 
-    in_channels, out_channels = 1, len(ID_GROUPS) -1 + 2
+    in_channels, out_channels = 1, len(ID_GROUPS) - 1 + 2
 
 
     # load data paths etc.
@@ -105,7 +105,7 @@ def main():
 
     print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
 
-    sampler = MinInstanceSampler(min_num_instances=3, p_reject=0.95)
+    sampler = MinInstanceSampler(min_num_instances=5, p_reject=0.95)
 
     print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
     print("data['test']", data["test"])
