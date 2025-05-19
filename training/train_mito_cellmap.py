@@ -26,13 +26,13 @@ SAVE_DIR = "/scratch-grete/usr/nimlufre/synapse/mito_segmentation"
 # page 9
 ID_GROUPS = [
     [3, 4, 5, 50],             # mitochondria
-    [6, 7, 40],                # golgi
-    [14, 15, 44],              # liquid droplets
-    [
-        16, 17, 18, 19,
-        46, 51, 64
-    ],                         # endo reticulum
-    [47, 48, 49]               # peroxysomes
+    # [6, 7, 40],                # golgi
+    # [14, 15, 44],              # liquid droplets
+    # [
+    #     16, 17, 18, 19,
+    #     46, 51, 64
+    # ],                         # endo reticulum
+    # [47, 48, 49]               # peroxysomes
     # Add more groups as desired
 ]
 OUT_IDS = list(range(1, len(ID_GROUPS) + 1))  # Assigned class numbers in the output
@@ -105,16 +105,20 @@ def main():
 
     print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
 
-    focus_groups = [
-        [3, 4, 5, 50],             # mitochondria
-        # [6, 7, 40],                # golgi
-        # [14, 15, 44],              # liquid droplets
-        [
-            16, 17, 18, 19,
-            46, 51, 64
-        ],                         # endo reticulum
-        # [47, 48, 49]               # peroxysomes
-    ]
+    focus_groups = ID_GROUPS
+    # [
+    #     ID_GROUPS[0]
+    # ]
+    # focus_groups = [
+    #     [3, 4, 5, 50],             # mitochondria
+    #     # [6, 7, 40],                # golgi
+    #     # [14, 15, 44],              # liquid droplets
+    #     [
+    #         16, 17, 18, 19,
+    #         46, 51, 64
+    #     ],                         # endo reticulum
+    #     # [47, 48, 49]               # peroxysomes
+    # ]
     # sampler = MinInstanceSampler(min_num_instances=20, p_reject=0.95)
     sampler = cutil.IDGroupsSampler(id_groups=focus_groups, min_num_instances=1, p_reject=1, min_size=100)
 

@@ -9,7 +9,7 @@ source /user/freckmann15/u12103/.bashrc
 micromamba activate /mnt/lustre-grete/usr/u12103/micromamba/envs/synapse
 
 python /user/freckmann15/u12103/synapse/training/train_mito_cellmap.py \
-  --experiment_name "mitonet32-bs4-128-lr1e-4-cellmap-medium-organelles" \
+  --experiment_name "mitonet32-bs4-128-lr1e-4-cellmap-medium-organelles-mito" \
   --n_iterations 100000 \
   --patch_shape 128 128 128 \
   --batch_size 8 \
