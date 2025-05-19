@@ -1,5 +1,29 @@
 
+import h5py
 import numpy as np
+
+
+def get_paths_with_any_id_group(data_paths, ID_GROUPS, dataset="label_crop/all"):
+    """
+    Returns a list of all file paths for which at least one of the ID_GROUPS is present in the dataset.
+    """
+    valid_paths = []
+    for path in data_paths:
+        try:
+            with h5py.File(path, "r") as f:
+                if dataset not in f:
+                    continue
+                data = f[dataset][:]
+                present = any(
+                    len(np.intersect1d(np.unique(data), group)) > 0
+                    for group in ID_GROUPS
+                )
+                if present:
+                    valid_paths.append(path)
+        except Exception as e:
+            print(f"Error reading {path}: {e}")
+            continue
+    return valid_paths
 
 
 class AtLeastNGroupsSampler:

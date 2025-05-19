@@ -26,13 +26,13 @@ SAVE_DIR = "/scratch-grete/usr/nimlufre/synapse/mito_segmentation"
 # page 9
 ID_GROUPS = [
     [3, 4, 5, 50],             # mitochondria
-    # [6, 7, 40],                # golgi
-    # [14, 15, 44],              # liquid droplets
+    [6, 7, 40],                # golgi
+    [14, 15, 44],              # liquid droplets
     [
         16, 17, 18, 19,
         46, 51, 64
     ],                         # endo reticulum
-    # [47, 48, 49]               # peroxysomes
+    [47, 48, 49]               # peroxysomes
     # Add more groups as desired
 ]
 OUT_IDS = list(range(1, len(ID_GROUPS) + 1))  # Assigned class numbers in the output
@@ -83,6 +83,7 @@ def main():
     print(f"Start time {time.ctime()}")
 
     data_paths = util.get_data_paths(data_dir)
+    data_paths = cutil.get_paths_with_any_id_group(data_paths, ID_GROUPS=ID_GROUPS)
 
     print(data_paths)
     if data_dir2 is not None:
@@ -139,7 +140,7 @@ def main():
         out_channels=out_channels,
         label_transform=label_transform,
         raw_transform=raw_transform,
-        # check=True,
+        check=True,
     )
 
 
