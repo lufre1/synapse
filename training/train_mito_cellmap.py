@@ -28,10 +28,10 @@ ID_GROUPS = [
     [3, 4, 5, 50],             # mitochondria
     # [6, 7, 40],                # golgi
     # [14, 15, 44],              # liquid droplets
-    # [
-    #     16, 17, 18, 19,
-    #     46, 51, 64
-    # ],                         # endo reticulum
+    [
+        16, 17, 18, 19,
+        46, 51, 64
+    ],                         # endo reticulum
     # [47, 48, 49]               # peroxysomes
     # Add more groups as desired
 ]
@@ -120,7 +120,7 @@ def main():
     #     # [47, 48, 49]               # peroxysomes
     # ]
     # sampler = MinInstanceSampler(min_num_instances=20, p_reject=0.95)
-    sampler = cutil.IDGroupsSampler(id_groups=focus_groups, min_num_instances=1, p_reject=1, min_size=100)
+    sampler = cutil.AtLeastNGroupsSampler(id_groups=focus_groups, min_num_instances=1, p_reject=1)
 
     print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
     print("data['test']", data["test"])
@@ -139,7 +139,7 @@ def main():
         out_channels=out_channels,
         label_transform=label_transform,
         raw_transform=raw_transform,
-        check=True,
+        # check=True,
     )
 
 

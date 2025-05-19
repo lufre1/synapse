@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=grete:shared
 #SBATCH -G A100:1
-#SBATCH --time=2-00:00:00
+#SBATCH --time=1-00:00:00
 #SBATCH --job-name=cellmap
 
 
