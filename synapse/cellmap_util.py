@@ -1,4 +1,34 @@
 
+import numpy as np
+
+
+class IDGroupsSampler:
+    """
+    Ensures each group of label IDs occurs at least min_num_instances times in the patch.
+    """
+    def __init__(self, id_groups, min_num_instances=1, p_reject=1.0, min_size=None):
+        self.id_groups = id_groups
+        self.min_num_instances = min_num_instances
+        self.p_reject = p_reject
+        self.min_size = min_size
+
+    def __call__(self, x: np.ndarray, y: np.ndarray) -> bool:
+        failed = False
+        for group in self.id_groups:
+            mask = np.isin(y, group)
+            if self.min_size is not None:
+                present_ids = [i for i in group if np.sum(y == i) >= self.min_size]
+                n_found = len(present_ids)
+            else:
+                n_found = np.unique(y[mask]).size
+            if n_found < self.min_num_instances:
+                failed = True
+        if failed:
+            # One or more groups failed, reject with probability p_reject
+            return np.random.rand() > self.p_reject
+        return True
+
+
 def get_cellmap_mito_paths():
     return [
         "/scratch-grete/projects/nim00007/data/cellmap/data_crops/crop_1.h5",

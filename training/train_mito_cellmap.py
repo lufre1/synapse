@@ -35,7 +35,7 @@ ID_GROUPS = [
     [47, 48, 49]               # peroxysomes
     # Add more groups as desired
 ]
-OUT_IDS = [1, 2, 3, 4, 5]  # Assigned class numbers in the output
+OUT_IDS = list(range(1, len(ID_GROUPS) + 1))  # Assigned class numbers in the output
 
 
 def main():
@@ -66,7 +66,7 @@ def main():
     print(f"\n Experiment: {experiment_name}\n")
     print(f"Using {device} with {n_workers} workers.")
     mito_transform = lutil.CombinedLabelTransform(add_binary_target=True, dilation_footprint=np.ones((3, 3)))
-    
+
     label_transform = lutil.LabelAggregator(
         id_groups=ID_GROUPS,
         out_ids=OUT_IDS,
@@ -75,14 +75,14 @@ def main():
 
     raw_transform = torch_em.transform.raw.normalize_percentile  # util.custom_raw_transform
 
-    in_channels, out_channels = 1, len(ID_GROUPS) - 1 + 2
+    in_channels, out_channels = 1, len(ID_GROUPS) + 1
 
 
     # load data paths etc.
     start_time = time.time()
     print(f"Start time {time.ctime()}")
 
-    data_paths = cutil.get_cellmap_mito_paths()
+    data_paths = util.get_data_paths(data_dir)
 
     print(data_paths)
     if data_dir2 is not None:
@@ -105,7 +105,18 @@ def main():
 
     print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
 
-    sampler = MinInstanceSampler(min_num_instances=5, p_reject=0.95)
+    focus_groups = [
+        [3, 4, 5, 50],             # mitochondria
+        # [6, 7, 40],                # golgi
+        # [14, 15, 44],              # liquid droplets
+        [
+            16, 17, 18, 19,
+            46, 51, 64
+        ],                         # endo reticulum
+        # [47, 48, 49]               # peroxysomes
+    ]
+    # sampler = MinInstanceSampler(min_num_instances=20, p_reject=0.95)
+    sampler = cutil.IDGroupsSampler(id_groups=focus_groups, min_num_instances=1, p_reject=1, min_size=100)
 
     print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
     print("data['test']", data["test"])
@@ -113,7 +124,7 @@ def main():
     supervised_training(
         name=experiment_name,
         train_paths=data["train"],
-        raw_key="raw_crop",
+        raw_key="raw",
         val_paths=data["val"],
         label_key="label_crop/all",
         patch_shape=patch_shape,
@@ -124,6 +135,7 @@ def main():
         out_channels=out_channels,
         label_transform=label_transform,
         raw_transform=raw_transform,
+        check=True,
     )
 
 
