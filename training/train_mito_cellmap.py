@@ -24,16 +24,20 @@ import synapse.label_utils as lutil
 SAVE_DIR = "/scratch-grete/usr/nimlufre/synapse/mito_segmentation"
 # ids from https://janelia.figshare.com/articles/online_resource/CellMap_Segmentation_Challenge/28034561?file=51215543 
 # page 9
+# ID_GROUPS = [
+#     # [3, 4, 5, 50],             # mitochondria
+#     [6, 7, 40],                # golgi
+#     [14, 15, 44],              # liquid droplets
+#     # [
+#     #     16, 17, 18, 19,
+#     #     46, 51, 64
+#     # ],                         # endo reticulum
+#     [47, 48, 49]               # peroxysomes
+#     # Add more groups as desired
+# ]
 ID_GROUPS = [
-    [3, 4, 5, 50],             # mitochondria
-    [6, 7, 40],                # golgi
-    [14, 15, 44],              # liquid droplets
-    [
-        16, 17, 18, 19,
-        46, 51, 64
-    ],                         # endo reticulum
-    [47, 48, 49]               # peroxysomes
-    # Add more groups as desired
+    [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],  # nucleus 20:29
+    [54]  # chromatin also available [24, 25, 26, 27]
 ]
 OUT_IDS = list(range(1, len(ID_GROUPS) + 1))  # Assigned class numbers in the output
 
@@ -70,7 +74,7 @@ def main():
     label_transform = lutil.LabelAggregator(
         id_groups=ID_GROUPS,
         out_ids=OUT_IDS,
-        group_transforms={1: mito_transform}
+        # group_transforms={1: mito_transform}
     )
 
     raw_transform = torch_em.transform.raw.normalize_percentile  # util.custom_raw_transform
@@ -97,7 +101,7 @@ def main():
     random.seed(42)
     random.shuffle(data_paths)
     # data_paths.sort(reverse=True)
-    data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.8, val_ratio=0.15, test_ratio=0.05)
+    data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.6, val_ratio=0.4, test_ratio=0.00)
 
     end_time = time.time()
     # Calculate execution time in seconds
