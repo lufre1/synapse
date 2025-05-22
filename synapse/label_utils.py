@@ -14,13 +14,18 @@ import torch_em
 class LabelAggregator:
     def __init__(self, id_groups, out_ids=None, group_transforms=None):
         """
-        id_groups: list of lists of int
-            Each sublist contains source IDs to aggregate into one output class.
-        out_ids: list of int, optional
-            Output class IDs, must match the number of groups (defaults to 1,2,...).
-        group_transforms: dict, optional
-            Maps out_id to a function to be applied to the mask before assignment.
-            E.g., {2: lambda arr: ndimage.binary_dilation(arr, iterations=1)}
+        Initialize the LabelAggregator.
+        Extracts masks from a label array and aggregates them into one output class
+        in each channel. Use out_ids to use additional transform functions only on out_id class.
+
+        Args:
+            id_groups: list of lists of int
+                Each sublist contains source IDs to aggregate into one output class.
+            out_ids: list of int, optional
+                Output class IDs, must match the number of groups (defaults to 1,2,...).
+            group_transforms: dict, optional
+                Maps out_id to a function to be applied to the mask before assignment.
+                E.g., {2: lambda arr: ndimage.binary_dilation(arr, iterations=1)}
         """
         self.id_groups = id_groups
         if out_ids is None:
@@ -52,6 +57,14 @@ class LabelAggregator:
 
 class CombinedLabelTransform:
     def __init__(self, add_binary_target=True, dilation_footprint=np.ones((3, 3))):
+        """
+        Initialize the CombinedLabelTransform.
+
+        Args:
+            add_binary_target (bool): Whether to add a binary mask channel to the transformation output.
+            dilation_footprint (np.ndarray): The structuring element used for dilation, default is a 3x3 array of ones.
+        """
+
         self.boundary_transform = torch_em.transform.BoundaryTransform(add_binary_target=add_binary_target)
         self.dilation_footprint = dilation_footprint
 
