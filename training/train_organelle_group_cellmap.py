@@ -25,16 +25,20 @@ import synapse.label_utils as lutil
 SAVE_DIR = "/scratch-grete/usr/nimlufre/synapse/mito_segmentation"
 # ids from https://janelia.figshare.com/articles/online_resource/CellMap_Segmentation_Challenge/28034561?file=51215543 
 # page 9
+# ID_GROUPS = [
+#     # [3, 4, 5, 50],             # mitochondria
+#     [6, 7, 40],                # golgi
+#     [14, 15, 44],              # liquid droplets
+#     # [
+#     #     16, 17, 18, 19,
+#     #     46, 51, 64
+#     # ],                         # endo reticulum
+#     [47, 48, 49]               # peroxysomes
+#     # Add more groups as desired
+# ]
 ID_GROUPS = [
-    # [3, 4, 5, 50],             # mitochondria
-    [6, 7, 40],                # golgi
-    [14, 15, 44],              # liquid droplets
-    # [
-    #     16, 17, 18, 19,
-    #     46, 51, 64
-    # ],                         # endo reticulum
-    [47, 48, 49]               # peroxysomes
-    # Add more groups as desired
+    [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],  # nucleus 20:29
+    [24, 25, 26, 27, 54]  # chromatin also available [24, 25, 26, 27]
 ]
 OUT_IDS = list(range(1, len(ID_GROUPS) + 1))  # Assigned class numbers in the output
 
@@ -82,19 +86,20 @@ def main():
     start_time = time.time()
     print(f"Start time {time.ctime()}")
 
-    data_paths = cutil.get_resized_cellmap_paths(organelle_size="medium")
+    # data_paths = cutil.get_resized_cellmap_paths(organelle_size="medium")
+    data_paths = util.get_data_paths(data_dir)
     data_paths = cutil.get_paths_with_any_id_group(data_paths, ID_GROUPS=ID_GROUPS)
     stats = cutil.parallel_group_stats_in_h5(data_paths, ID_GROUPS, n_workers=128)
     pretty_stats = dict(stats)  # Convert nested defaultdicts to dicts if needed
     pprint.pprint(pretty_stats)
-    return
+
     # data_paths = util.get_data_paths(data_dir)
-    data_paths = cutil.get_paths_with_any_id_group(data_paths, ID_GROUPS=ID_GROUPS)
+    # data_paths = cutil.get_paths_with_any_id_group(data_paths, ID_GROUPS=ID_GROUPS)
 
     print(data_paths)
-    if data_dir2 is not None:
-        data_paths2 = util.get_data_paths(data_dir2)
-        data_paths.extend(data_paths2)
+    # if data_dir2 is not None:
+    #     data_paths2 = util.get_data_paths(data_dir2)
+    #     data_paths.extend(data_paths2)
 
     for path in data_paths:
         if "combined" in path:
