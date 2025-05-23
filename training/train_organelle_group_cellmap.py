@@ -66,10 +66,11 @@ def main():
     batch_size = args.batch_size
     patch_shape = args.patch_shape
 
-    n_workers = 12 if torch.cuda.is_available() else 1
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # n_workers = 12 if torch.cuda.is_available() else 1
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"\n Experiment: {experiment_name}\n")
-    print(f"Using {device} with {n_workers} workers.")
+    # print(f"Using {device} with {n_workers} workers.")
+    # n_woker will be set by synapse net trainer to (4 * batch_size)
     mito_transform = lutil.CombinedLabelTransform(add_binary_target=True, dilation_footprint=np.ones((3, 3)))
 
     label_transform = lutil.LabelAggregator(
@@ -132,7 +133,7 @@ def main():
     #     # [47, 48, 49]               # peroxysomes
     # ]
     # sampler = MinInstanceSampler(min_num_instances=20, p_reject=0.95)
-    sampler = cutil.AtLeastNGroupsSampler(id_groups=focus_groups, min_num_instances=1, p_reject=0.95)
+    sampler = cutil.AtLeastNGroupsSampler(id_groups=focus_groups, min_num_instances=1, p_reject=0.95, min_size=500)
     # prevalence = np.array([141, 18, 24, 185, 29])
     # weights = 1 / prevalence         # Rarer groups get bigger weight
     # weights = weights / weights.sum()  # Normalize to sum to 1
@@ -156,7 +157,7 @@ def main():
         out_channels=out_channels,
         label_transform=label_transform,
         raw_transform=raw_transform,
-        # check=True,
+        check=(False if torch.cuda.is_available() else True),
     )
 
 
