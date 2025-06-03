@@ -22,6 +22,9 @@ def find_datasets_with_substring(h5group, substring, prefix=""):
 
 
 def save_labels_with_rescaled_voxel_size(path, out_path, labels, dataset_key, target_scale=(8, 8, 8)):
+    if "282" in path or "289" in path:
+        print("File too large")
+        return None
     with h5py.File(path, "r") as f:
         attrs = dict(f.attrs)
         raw = f["raw_crop"][:]
@@ -34,12 +37,15 @@ def save_labels_with_rescaled_voxel_size(path, out_path, labels, dataset_key, ta
     # Check for drastic resizing (more than 2x up or down in any dimension)
     ratio = out_shape / in_shape
     # Use absolute ratio: either expansion or shrinkage should not go beyond factor 2
-    too_drastic = np.any((ratio > 2))  # | (ratio < 0.5))
+    too_drastic = np.any((ratio > 4))  # | (ratio < 0.5))
 
-    if too_drastic:
-        print(f"Skipping {path}: resizing factor in at least one dimension is more than a factor of 2. "
+    if too_drastic or "282" in path or "289" in path:  # files get too big 
+        # Unable to allocate 477. GiB for an array with shape (4000, 4000, 4000) and data type float64
+        print(f"Skipping {path}: resizing factor in at least one dimension is more than a factor of 4. "
               f"in_shape={in_shape}, out_shape={out_shape}, ratios={ratio}"
               f"out path would have been: {out_path}")
+        # create a attribute about this
+        attrs["resize_ratio"] = ratio
         return None  # skip this sample
 
     # Resample raw (linear) and labels (nearest)
@@ -55,6 +61,7 @@ def save_labels_with_rescaled_voxel_size(path, out_path, labels, dataset_key, ta
     attrs["scale"] = np.array(target_scale)
     attrs["resized_from_shape"] = in_shape
     attrs["resized_to_shape"] = out_shape
+    attrs["resize_ratio"] = ratio
 
     with h5py.File(out_path, "a") as f:
         f.attrs.update(attrs)
@@ -118,7 +125,6 @@ def main(args):
                                              target_scale=args.taget_voxel_size,
                                              dataset_key=args.dataset_key
                                              )
-
 
 
 if __name__ == "__main__":

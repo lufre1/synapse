@@ -22,24 +22,35 @@ import synapse.util as util
 import synapse.cellmap_util as cutil
 import synapse.label_utils as lutil
 # import data_classes
-SAVE_DIR = "/scratch-grete/usr/nimlufre/synapse/mito_segmentation"
+SAVE_DIR = "/scratch-grete/usr/nimlufre/cellmap/"
 # ids from https://janelia.figshare.com/articles/online_resource/CellMap_Segmentation_Challenge/28034561?file=51215543 
 # page 9
-# ID_GROUPS = [
-#     # [3, 4, 5, 50],             # mitochondria
-#     [6, 7, 40],                # golgi
-#     [14, 15, 44],              # liquid droplets
-#     # [
-#     #     16, 17, 18, 19,
-#     #     46, 51, 64
-#     # ],                         # endo reticulum
-#     [47, 48, 49]               # peroxysomes
-#     # Add more groups as desired
-# ]
 ID_GROUPS = [
-    [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],  # nucleus 20:29
-    [24, 25, 26, 27, 54]  # chromatin also available [24, 25, 26, 27]
+    # [3, 4, 5, 50],             # mitochondria
+    # [6, 7, 40],                # golgi
+    # [14, 15, 44],              # liquid droplets
+    # [
+    #     16, 17, 18, 19,
+    #     46, 51, 64
+    # ],                         # endo reticulum
+    [16,17,51,64],              # ER
+    [18,19,46],                  # ER exit sites (eres)
+    # [47, 48, 49]               # peroxysomes
+    # Add more groups as desired
 ]
+# ID_GROUPS = [
+#     [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],  # nucleus 20:29
+#     [24, 25, 26, 27, 54]  # chromatin also available [24, 25, 26, 27]
+# ]
+# ID_GROUPS = [
+#     [8,9,41],                   # vesicles
+#     [10,11,42],                 # endosomes
+#     # [12,13,43],                 # lysosomes
+#     # [47,48,49],                 # peroxysomes
+#     # [39],                       # glycogen
+#     # [62],                       # t-bar
+# ]
+
 OUT_IDS = list(range(1, len(ID_GROUPS) + 1))  # Assigned class numbers in the output
 
 
@@ -66,6 +77,8 @@ def main():
     batch_size = args.batch_size
     patch_shape = args.patch_shape
 
+    os.makedirs("/scratch-grete/usr/nimlufre/cellmap/", exist_ok=True)
+
     # n_workers = 12 if torch.cuda.is_available() else 1
     # device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"\n Experiment: {experiment_name}\n")
@@ -90,7 +103,7 @@ def main():
     # data_paths = cutil.get_resized_cellmap_paths(organelle_size="medium")
     data_paths = util.get_data_paths(data_dir)
     data_paths = cutil.get_paths_with_any_id_group(data_paths, ID_GROUPS=ID_GROUPS)
-    stats = cutil.parallel_group_stats_in_h5(data_paths, ID_GROUPS, n_workers=128)
+    stats = cutil.parallel_group_stats_in_h5(data_paths, ID_GROUPS, n_workers=None)
     pretty_stats = dict(stats)  # Convert nested defaultdicts to dicts if needed
     pprint.pprint(pretty_stats)
 
