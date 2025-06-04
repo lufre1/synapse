@@ -28,13 +28,13 @@ SAVE_DIR = "/scratch-grete/usr/nimlufre/cellmap/"
 ID_GROUPS = [
     # [3, 4, 5, 50],             # mitochondria
     # [6, 7, 40],                # golgi
-    # [14, 15, 44],              # liquid droplets
+    [14, 15, 44],              # liquid droplets
     # [
     #     16, 17, 18, 19,
     #     46, 51, 64
     # ],                         # endo reticulum
-    [16,17,51,64],              # ER
-    [18,19,46],                  # ER exit sites (eres)
+    # [16,17,51,64],              # ER
+    # [18,19,46],                  # ER exit sites (eres)
     # [47, 48, 49]               # peroxysomes
     # Add more groups as desired
 ]
@@ -132,26 +132,9 @@ def main():
     print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
 
     focus_groups = ID_GROUPS
-    # [
-    #     ID_GROUPS[0]
-    # ]
-    # focus_groups = [
-    #     [3, 4, 5, 50],             # mitochondria
-    #     # [6, 7, 40],                # golgi
-    #     # [14, 15, 44],              # liquid droplets
-    #     [
-    #         16, 17, 18, 19,
-    #         46, 51, 64
-    #     ],                         # endo reticulum
-    #     # [47, 48, 49]               # peroxysomes
-    # ]
+
     # sampler = MinInstanceSampler(min_num_instances=20, p_reject=0.95)
     sampler = cutil.AtLeastNGroupsSampler(id_groups=focus_groups, min_num_instances=1, p_reject=0.95, min_size=500)
-    # prevalence = np.array([141, 18, 24, 185, 29])
-    # weights = 1 / prevalence         # Rarer groups get bigger weight
-    # weights = weights / weights.sum()  # Normalize to sum to 1
-    # print("Weights:", weights)
-    # sampler = cutil.WeightedGroupSampler(ID_GROUPS, weights)
 
     print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
     print("data['test']", data["test"])

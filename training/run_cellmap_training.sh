@@ -15,7 +15,7 @@ BS=1
 LR=1e-4
 FS=32
 PATCH_SIZE=$(echo $PATCH_SHAPE | awk '{print $1}')
-EXPNAME="net${FS}-bs${BS}-ps${PATCH_SIZE}-lr${LR}-cellmap-erwes"
+EXPNAME="net${FS}-bs${BS}-ps${PATCH_SIZE}-lr${LR}-cellmap-er"
 
 
 python /user/freckmann15/u12103/synapse/training/train_organelle_group_cellmap.py \
