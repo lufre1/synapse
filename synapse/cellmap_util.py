@@ -8,6 +8,95 @@ from collections import defaultdict
 from tqdm import tqdm
 
 
+def get_uniques_from_file(h5_path, key="label_crop/all"):
+    try:
+        with h5py.File(h5_path, 'r') as f:
+            labels = f[key]
+            uniques = np.unique(labels)
+        return uniques
+    except Exception as e:
+        print(f"Error in {h5_path}: {e}")
+        return None
+
+
+def get_scale_from_file(h5_path):
+    try:
+        with h5py.File(h5_path, 'r') as f:
+            scale = f.attrs['scale']
+        return scale
+    except Exception as e:
+        print(f"Error in {h5_path}: {e}")
+        return None
+
+
+def get_scale_stats(h5_paths):
+    scales = []
+    for path in h5_paths:
+        scale = get_scale_from_file(path)
+        if scale is not None:
+            scales.append(scale)
+            if np.any(scale == 64):
+                print("path with scale of 64:", path, scale)
+    if not scales:
+        print("No scales found.")
+        return None
+    scales_arr = np.array(scales)
+    stats = {}
+    n_dim = scales_arr.shape[1] if scales_arr.ndim > 1 else 1
+    for d in range(n_dim):
+        dim_values = scales_arr[:, d] if n_dim > 1 else scales_arr
+        stats[f'dim{d}_min'] = np.min(dim_values)
+        stats[f'dim{d}_max'] = np.max(dim_values)
+        stats[f'dim{d}_mean'] = float(np.mean(dim_values))
+        stats[f'dim{d}_median'] = float(np.median(dim_values))
+    # Unique scales
+    unique, counts = np.unique(scales_arr, axis=0, return_counts=True)
+    stats['unique_scales'] = [tuple(row) for row in unique]
+    stats['unique_scale_counts'] = counts.tolist()
+    stats['n_files'] = len(scales)
+    return stats
+
+
+def get_shape_from_file(h5_path):
+    try:
+        with h5py.File(h5_path, 'r') as f:
+            shape = f['label_crop/all'].shape
+        return shape
+    except Exception as e:
+        print(f"Error reading {h5_path}: {e}")
+        return None
+
+
+def get_labelcropall_stats(filepaths, n_workers=None):
+    if n_workers is None:
+        n_workers = max(1, os.cpu_count() or 1)
+    shapes = []
+    # Collect shapes in parallel
+    with ProcessPoolExecutor(max_workers=n_workers) as executor:
+        future_to_file = {executor.submit(get_shape_from_file, path): path for path in filepaths}
+        for future in as_completed(future_to_file):
+            result = future.result()
+            if result:
+                shapes.append(result)
+    shapes_arr = np.array(shapes)
+    stats = {}
+    # Statistics per dimension
+    if shapes_arr.size == 0:
+        print("No valid shapes found.")
+        return None
+    for i in range(shapes_arr.shape[1]):
+        stats[f"dim{i}_min"] = np.min(shapes_arr[:, i])
+        stats[f"dim{i}_max"] = np.max(shapes_arr[:, i])
+        stats[f"dim{i}_mean"] = np.mean(shapes_arr[:, i])
+        stats[f"dim{i}_median"] = np.median(shapes_arr[:, i])
+    # Unique shapes
+    unique, counts = np.unique(shapes_arr, axis=0, return_counts=True)
+    stats['unique_shapes'] = [tuple(row) for row in unique]
+    stats['unique_shape_counts'] = counts.tolist()
+    stats['n_files'] = len(shapes)
+    return stats
+
+
 def file_group_stats(path, ID_GROUPS, dataset="label_crop/all"):
     per_file = {}
     try:

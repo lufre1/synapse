@@ -27,16 +27,15 @@ SAVE_DIR = "/scratch-grete/usr/nimlufre/cellmap/"
 # page 9
 ID_GROUPS = [
     # [3, 4, 5, 50],             # mitochondria
-    # [6, 7, 40],                # golgi
-    [14, 15, 44],              # liquid droplets
+    [6, 7, 40],                # golgi
+    # [14, 15, 44],              # liquid droplets
     # [
     #     16, 17, 18, 19,
     #     46, 51, 64
     # ],                         # endo reticulum
     # [16,17,51,64],              # ER
     # [18,19,46],                  # ER exit sites (eres)
-    # [47, 48, 49]               # peroxysomes
-    # Add more groups as desired
+    # [47, 48, 49]               # peroxisomes
 ]
 # ID_GROUPS = [
 #     [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],  # nucleus 20:29
@@ -50,13 +49,31 @@ ID_GROUPS = [
 #     # [39],                       # glycogen
 #     # [62],                       # t-bar
 # ]
+# all organelles
+# ID_GROUPS = [
+#     [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 37, 52, 53, 65],  # nucleus with pores and envelope
+#     [6, 7, 40],                                            # golgi
+#     [8, 9, 41],                                            # vesicle
+#     [10, 11, 42],                                          # endosome
+#     [12, 13, 43],                                          # lysosome
+#     [14, 15, 44],                                          # lipid droplet
+#     [16, 17, 18, 19, 46, 51, 64],                          # endoplasmic reticulum with exit sites
+#     [47, 48, 49],                                          # peroxisome
+#     [3, 4, 5, 50],                                         # mitochondria
+#     [24, 25, 26, 27, 54],                                  # chromatin
+#     [30, 36, 55],                                          # microtubule
+#     list(range(2, 37)) + [38, 39, 47, 48, 56, 57, 58, 61, 62, 60],  # cell
+#     [31, 32, 33, 66],                                      # centrosome collective
+#     [35],                                                  # cytosol
+#     [1],                                                   # extracellular space
+# ]
 
 OUT_IDS = list(range(1, len(ID_GROUPS) + 1))  # Assigned class numbers in the output
 
 
 def main():
     parser = argparse.ArgumentParser(description="3D UNet for medium organelle segmentation")
-    parser.add_argument("--data_dir", type=str, default="/scratch-grete/projects/nim00007/data/cellmap/resized_crops/",
+    parser.add_argument("--data_dir", type=str, default="/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/",  # "/scratch-grete/projects/nim00007/data/cellmap/resized_crops/",
                         help="Path to the data directory")
     parser.add_argument("--data_dir2", type=str, default=None, help="Path to a second data directory")
     parser.add_argument("--patch_shape", type=int, nargs=3, default=(128, 128, 128), help="Patch shape for data loading (3D tuple)")
@@ -102,13 +119,13 @@ def main():
 
     # data_paths = cutil.get_resized_cellmap_paths(organelle_size="medium")
     data_paths = util.get_data_paths(data_dir)
+    print("Filter paths for ID_GROUPS to keep...")
     data_paths = cutil.get_paths_with_any_id_group(data_paths, ID_GROUPS=ID_GROUPS)
+    print("Calculate statistics for filtered files...")
     stats = cutil.parallel_group_stats_in_h5(data_paths, ID_GROUPS, n_workers=None)
     pretty_stats = dict(stats)  # Convert nested defaultdicts to dicts if needed
+    print("ID_GROUPS", ID_GROUPS)
     pprint.pprint(pretty_stats)
-
-    # data_paths = util.get_data_paths(data_dir)
-    # data_paths = cutil.get_paths_with_any_id_group(data_paths, ID_GROUPS=ID_GROUPS)
 
     print(data_paths)
     # if data_dir2 is not None:
@@ -122,7 +139,7 @@ def main():
     random.seed(42)
     random.shuffle(data_paths)
     # data_paths.sort(reverse=True)
-    data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.8, val_ratio=0.15, test_ratio=0.05)
+    data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=0.8, val_ratio=0.15, test_ratio=0.05)
 
     end_time = time.time()
     # Calculate execution time in seconds
