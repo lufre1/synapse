@@ -26,8 +26,8 @@ SAVE_DIR = "/scratch-grete/usr/nimlufre/cellmap/"
 # ids from https://janelia.figshare.com/articles/online_resource/CellMap_Segmentation_Challenge/28034561?file=51215543 
 # page 9
 ID_GROUPS = [
-    # [3, 4, 5, 50],             # mitochondria
-    [6, 7, 40],                # golgi
+    [3, 4, 5, 50],             # mitochondria
+    # [6, 7, 40],                # golgi
     # [14, 15, 44],              # liquid droplets
     # [
     #     16, 17, 18, 19,
@@ -81,7 +81,7 @@ def main():
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate")
     parser.add_argument("--checkpoint_path", type=str, default="", help="Path to checkpoint used to load model's state_dict")
     parser.add_argument("--experiment_name", type=str, default="cellmap-medium-organelles", help="Name that is used for the experiment and store the model's weights")
-    parser.add_argument("--batch_size", type=int, default=4, help="Batch size to be used")
+    parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
     parser.add_argument("--feature_size", type=int, default=32, help="Initial feature size of the 3D UNet")
     parser.add_argument("--early_stopping", type=int, default=10, help="Number of epochs without improvement before stopping training")
 
@@ -94,19 +94,23 @@ def main():
     batch_size = args.batch_size
     patch_shape = args.patch_shape
 
-    os.makedirs("/scratch-grete/usr/nimlufre/cellmap/", exist_ok=True)
+    if torch.cuda.is_available():
+        os.makedirs("/scratch-grete/usr/nimlufre/cellmap/", exist_ok=True)
 
     # n_workers = 12 if torch.cuda.is_available() else 1
     # device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"\n Experiment: {experiment_name}\n")
     # print(f"Using {device} with {n_workers} workers.")
     # n_woker will be set by synapse net trainer to (4 * batch_size)
-    mito_transform = lutil.CombinedLabelTransform(add_binary_target=True, dilation_footprint=np.ones((3, 3)))
+    if [3, 4, 5, 50] in ID_GROUPS:
+        mito_transform = {1: lutil.CombinedLabelTransform(add_binary_target=True, dilation_footprint=np.ones((3, 3)))}
+    else:
+        mito_transform = None
 
     label_transform = lutil.LabelAggregator(
         id_groups=ID_GROUPS,
         out_ids=OUT_IDS,
-        # group_transforms={1: mito_transform}
+        group_transforms=mito_transform if mito_transform is not None else None,
     )
 
     raw_transform = torch_em.transform.raw.normalize_percentile  # util.custom_raw_transform
