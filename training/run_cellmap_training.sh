@@ -10,12 +10,12 @@ micromamba activate /mnt/lustre-grete/usr/u12103/micromamba/envs/synapse
 
 # ================ Define ALL parameters here ONCE ================
 N_ITER=100000
-PATCH_SHAPE="256 256 256"
-BS=1
+PATCH_SHAPE="128 128 128"
+BS=8
 LR=1e-4
 FS=32
 PATCH_SIZE=$(echo $PATCH_SHAPE | awk '{print $1}')
-EXPNAME="net${FS}-bs${BS}-ps${PATCH_SIZE}-lr${LR}-cellmap-mito"
+EXPNAME="net${FS}-bs${BS}-ps${PATCH_SIZE}-lr${LR}-cellmap-golgi"
 
 
 python /user/freckmann15/u12103/synapse/training/train_organelle_group_cellmap.py \

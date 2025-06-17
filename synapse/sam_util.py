@@ -40,7 +40,7 @@ def raw_transform(x):
 def finetune_sam_v2(name, train_images, raw_key, label_key,
                     val_images, batch_size,
                     n_iterations,
-                    checkpoint_path, patch_shape, check,
+                    save_root, patch_shape, check,
                     label_transform=None, sampler=None
                     ):
     from micro_sam.training import train_sam_for_configuration, default_sam_loader
@@ -73,5 +73,5 @@ def finetune_sam_v2(name, train_images, raw_key, label_key,
 
     train_sam_for_configuration(
         name, train_loader, val_loader, model_type="vit_b",
-        checkpoint_path=checkpoint_path,
+        save_root=save_root,
     )

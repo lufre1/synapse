@@ -26,8 +26,8 @@ SAVE_DIR = "/scratch-grete/usr/nimlufre/cellmap/"
 # ids from https://janelia.figshare.com/articles/online_resource/CellMap_Segmentation_Challenge/28034561?file=51215543 
 # page 9
 ID_GROUPS = [
-    [3, 4, 5, 50],             # mitochondria
-    # [6, 7, 40],                # golgi
+    # [3, 4, 5, 50],             # mitochondria
+    [6, 7, 40],                # golgi
     # [14, 15, 44],              # liquid droplets
     # [
     #     16, 17, 18, 19,
@@ -115,7 +115,7 @@ def main():
 
     raw_transform = torch_em.transform.raw.normalize_percentile  # util.custom_raw_transform
 
-    in_channels, out_channels = 1, len(ID_GROUPS)
+    in_channels, out_channels = 1, len(ID_GROUPS) if mito_transform is None else len(ID_GROUPS) + 1
 
     # load data paths etc.
     start_time = time.time()
