@@ -11,6 +11,45 @@ from skimage.morphology import binary_closing, ball, binary_dilation, convex_hul
 import torch_em
 
 
+class LabelAggregatorSAM:
+    def __init__(self, id_groups, out_ids=None, group_transforms=None):
+        """
+        Initialize the LabelAggregator.
+        Aggregates masks from a label array into single output classes.
+
+        Args:
+            id_groups: list of lists of int
+                Each sublist contains source IDs to aggregate into one output class.
+            out_ids: list of int, optional
+                Output class IDs, must match the number of groups (defaults to 1,2,...).
+            group_transforms: dict, optional
+                Maps out_id to a function to be applied to the mask before assignment.
+        """
+        self.id_groups = id_groups
+        if out_ids is None:
+            self.out_ids = list(range(1, len(id_groups) + 1))
+        else:
+            assert len(out_ids) == len(id_groups), "out_ids length must match id_groups length"
+            self.out_ids = out_ids
+        if group_transforms is None:
+            group_transforms = {}
+        self.group_transforms = group_transforms
+
+    def __call__(self, label_arr):
+        # Initialize a new label array for aggregated output
+        aggregated_label = np.zeros_like(label_arr, dtype=np.uint8)
+
+        for group, out_id in zip(self.id_groups, self.out_ids):
+            # Create mask for each group
+            mask = np.isin(label_arr, group)
+            # Apply transformation if available
+            transform = self.group_transforms.get(out_id, None)
+            if transform is not None:
+                mask = transform(mask)
+            aggregated_label[mask] = out_id
+        return aggregated_label
+
+
 class LabelAggregator:
     def __init__(self, id_groups, out_ids=None, group_transforms=None):
         """

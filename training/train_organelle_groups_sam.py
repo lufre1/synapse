@@ -59,7 +59,7 @@ ID_GROUPS = [
     [3, 4, 5, 50],                                         # mitochondria
     [24, 25, 26, 27, 54],                                  # chromatin
     [30, 36, 55],                                          # microtubule
-    list(range(2, 37)) + [38, 39, 47, 48, 56, 57, 58, 61, 62, 60],  # cell
+    [38, 39, 56, 57, 58, 61, 62, 60],                      # cell
     [31, 32, 33, 66],                                      # centrosome collective
     [35],                                                  # cytosol
     [1],                                                   # extracellular space
@@ -111,10 +111,10 @@ def main():
     #     mito_transform = None
     mito_transform = None
 
-    label_transform = lutil.LabelAggregator(
+    label_transform = lutil.LabelAggregatorSAM(
         id_groups=ID_GROUPS,
         out_ids=OUT_IDS,
-        group_transforms=mito_transform if mito_transform is not None else None,
+        #group_transforms=mito_transform if mito_transform is not None else None,
     )
 
     in_channels, out_channels = 1, len(ID_GROUPS)
@@ -159,6 +159,20 @@ def main():
     print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
     print("data['test']", data["test"])
 
+    # import napari
+    # from elf.io import open_file
+    # for i in range(0, 5):
+    #     with open_file(data["train"][i]) as f:
+    #         raw = f["raw"]
+    #         labels = f["label_crop/all"]
+    #         print("len out ids", len(OUT_IDS), OUT_IDS)
+    #         print("labels np unique", np.unique(labels))
+    #         v  = napari.Viewer()
+    #         v.add_image(raw)
+    #         v.add_labels(labels, name="labels")
+    #         v.add_labels(label_transform(labels), name="transformed")
+    #         napari.run()
+
     sutil.finetune_sam_v2(
         name=experiment_name,
         train_images=data["train"],
@@ -173,27 +187,11 @@ def main():
         sampler=sampler,
         early_stopping=args.early_stopping,
         # out_channels=out_channels,
-        # label_transform=label_transform,
+        label_transform=label_transform,
         # raw_transform=raw_transform,
         check=(False if torch.cuda.is_available() else True),
         
     )
-    # supervised_training(
-    #     name=experiment_name,
-    #     train_paths=data["train"],
-    #     raw_key="raw",
-    #     val_paths=data["val"],
-    #     label_key="label_crop/all",
-    #     patch_shape=patch_shape,
-    #     save_root=SAVE_DIR,
-    #     batch_size=batch_size,
-    #     n_iterations=n_iterations,
-    #     sampler=sampler,
-    #     out_channels=out_channels,
-    #     label_transform=label_transform,
-    #     raw_transform=raw_transform,
-    #     check=(False if torch.cuda.is_available() else True),
-    # )
 
 
 if __name__ == "__main__":
