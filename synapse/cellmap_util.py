@@ -180,30 +180,44 @@ def print_present_groups(data_paths, ID_GROUPS, dataset="label_crop/all", group_
             print(f"{path}: Error - {e}")
 
 
-def check_any_id_group(path, ID_GROUPS, dataset="label_crop/all"):
+def check_any_id_group(path, ID_GROUPS, dataset="label_crop/all", min_pct_slices=0):
     try:
         with h5py.File(path, "r") as f:
             if dataset not in f:
                 return None
             data = f[dataset][:]
-            present = any(
-                len(np.intersect1d(np.unique(data), group)) > 0
-                for group in ID_GROUPS
-            )
-            if present:
-                return path
+            # data.shape = (z, y, x) assumed
+            for group in ID_GROUPS:
+                z_contain = []
+                for z in range(data.shape[0]):
+                    # unique labels in this slice
+                    labels_in_slice = np.unique(data[z])
+                    if any(label in group for label in labels_in_slice):
+                        z_contain.append(1)
+                    else:
+                        z_contain.append(0)
+                fraction = sum(z_contain) / data.shape[0]
+                if fraction > min_pct_slices:
+                    return path
     except Exception as e:
         print(f"Error reading {path}: {e}")
     return None
 
 
-def get_paths_with_any_id_group(data_paths, ID_GROUPS, dataset="label_crop/all", n_workers=None):
+def get_paths_with_any_id_group(data_paths, ID_GROUPS, dataset="label_crop/all", n_workers=None, min_pct_slices=0):
+    # breakpoint()
     if n_workers is None:
-        n_workers = max(1, os.cpu_count() or 1)
+        avail_workers = os.cpu_count()
+        if avail_workers and avail_workers > 32:
+            n_workers = 32
+        else:
+            n_workers = 8
     valid_paths = []
     with ProcessPoolExecutor(max_workers=n_workers) as executor:
         futures = [
-            executor.submit(check_any_id_group, path, ID_GROUPS, dataset)
+            executor.submit(
+                check_any_id_group, path, ID_GROUPS, dataset, min_pct_slices
+            )
             for path in data_paths
         ]
         for future in as_completed(futures):
@@ -262,6 +276,14 @@ class AtLeastNGroupsSampler:
     Accepts patch if at least N distinct organelle groups have at least min_num_instances present.
     """
     def __init__(self, id_groups, min_num_groups=1, min_num_instances=1, p_reject=1.0, min_size=None):
+        """
+        Args:
+            id_groups: A list of lists of label IDs.
+            min_num_groups: The minimum number of groups that must be present in a patch.
+            min_num_instances: The minimum number of instances of each group that must be present in a patch.
+            p_reject: The probability of rejecting a patch that does not meet the criteria.
+            min_size: The minimum size of an instance of a group.
+        """
         self.id_groups = id_groups
         self.min_num_groups = min_num_groups
         self.min_num_instances = min_num_instances

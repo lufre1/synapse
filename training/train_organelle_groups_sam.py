@@ -10,6 +10,7 @@ import torch_em
 from torch_em.data import MinInstanceSampler
 from torch_em.model import AnisotropicUNet
 from torch_em.util.debug import check_loader, check_trainer
+from tqdm import tqdm
 from synapse_net.training.supervised_training import supervised_training, get_supervised_loader, get_3d_model
 
 # Import your util.py for data loading
@@ -72,13 +73,12 @@ def main():
     parser.add_argument("--data_dir", type=str, default="/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/",  # "/scratch-grete/projects/nim00007/data/cellmap/resized_crops/",
                         help="Path to the data directory")
     parser.add_argument("--data_dir2", type=str, default=None, help="Path to a second data directory")
-    parser.add_argument("--patch_shape", type=int, nargs=3, default=(1, 512, 512), help="Patch shape for data loading (3D tuple)")
+    parser.add_argument("--patch_shape", type=int, nargs=3, default=(1, 256, 256), help="Patch shape for data loading (3D tuple)")
     parser.add_argument("--n_iterations", type=int, default=10000, help="Number of training iterations")
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate")
-    parser.add_argument("--checkpoint_path", type=str, default="", help="Path to checkpoint used to load model's state_dict")
+    parser.add_argument("--checkpoint_path", type=str, default=None, help="Path to checkpoint used to load model's state_dict")
     parser.add_argument("--experiment_name", type=str, default="cellmap-medium-organelles", help="Name that is used for the experiment and store the model's weights")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
-    parser.add_argument("--feature_size", type=int, default=32, help="Initial feature size of the 3D UNet")
     parser.add_argument("--early_stopping", type=int, default=10, help="Number of epochs without improvement before stopping training")
 
     # Parse arguments
@@ -92,7 +92,15 @@ def main():
 
     if torch.cuda.is_available():
         os.makedirs("/scratch-grete/usr/nimlufre/cellmap/", exist_ok=True)
-
+    #load model from checkpoint if exists
+    if os.path.exists(os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")):
+        checkpoint_path = os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")
+        print("Checkpoint exists, loading model from checkpoint", checkpoint_path)
+    elif args.checkpoint_path is not None:
+        checkpoint_path = args.checkpoint_path
+        print("Loading model from given checkpoint", checkpoint_path)
+    else:
+        checkpoint_path = None
     # n_workers = 12 if torch.cuda.is_available() else 1
     # device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"\n Experiment: {experiment_name}\n")
@@ -118,7 +126,36 @@ def main():
     # data_paths = cutil.get_resized_cellmap_paths(organelle_size="medium")
     data_paths = util.get_data_paths(data_dir)
     print("Filter paths for ID_GROUPS to keep...")
+
     data_paths = cutil.get_paths_with_any_id_group(data_paths, ID_GROUPS=ID_GROUPS)
+    # data_paths_bykey = []
+    # # breakpoint()
+    # from elf.io import open_file
+    # for p in tqdm(data_paths):
+    #     with open_file(p, 'r') as f:
+    #         # Check if 'label_crop' group exists
+    #         if "label_crop" in f:
+    #             # List all datasets/groups under 'label_crop'
+    #             group = f["label_crop"]
+    #             # Loop over all keys in 'label_crop'
+    #             for key in group.keys():
+    #                 if "mito" in key:
+    #                     data_paths_bykey.append(p)
+    #                     break  # stop after first match in this file
+    #     # if "label_crop/mito" in open_file(p):
+    #     #     data_paths_bykey.append(p)
+    # # Compare both lists of paths
+    # common_paths = set(data_paths_byid).intersection(data_paths_bykey)
+    # unique_to_data_paths = set(data_paths_byid).difference(data_paths_bykey)
+    # unique_to_data_paths_bykey = set(data_paths_bykey).difference(data_paths_byid)
+
+    # print("Common paths:", common_paths)
+    # print("Unique to data_paths_byid:", unique_to_data_paths)
+    # print("Unique to data_paths_bykey:", unique_to_data_paths_bykey)
+
+    # return 
+    
+    data_paths = cutil.get_paths_with_any_id_group(data_paths, ID_GROUPS=ID_GROUPS, min_pct_slices=1)
     print("Calculate statistics for filtered files...")
     stats = cutil.parallel_group_stats_in_h5(data_paths, ID_GROUPS, n_workers=None)
     pretty_stats = dict(stats)  # Convert nested defaultdicts to dicts if needed
@@ -138,7 +175,7 @@ def main():
 
     print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
 
-    sampler = cutil.AtLeastNGroupsSampler(id_groups=ID_GROUPS, min_num_instances=1, p_reject=0.95, min_size=500)
+    sampler = cutil.AtLeastNGroupsSampler(id_groups=ID_GROUPS, min_num_instances=1, p_reject=1, min_size=100)
 
     print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
     print("data['test']", data["test"])
@@ -151,9 +188,11 @@ def main():
         label_key="label_crop/all",
         patch_shape=patch_shape,
         save_root=SAVE_DIR,
+        checkpoint_path=checkpoint_path,
         batch_size=batch_size,
         n_iterations=n_iterations,
         sampler=sampler,
+        early_stopping=args.early_stopping,
         # out_channels=out_channels,
         label_transform=label_transform,
         # raw_transform=raw_transform,

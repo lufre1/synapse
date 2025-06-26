@@ -22,9 +22,6 @@ def find_datasets_with_substring(h5group, substring, prefix=""):
 
 
 def save_labels_with_rescaled_voxel_size(path, out_path, labels, dataset_key, target_scale=(8, 8, 8)):
-    if "282" in path or "289" in path:
-        print("File too large")
-        return None
     with h5py.File(path, "r") as f:
         attrs = dict(f.attrs)
         raw = f["raw_crop"][:]
@@ -39,7 +36,7 @@ def save_labels_with_rescaled_voxel_size(path, out_path, labels, dataset_key, ta
     # Use absolute ratio: either expansion or shrinkage should not go beyond factor 2
     too_drastic = np.any((ratio > 4))  # | (ratio < 0.5))
 
-    if too_drastic or "282" in path or "289" in path:  # files get too big 
+    if too_drastic:  # files get too big 
         # Unable to allocate 477. GiB for an array with shape (4000, 4000, 4000) and data type float64
         print(f"Skipping {path}: resizing factor in at least one dimension is more than a factor of 4. "
               f"in_shape={in_shape}, out_shape={out_shape}, ratios={ratio}"
@@ -97,6 +94,9 @@ def main(args):
     else:
         paths = [input_path]
     for path in paths:
+        if "282" in path or "289" in path or "336" in path or "337" in path or "349" in path or "357" in path or "367" in path:
+            print("Output File too large", path)
+            continue
         print("\nProcessing path:", path)
         # if "247" in path:
         #     continue
@@ -129,9 +129,9 @@ def main(args):
 
 if __name__ == "__main__":
     argsparse = argparse.ArgumentParser()
-    argsparse.add_argument("--input", "-i", type=str, default="/scratch-grete/projects/nim00007/data/cellmap/data_crops/")
+    argsparse.add_argument("--input", "-i", type=str, default="/mnt/lustre-grete/usr/u12103/cellmap/data_crops/")
     argsparse.add_argument("--dataset_key", "-k", type=str, default="label_crop/all")
-    argsparse.add_argument("--output", "-o", type=str, default="/scratch-grete/projects/nim00007/data/cellmap/resized_crops/")
+    argsparse.add_argument("--output", "-o", type=str, default="/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/")
     argsparse.add_argument("--taget_voxel_size", "-tvs", type=int, nargs=3, default=(8, 8, 8))
     argsparse.add_argument("--debug", "-d", action="store_true", default=False)
     args = argsparse.parse_args()

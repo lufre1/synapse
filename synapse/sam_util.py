@@ -39,8 +39,9 @@ def raw_transform(x):
 
 def finetune_sam_v2(name, train_images, raw_key, label_key,
                     val_images, batch_size,
-                    n_iterations,
+                    n_iterations, checkpoint_path,
                     save_root, patch_shape, check,
+                    early_stopping,
                     label_transform=None, sampler=None
                     ):
     from micro_sam.training import train_sam_for_configuration, default_sam_loader
@@ -54,7 +55,7 @@ def finetune_sam_v2(name, train_images, raw_key, label_key,
         raw_paths=train_images, raw_key=raw_key,
         label_paths=train_images, label_key=label_key,
         patch_shape=patch_shape, with_segmentation_decoder=True, with_channels=False,
-        batch_size=1, rois=roi_train, raw_transform=raw_transform,
+        batch_size=batch_size, rois=roi_train, raw_transform=raw_transform,
         label_transform=label_transform,
         sampler=sampler
     )
@@ -62,7 +63,7 @@ def finetune_sam_v2(name, train_images, raw_key, label_key,
         raw_paths=val_images, raw_key=raw_key,
         label_paths=val_images, label_key=label_key,
         patch_shape=patch_shape, with_segmentation_decoder=True, with_channels=False,
-        batch_size=1, rois=roi_val, raw_transform=raw_transform,
+        batch_size=batch_size, rois=roi_val, raw_transform=raw_transform,
         label_transform=label_transform,
         sampler=sampler
     )
@@ -73,5 +74,6 @@ def finetune_sam_v2(name, train_images, raw_key, label_key,
 
     train_sam_for_configuration(
         name, train_loader, val_loader, model_type="vit_b",
-        save_root=save_root,
+        save_root=save_root, checkpoint_path=checkpoint_path,
+        early_stopping=early_stopping, n_iterations=n_iterations
     )
