@@ -1,32 +1,118 @@
 from glob import glob
 import os
+from typing import Optional, Tuple
 import imageio
 from elf.io import open_file
+import numpy as np
+from tqdm import tqdm
+import micro_sam.util as util
 
 
-# def extract_training_slices():
-#     good_slices = [
-#         9, 37, 103, 116, 192, 198
-#     ]
+def get_decoder_outputs(
+    predictor,
+    segmentor,
+    volume: np.ndarray,
+    embedding_path: Optional[str] = None,
+    tile_shape: Optional[Tuple[int, int]] = None,
+    halo: Optional[Tuple[int, int]] = None,
+    batch_size: int = 1,
+    verbose: bool = False,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Run prediction with a microSAM decoder, to get the boundary-, center-distance
+    and foreground predictions.
 
-#     train_im_output = os.path.join(ROOT, "train_mito", "images")
-#     train_lab_output = os.path.join(ROOT, "train_mito", "labels")
-#     os.makedirs(train_im_output, exist_ok=True)
-#     os.makedirs(train_lab_output, exist_ok=True)
+    Args:
+        predictor:
+        segmentor:
+        volume:
+        embedding_path:
+        tile_shape:
+        halo:
+        batch_size:
+        verbose:
 
-#     with open_file(CROP_MRC, "r") as f_raw, open_file(PRED, "r") as f_lab:
-#         data = f_raw["data"]
-#         labels = f_lab["segmentation/mitos_sam"]
+    Returns:
+        The foreground predictions.
+        The center distance predictions.
+        The boundary distance predictions.
+    """
+    image_embeddings = util.precompute_image_embeddings(
+        predictor=predictor,
+        input_=volume,
+        save_path=embedding_path,
+        ndim=3,
+        tile_shape=tile_shape,
+        halo=halo,
+        verbose=verbose,
+        batch_size=batch_size,
+    )
 
-#         for i, z in enumerate(good_slices):
-#             im, lab = data[z], labels[z]
-#             im = im.astype("float32")
-#             im -= im.min()
-#             im /= im.max()
-#             im *= 255
-#             im = im.astype("uint8")
-#             imageio.imwrite(os.path.join(train_im_output, f"im-{i:02}.tif"), im, compression="zlib")
-#             imageio.imwrite(os.path.join(train_lab_output, f"lab-{i:02}.tif"), lab, compression="zlib")
+    foreground = np.zeros(volume.shape, dtype="float32")
+    center_dists = np.zeros(volume.shape, dtype="float32")
+    boundary_dists = np.zeros(volume.shape, dtype="float32")
+    # This could also be batched.
+    for i in tqdm(range(volume.shape[0]), desc="Segment slices", disable=not verbose):
+        segmentor.initialize(volume[i], image_embeddings=image_embeddings, verbose=False, i=i)
+        foreground[i] = segmentor._foreground
+        center_dists[i] = segmentor._center_distances
+        boundary_dists[i] = segmentor._boundary_distances
+
+    return foreground, center_dists, boundary_dists
+
+
+def volumetric_segmentation(
+    predictor,
+    segmentor,
+    volume: np.ndarray,
+    embedding_path: Optional[str] = None,
+    tile_shape: Optional[Tuple[int, int]] = None,
+    halo: Optional[Tuple[int, int]] = None,
+    batch_size: int = 1,
+    gap_closing: int = 0,
+    min_z_extent: int = 0,
+    verbose: bool = False,
+    use_foreground_mask: bool = True,
+    use_center_distances: bool = True,
+    **kwargs,
+) -> np.ndarray:
+    """Run volumetric segmentation based on outputs from a microSAM segmentation decoder.
+
+    Args:
+        predictor:
+        segmentor:
+        volume:
+        embedding_path:
+        tile_shape:
+        halo:
+        batch_size:
+        gap_closing:
+        min_z_extent:
+        verbose:
+        use_foreground_mask:
+        use_center_distances:
+        kwargs:
+
+    Returns:
+        The volumetric segmentation.
+    """
+    foreground, center_dists, boundary_dists = get_decoder_outputs(
+        predictor=predictor,
+        segmentor=segmentor,
+        volume=volume,
+        embedding_path=embedding_path,
+        tile_shape=tile_shape,
+        halo=halo,
+        batch_size=batch_size,
+        verbose=verbose,
+    )
+    if not use_foreground_mask:
+        foreground = None
+    if not use_center_distances:
+        center_dists = None
+    segmentation = _volumetric_segmentation_impl(
+        center_dists, boundary_dists, foreground, gap_closing=gap_closing, min_z_extent=min_z_extent, **kwargs,
+    )
+    return segmentation
 
 
 def raw_transform(x):

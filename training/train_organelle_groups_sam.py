@@ -22,18 +22,18 @@ import synapse.sam_util as sutil
 SAVE_DIR = "/scratch-grete/usr/nimlufre/cellmap/"
 # ids from https://janelia.figshare.com/articles/online_resource/CellMap_Segmentation_Challenge/28034561?file=51215543 
 # page 9
-ID_GROUPS = [
-    [3, 4, 5, 50],             # mitochondria
-    # [6, 7, 40],                # golgi
-    # [14, 15, 44],              # liquid droplets
-    # [
-    #     16, 17, 18, 19,
-    #     46, 51, 64
-    # ],                         # endo reticulum
-    # [16,17,51,64],              # ER
-    # [18,19,46],                  # ER exit sites (eres)
-    # [47, 48, 49]               # peroxisomes
-]
+# ID_GROUPS = [
+#     [3, 4, 5, 50],             # mitochondria
+#     # [6, 7, 40],                # golgi
+#     # [14, 15, 44],              # liquid droplets
+#     # [
+#     #     16, 17, 18, 19,
+#     #     46, 51, 64
+#     # ],                         # endo reticulum
+#     # [16,17,51,64],              # ER
+#     # [18,19,46],                  # ER exit sites (eres)
+#     # [47, 48, 49]               # peroxisomes
+# ]
 # ID_GROUPS = [
 #     [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],  # nucleus 20:29
 #     [24, 25, 26, 27, 54]  # chromatin also available [24, 25, 26, 27]
@@ -47,23 +47,23 @@ ID_GROUPS = [
 #     # [62],                       # t-bar
 # ]
 # all organelles
-# ID_GROUPS = [
-#     [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 37, 52, 53, 65],  # nucleus with pores and envelope
-#     [6, 7, 40],                                            # golgi
-#     [8, 9, 41],                                            # vesicle
-#     [10, 11, 42],                                          # endosome
-#     [12, 13, 43],                                          # lysosome
-#     [14, 15, 44],                                          # lipid droplet
-#     [16, 17, 18, 19, 46, 51, 64],                          # endoplasmic reticulum with exit sites
-#     [47, 48, 49],                                          # peroxisome
-#     [3, 4, 5, 50],                                         # mitochondria
-#     [24, 25, 26, 27, 54],                                  # chromatin
-#     [30, 36, 55],                                          # microtubule
-#     list(range(2, 37)) + [38, 39, 47, 48, 56, 57, 58, 61, 62, 60],  # cell
-#     [31, 32, 33, 66],                                      # centrosome collective
-#     [35],                                                  # cytosol
-#     [1],                                                   # extracellular space
-# ]
+ID_GROUPS = [
+    [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 37, 52, 53, 65],  # nucleus with pores and envelope
+    [6, 7, 40],                                            # golgi
+    [8, 9, 41],                                            # vesicle
+    [10, 11, 42],                                          # endosome
+    [12, 13, 43],                                          # lysosome
+    [14, 15, 44],                                          # lipid droplet
+    [16, 17, 18, 19, 46, 51, 64],                          # endoplasmic reticulum with exit sites
+    [47, 48, 49],                                          # peroxisome
+    [3, 4, 5, 50],                                         # mitochondria
+    [24, 25, 26, 27, 54],                                  # chromatin
+    [30, 36, 55],                                          # microtubule
+    list(range(2, 37)) + [38, 39, 47, 48, 56, 57, 58, 61, 62, 60],  # cell
+    [31, 32, 33, 66],                                      # centrosome collective
+    [35],                                                  # cytosol
+    [1],                                                   # extracellular space
+]
 
 OUT_IDS = list(range(1, len(ID_GROUPS) + 1))  # Assigned class numbers in the output
 
@@ -125,42 +125,19 @@ def main():
 
     # data_paths = cutil.get_resized_cellmap_paths(organelle_size="medium")
     data_paths = util.get_data_paths(data_dir)
-    print("Filter paths for ID_GROUPS to keep...")
-
-    data_paths = cutil.get_paths_with_any_id_group(data_paths, ID_GROUPS=ID_GROUPS)
-    # data_paths_bykey = []
-    # # breakpoint()
-    # from elf.io import open_file
-    # for p in tqdm(data_paths):
-    #     with open_file(p, 'r') as f:
-    #         # Check if 'label_crop' group exists
-    #         if "label_crop" in f:
-    #             # List all datasets/groups under 'label_crop'
-    #             group = f["label_crop"]
-    #             # Loop over all keys in 'label_crop'
-    #             for key in group.keys():
-    #                 if "mito" in key:
-    #                     data_paths_bykey.append(p)
-    #                     break  # stop after first match in this file
-    #     # if "label_crop/mito" in open_file(p):
-    #     #     data_paths_bykey.append(p)
-    # # Compare both lists of paths
-    # common_paths = set(data_paths_byid).intersection(data_paths_bykey)
-    # unique_to_data_paths = set(data_paths_byid).difference(data_paths_bykey)
-    # unique_to_data_paths_bykey = set(data_paths_bykey).difference(data_paths_byid)
 
     # print("Common paths:", common_paths)
     # print("Unique to data_paths_byid:", unique_to_data_paths)
     # print("Unique to data_paths_bykey:", unique_to_data_paths_bykey)
 
     # return 
-    
-    data_paths = cutil.get_paths_with_any_id_group(data_paths, ID_GROUPS=ID_GROUPS, min_pct_slices=1)
-    print("Calculate statistics for filtered files...")
-    stats = cutil.parallel_group_stats_in_h5(data_paths, ID_GROUPS, n_workers=None)
-    pretty_stats = dict(stats)  # Convert nested defaultdicts to dicts if needed
-    print("ID_GROUPS", ID_GROUPS)
-    pprint.pprint(pretty_stats)
+    # print("Filter paths for ID_GROUPS to keep...")
+    # data_paths = cutil.get_paths_with_any_id_group(data_paths, ID_GROUPS=ID_GROUPS, min_pct_slices=1)
+    # print("Calculate statistics for filtered files...")
+    # stats = cutil.parallel_group_stats_in_h5(data_paths, ID_GROUPS, n_workers=None)
+    # pretty_stats = dict(stats)  # Convert nested defaultdicts to dicts if needed
+    # print("ID_GROUPS", ID_GROUPS)
+    # pprint.pprint(pretty_stats)
 
     print(data_paths)
     
@@ -173,9 +150,11 @@ def main():
     execution_time = end_time - start_time
     print(f"Data preprocessing execution time: {execution_time:.6f} seconds")
 
-    print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
+    # print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
 
     sampler = cutil.AtLeastNGroupsSampler(id_groups=ID_GROUPS, min_num_instances=1, p_reject=1, min_size=100)
+    # semantic_ids: List[int], min_fraction: float, min_fraction_per_id: bool = False, p_reject: float = 1.0
+    # sampler = torch_em.data.sampler.MinSemanticLabelForegroundSampler() 
 
     print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
     print("data['test']", data["test"])
@@ -194,7 +173,7 @@ def main():
         sampler=sampler,
         early_stopping=args.early_stopping,
         # out_channels=out_channels,
-        label_transform=label_transform,
+        # label_transform=label_transform,
         # raw_transform=raw_transform,
         check=(False if torch.cuda.is_available() else True),
         

@@ -156,12 +156,23 @@ def main(visualize=False):
     # all_ids = 0
     scales = []
     for path in b1_paths:
-        print(path)
-        if "247" in path:
-            continue
+        # print(path)
+        # if "247" in path:
+        #     continue
         with open_file(path, "r") as f:
             # breakpoint()
-            scales.append(f.attrs["scale"])
+            labels = f["label_crop/all"]
+            # print(path)
+            uniqs = np.unique(labels)
+            contains = []
+            for id in [37, 40, 41, 42, 43, 44, 49, 50, 51, 53, 55, 57, 59, 60, 64, 65, 66]:
+                if np.any(uniqs == id):
+                    contains.append(id)
+            if contains:
+                print(os.path.basename(path), f"path contains group id {contains}")
+            # for id in range(0, 70):
+            #     if np.any(labels == id):
+            #         print(f"path contains id {id}:", path)
             
     #     data = imread(path)
     #     uniq = np.unique(data)
@@ -173,7 +184,7 @@ def main(visualize=False):
     #         print("np.unique", np.unique(f["label_crop/mito"], return_counts=True))
 
     # print(len(shapes))
-    print_shape_stats(scales)
+    # print_shape_stats(scales)
 
 
 if __name__ == "__main__":

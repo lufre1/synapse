@@ -35,7 +35,7 @@ def visualize_data(data):
             # else:
             #     value = torch_em.transform.raw.normalize_percentile(value, lower=1, upper=99)
             viewer.add_image(value, name=key)
-        elif key == "prediction" or "pred" in key:
+        elif key == "prediction" or "pred" in key or "dist" in key or "fore" in key:
             viewer.add_image(value, name=key, blending="additive")
         else:
             viewer.add_labels(value, name=key)

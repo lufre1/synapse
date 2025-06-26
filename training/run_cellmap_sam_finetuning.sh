@@ -15,7 +15,7 @@ BS=1
 LR=1e-4
 DD="/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/"
 PATCH_SIZE=$(echo $PATCH_SHAPE | awk '{print $2}')
-EXPNAME="microsam-cellmaps-bs${BS}-ps${PATCH_SIZE}-resized-mitos"
+EXPNAME="microsam-cellmaps-bs${BS}-ps${PATCH_SIZE}-resized-all"
 
 
 
