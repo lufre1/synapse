@@ -159,18 +159,30 @@ def main():
     print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
     print("data['test']", data["test"])
 
-    # import napari
-    # from elf.io import open_file
+    import napari
+    from elf.io import open_file
+    # default_label_transform = torch_em.transform.label.PerObjectDistanceTransform(
+    #         distances=True,
+    #         boundary_distances=True,
+    #         directed_distances=False,
+    #         foreground=True,
+    #         instances=True,
+    #         min_size=25,
+    #     )
+    # custom_label_transform = label_transform
+    # label_transform = torch_em.transform.generic.Compose(label_transform, default_label_transform, is_multi_tensor=False)
     # for i in range(0, 5):
     #     with open_file(data["train"][i]) as f:
-    #         raw = f["raw"]
-    #         labels = f["label_crop/all"]
-    #         print("len out ids", len(OUT_IDS), OUT_IDS)
-    #         print("labels np unique", np.unique(labels))
-    #         v  = napari.Viewer()
+    #         raw = f["raw"][:]
+    #         labels = f["label_crop/all"][:]
+    #         v = napari.Viewer()
     #         v.add_image(raw)
     #         v.add_labels(labels, name="labels")
-    #         v.add_labels(label_transform(labels), name="transformed")
+    #         transformed = custom_label_transform(labels)
+    #         v.add_image(transformed, name="transformed")
+    #         default_transfromed = default_label_transform(labels)
+    #         v.add_image(default_transfromed, name="transformed distance")
+    #         v.add_image(label_transform(labels), name="combined")
     #         napari.run()
 
     sutil.finetune_sam_v2(
@@ -190,7 +202,6 @@ def main():
         label_transform=label_transform,
         # raw_transform=raw_transform,
         check=(False if torch.cuda.is_available() else True),
-        
     )
 
 
