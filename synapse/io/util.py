@@ -45,14 +45,14 @@ def export_data(export_path: str, data):
             raise ValueError("For .zarr format, data must be a dictionary with dataset names as keys.")
         root = zarr.open(export_path, mode="w")
         for key, value in data.items():
-            root.create_dataset(key, data=value.astype(data.dtype))
+            root.create_dataset(key, data=value.astype(data.dtype), compression="gzip")
 
     elif ext in {"h5", "hdf5"}:
         if not isinstance(data, dict):
             raise ValueError("For .h5 and .hdf5 formats, data must be a dictionary with dataset names as keys.")
         with h5py.File(export_path, "w") as f:
             for key, value in data.items():
-                f.create_dataset(key, data=value.astype(value.dtype))
+                f.create_dataset(key, data=value.astype(value.dtype), compression="gzip")
     
     else:
         raise ValueError(f"Unsupported file format: {ext}")

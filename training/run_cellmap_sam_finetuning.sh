@@ -9,9 +9,9 @@ source /user/freckmann15/u12103/.bashrc
 micromamba activate /mnt/lustre-grete/usr/u12103/micromamba/envs/sam
 
 # ================ Define ALL parameters here ONCE ================
-N_ITER=100000
+N_ITER=10000
 PATCH_SHAPE="1 256 256"
-BS=1
+BS=4
 LR=1e-4
 DD="/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/"
 PATCH_SIZE=$(echo $PATCH_SHAPE | awk '{print $2}')
