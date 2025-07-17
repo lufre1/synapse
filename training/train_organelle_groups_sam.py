@@ -80,6 +80,7 @@ def main():
     parser.add_argument("--experiment_name", type=str, default="cellmap-medium-organelles", help="Name that is used for the experiment and store the model's weights")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
     parser.add_argument("--early_stopping", type=int, default=10, help="Number of epochs without improvement before stopping training")
+    parser.add_argument("--label_key", type=str, default="all", help="Label key to be used for training e.g. label_crop/all")
 
     # Parse arguments
     args = parser.parse_args()
@@ -125,6 +126,8 @@ def main():
 
     # data_paths = cutil.get_resized_cellmap_paths(organelle_size="medium")
     data_paths = util.get_data_paths(data_dir)
+    # drop every other path
+    data_paths = data_paths[::2]
 
     # print("Common paths:", common_paths)
     # print("Unique to data_paths_byid:", unique_to_data_paths)
@@ -190,7 +193,7 @@ def main():
         train_images=data["train"],
         raw_key="raw",
         val_images=data["val"],
-        label_key="label_crop/all",
+        label_key=args.label_key,
         patch_shape=patch_shape,
         save_root=SAVE_DIR,
         checkpoint_path=checkpoint_path,

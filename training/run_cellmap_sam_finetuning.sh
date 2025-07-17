@@ -9,11 +9,11 @@ source /user/freckmann15/u12103/.bashrc
 micromamba activate /mnt/lustre-grete/usr/u12103/micromamba/envs/sam
 
 # ================ Define ALL parameters here ONCE ================
-N_ITER=10000
+N_ITER=12000
 PATCH_SHAPE="1 256 256"
-BS=4
+BS=1
 LR=1e-4
-DD="/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/"
+DD="/mnt/lustre-grete/usr/u12103/cellmap/resized_crops_1percent/"
 PATCH_SIZE=$(echo $PATCH_SHAPE | awk '{print $2}')
 EXPNAME="microsam-cellmaps-bs${BS}-ps${PATCH_SIZE}-resized-all"
 
