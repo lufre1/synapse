@@ -13,7 +13,7 @@ N_ITER=13000
 PATCH_SHAPE="1 256 256"
 BS=1
 LR=1e-4
-DD="/mnt/lustre-grete/usr/u12103/cellmap/resized_crops_1percent/"
+DD="/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/"
 PATCH_SIZE=$(echo $PATCH_SHAPE | awk '{print $2}')
 EXPNAME="microsam-cellmaps-bs${BS}-ps${PATCH_SIZE}-resized-all"
 

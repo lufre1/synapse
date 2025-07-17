@@ -77,10 +77,11 @@ def main():
     parser.add_argument("--n_iterations", type=int, default=10000, help="Number of training iterations")
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate")
     parser.add_argument("--checkpoint_path", type=str, default=None, help="Path to checkpoint used to load model's state_dict")
-    parser.add_argument("--experiment_name", type=str, default="cellmap-medium-organelles", help="Name that is used for the experiment and store the model's weights")
+    parser.add_argument("--experiment_name", type=str, default="cellmap-organelles", help="Name that is used for the experiment and store the model's weights")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
     parser.add_argument("--early_stopping", type=int, default=10, help="Number of epochs without improvement before stopping training")
-    parser.add_argument("--label_key", type=str, default="all", help="Label key to be used for training e.g. label_crop/all")
+    parser.add_argument("--label_key", type=str, default="label_crop/all", help="Label key to be used for training e.g. label_crop/all")
+    parser.add_argument("--n_samples", type=int, default=100, help="Number of samples to be used for training per dataset")
 
     # Parse arguments
     args = parser.parse_args()
@@ -127,7 +128,8 @@ def main():
     # data_paths = cutil.get_resized_cellmap_paths(organelle_size="medium")
     data_paths = util.get_data_paths(data_dir)
     # drop every other path
-    data_paths = data_paths[::2]
+    # data_paths = data_paths[::2]
+    
 
     # print("Common paths:", common_paths)
     # print("Unique to data_paths_byid:", unique_to_data_paths)
@@ -156,7 +158,7 @@ def main():
     # print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
 
     sampler = cutil.AtLeastNGroupsSampler(
-        id_groups=ID_GROUPS, min_num_instances=1, min_num_groups=2, p_reject=1, min_size=100
+        id_groups=ID_GROUPS, min_num_instances=1, min_num_groups=1, p_reject=1, min_size=100
         )
     # semantic_ids: List[int], min_fraction: float, min_fraction_per_id: bool = False, p_reject: float = 1.0
     # sampler = torch_em.data.sampler.MinSemanticLabelForegroundSampler() 
@@ -173,7 +175,6 @@ def main():
     #         foreground=True,
     #         instances=True,
     #         min_size=25,
-    #         apply_label=False
     #     )
     # custom_label_transform = label_transform
     # label_transform = torch_em.transform.generic.Compose(label_transform, default_label_transform, is_multi_tensor=False)
@@ -197,23 +198,23 @@ def main():
 
     train_loader = default_sam_loader(
         raw_paths=data["val"], raw_key="raw",
-        label_paths=data["val"], label_key="all",
+        label_paths=data["val"], label_key=args.label_key,
         patch_shape=patch_shape, with_segmentation_decoder=True, with_channels=False,
         batch_size=batch_size, rois=roi_train, raw_transform=None,
         label_transform=label_transform,
         sampler=sampler
     )
-    for i in tqdm(range(0, 10000)):
-        x, y = next(iter(train_loader))
-        # print("i", i)
-        # print("x and y shapes:", x.shape, y.shape)
-        uniq = np.unique(y[0, 0, :, :])
-        if np.all(uniq == 0):
-            print("np uniq y[0]", uniq)
-        # print(x[0, 0, 0, 0])
-        # print(y[0, 0, 0, 0])
-        # print(y[0, 0, 0, 1])
-    return
+    # for i in tqdm(range(0, 10000)):
+    #     x, y = next(iter(train_loader))
+    #     # print("i", i)
+    #     # print("x and y shapes:", x.shape, y.shape)
+    #     uniq = np.unique(y[0, 0, :, :])
+    #     if np.all(uniq == 0):
+    #         print("np uniq y[0]", uniq)
+    #     # print(x[0, 0, 0, 0])
+    #     # print(y[0, 0, 0, 0])
+    #     # print(y[0, 0, 0, 1])
+    # return
 
     sutil.finetune_sam_v2(
         name=experiment_name,
@@ -231,6 +232,7 @@ def main():
         # out_channels=out_channels,
         label_transform=label_transform,
         # raw_transform=raw_transform,
+        n_samples=args.n_samples,
         check=(False if torch.cuda.is_available() else True),
     )
 
