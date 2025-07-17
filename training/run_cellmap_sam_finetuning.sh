@@ -9,7 +9,7 @@ source /user/freckmann15/u12103/.bashrc
 micromamba activate /mnt/lustre-grete/usr/u12103/micromamba/envs/sam
 
 # ================ Define ALL parameters here ONCE ================
-N_ITER=12000
+N_ITER=13000
 PATCH_SHAPE="1 256 256"
 BS=1
 LR=1e-4

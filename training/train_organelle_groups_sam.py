@@ -155,7 +155,9 @@ def main():
 
     # print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
 
-    sampler = cutil.AtLeastNGroupsSampler(id_groups=ID_GROUPS, min_num_instances=1, p_reject=1, min_size=100)
+    sampler = cutil.AtLeastNGroupsSampler(
+        id_groups=ID_GROUPS, min_num_instances=1, min_num_groups=2, p_reject=1, min_size=100
+        )
     # semantic_ids: List[int], min_fraction: float, min_fraction_per_id: bool = False, p_reject: float = 1.0
     # sampler = torch_em.data.sampler.MinSemanticLabelForegroundSampler() 
 
@@ -188,6 +190,30 @@ def main():
     #         # v.add_image(default_transfromed, name="transformed distance")
     #         v.add_image(label_transform(labels), name="combined")
     #         napari.run()
+    
+    from micro_sam.training import train_sam_for_configuration, default_sam_loader
+
+    roi_train, roi_val = None, None
+
+    train_loader = default_sam_loader(
+        raw_paths=data["val"], raw_key="raw",
+        label_paths=data["val"], label_key="all",
+        patch_shape=patch_shape, with_segmentation_decoder=True, with_channels=False,
+        batch_size=batch_size, rois=roi_train, raw_transform=None,
+        label_transform=label_transform,
+        sampler=sampler
+    )
+    for i in tqdm(range(0, 10000)):
+        x, y = next(iter(train_loader))
+        # print("i", i)
+        # print("x and y shapes:", x.shape, y.shape)
+        uniq = np.unique(y[0, 0, :, :])
+        if np.all(uniq == 0):
+            print("np uniq y[0]", uniq)
+        # print(x[0, 0, 0, 0])
+        # print(y[0, 0, 0, 0])
+        # print(y[0, 0, 0, 1])
+    return
 
     sutil.finetune_sam_v2(
         name=experiment_name,
