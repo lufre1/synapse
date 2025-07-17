@@ -62,7 +62,7 @@ ID_GROUPS = [
     [38, 39, 56, 57, 58, 61, 62, 60],                      # cell
     [31, 32, 33, 66],                                      # centrosome collective
     [35],                                                  # cytosol
-    [1],                                                   # extracellular space
+    [1, 2],                                                # extracellular space + plasma membrane
 ]
 
 OUT_IDS = list(range(1, len(ID_GROUPS) + 1))  # Assigned class numbers in the output
@@ -171,6 +171,7 @@ def main():
     #         foreground=True,
     #         instances=True,
     #         min_size=25,
+    #         apply_label=False
     #     )
     # custom_label_transform = label_transform
     # label_transform = torch_em.transform.generic.Compose(label_transform, default_label_transform, is_multi_tensor=False)
@@ -182,9 +183,9 @@ def main():
     #         v.add_image(raw)
     #         v.add_labels(labels, name="labels")
     #         transformed = custom_label_transform(labels)
-    #         v.add_image(transformed, name="transformed")
+    #         v.add_image(transformed, name="my transformed")
     #         default_transfromed = default_label_transform(labels)
-    #         v.add_image(default_transfromed, name="transformed distance")
+    #         # v.add_image(default_transfromed, name="transformed distance")
     #         v.add_image(label_transform(labels), name="combined")
     #         napari.run()
 
