@@ -61,8 +61,10 @@ ID_GROUPS = [
     [30, 36, 55],                                          # microtubule
     [38, 39, 56, 57, 58, 61, 62, 60],                      # cell
     [31, 32, 33, 66],                                      # centrosome collective
+    [34],                                                  # ribosomes
     [35],                                                  # cytosol
-    [1, 2],                                                # extracellular space + plasma membrane
+    # [0, 1, 2],                                             # extracellular space + plasma membrane
+    [45],                                                  # red blood cells
 ]
 
 OUT_IDS = list(range(1, len(ID_GROUPS) + 1))  # Assigned class numbers in the output
@@ -127,17 +129,23 @@ def main():
 
     # data_paths = cutil.get_resized_cellmap_paths(organelle_size="medium")
     data_paths = util.get_data_paths(data_dir)
-    # drop every other path
-    # data_paths = data_paths[::2]
-    
+    # data_paths = cutil.get_cellmap_paths_without_cell_and_nuclei()
+    # remove paths 
+    exclude_strings = [
+        "_243.h5", "_25.h5", "_26.h5", "_55.h5",
+        "_56.h5", "_57.h5", "_58.h5", "_59.h5", "_60.h5", "_61.h5",
+        "_63.h5", "_64.h5", "_65.h5", "_66.h5", "_67.h5", "_68.h5",
+        "_69.h5", "_70.h5", "_71.h5", "_72.h5", "_73.h5", "_74.h5",
+        "_75.h5", "_77.h5", "_81.h5", "_83.h5", "_84.h5", "_85.h5",
+        "_86.h5", "_87.h5", "_88.h5", "_90.h5", "_91.h5", "_92.h5",
+        "_93.h5", "_94.h5", "_95.h5", "_96.h5", "_97.h5", "_98.h5",
+        "_99.h5",
+        ]
+    data_paths = [p for p in data_paths if not any(s in p for s in exclude_strings)]
 
-    # print("Common paths:", common_paths)
-    # print("Unique to data_paths_byid:", unique_to_data_paths)
-    # print("Unique to data_paths_bykey:", unique_to_data_paths_bykey)
 
-    # return 
     # print("Filter paths for ID_GROUPS to keep...")
-    # data_paths = cutil.get_paths_with_any_id_group(data_paths, ID_GROUPS=ID_GROUPS, min_pct_slices=1)
+    # data_paths = cutil.get_paths_with_any_id_group(data_paths, ID_GROUPS=ID_GROUPS, min_pct_slices=0, n_workers=4)
     # print("Calculate statistics for filtered files...")
     # stats = cutil.parallel_group_stats_in_h5(data_paths, ID_GROUPS, n_workers=None)
     # pretty_stats = dict(stats)  # Convert nested defaultdicts to dicts if needed
@@ -145,7 +153,7 @@ def main():
     # pprint.pprint(pretty_stats)
 
     print(data_paths)
-    
+
     random.seed(42)
     random.shuffle(data_paths)
     data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=0.8, val_ratio=0.15, test_ratio=0.05)
@@ -158,16 +166,17 @@ def main():
     # print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
 
     sampler = cutil.AtLeastNGroupsSampler(
-        id_groups=ID_GROUPS, min_num_instances=1, min_num_groups=1, p_reject=1, min_size=100
+        id_groups=ID_GROUPS, min_num_instances=1, min_num_groups=2, p_reject=1, min_size=100
         )
+
     # semantic_ids: List[int], min_fraction: float, min_fraction_per_id: bool = False, p_reject: float = 1.0
     # sampler = torch_em.data.sampler.MinSemanticLabelForegroundSampler() 
 
     print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
     print("data['test']", data["test"])
 
-    import napari
-    from elf.io import open_file
+    # import napari
+    # from elf.io import open_file
     # default_label_transform = torch_em.transform.label.PerObjectDistanceTransform(
     #         distances=True,
     #         boundary_distances=True,
@@ -196,24 +205,73 @@ def main():
 
     roi_train, roi_val = None, None
 
-    train_loader = default_sam_loader(
-        raw_paths=data["val"], raw_key="raw",
-        label_paths=data["val"], label_key=args.label_key,
-        patch_shape=patch_shape, with_segmentation_decoder=True, with_channels=False,
-        batch_size=batch_size, rois=roi_train, raw_transform=None,
-        label_transform=label_transform,
-        sampler=sampler
-    )
+    # train_loader = default_sam_loader(
+    #     raw_paths=data["train"], raw_key="raw",
+    #     label_paths=data["train"], label_key=args.label_key,
+    #     patch_shape=patch_shape, with_segmentation_decoder=True, with_channels=False,
+    #     batch_size=batch_size, rois=roi_train, raw_transform=None,
+    #     label_transform=label_transform,
+    #     sampler=sampler, n_samples=args.n_samples
+    # )
+    # check_loader(train_loader, n_samples=args.n_samples)
+    # return
     # for i in tqdm(range(0, 10000)):
     #     x, y = next(iter(train_loader))
     #     # print("i", i)
     #     # print("x and y shapes:", x.shape, y.shape)
     #     uniq = np.unique(y[0, 0, :, :])
-    #     if np.all(uniq == 0):
-    #         print("np uniq y[0]", uniq)
-    #     # print(x[0, 0, 0, 0])
-    #     # print(y[0, 0, 0, 0])
-    #     # print(y[0, 0, 0, 1])
+    #     if len(uniq) == 1:
+    #         print("np uniq y[0]", np.unique(uniq))
+    #         return
+    
+    # val_loader = default_sam_loader(
+    #     raw_paths=data["val"], raw_key="raw",
+    #     label_paths=data["val"], label_key=args.label_key,
+    #     patch_shape=patch_shape, with_segmentation_decoder=True, with_channels=False,
+    #     batch_size=batch_size, rois=roi_train, raw_transform=None,
+    #     label_transform=label_transform,
+    #     sampler=sampler
+    # )
+    # stop_at = 100
+    # count_zeros = 0
+    # with torch.no_grad():
+    #     for i, (x, y) in enumerate(tqdm(val_loader, start=1, desc="Processing files")):
+    #         # If 'y' is a torch.Tensor, y[0, 0].max() returns a scalar tensor:
+    #         # .item() converts it to a Python number.
+    #         uniq = np.unique(y[0, 0, :, :])
+    #         if len(uniq) == 1:
+    #             print("Found patch with uniqs", uniq)
+    #         # Stop once we've processed the desired number of batches
+    #         if i >= stop_at:
+    #             break
+
+    #     # print(f"Train: Saw {count_zeros} batches where y[0, 0, :, :] was all zeros out of {i} total checked.")
+    #     for i in tqdm(range(0, stop_at)):
+    #         x, y = next(iter(train_loader))
+    #         # print("i", i)
+    #         # print("x and y shapes:", x.shape, y.shape)
+    #         uniq = np.array(y[0, 0, :, :]).max()  # np.unique(y[0, 0, :, :])
+    #         if uniq == 0:
+    #             print("train np uniq y[0]", uniq)
+    #     count_zeros = 0
+    #     for i in tqdm(range(0, stop_at)):
+    #         x, y = next(iter(val_loader))
+    #         # print("i", i)
+    #         # print("x and y shapes:", x.shape, y.shape)
+    #         uniq = np.array(y[0, 0, :, :]).max()  # np.unique(y[0, 0, :, :])
+    #         if uniq == 0:
+    #             print("val np uniq y[0]", uniq)
+        
+    #     # for i, (x, y) in enumerate(tqdm(val_loader), start=1):
+    #     #     # If 'y' is a torch.Tensor, y[0, 0].max() returns a scalar tensor:
+    #     #     # .item() converts it to a Python number.
+    #     #     if not torch.any(y[0, 0]):
+    #     #         count_zeros += 1
+    #     #     # Stop once we've processed the desired number of batches
+    #     #     if i >= stop_at:
+    #     #         break
+
+    #     print(f"Val: Saw {count_zeros} batches where y[0, 0, :, :] was all zeros out of {i} total checked.")
     # return
 
     sutil.finetune_sam_v2(

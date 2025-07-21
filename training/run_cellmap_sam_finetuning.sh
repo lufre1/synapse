@@ -3,6 +3,7 @@
 #SBATCH -G A100:1
 #SBATCH --time=1-00:00:00
 #SBATCH --job-name=cellmap-sam
+#SBATCH -c 8
 
 
 source /user/freckmann15/u12103/.bashrc
