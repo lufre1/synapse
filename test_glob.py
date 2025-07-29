@@ -253,7 +253,7 @@ def main(visualize=False):
     # return
 
     for path in tqdm(b1_paths):
-        dataset = "label_crop/all"
+        dataset = "raw" # "label_crop/all"
         try:
             with h5py.File(path, "r", swmr=True) as f:
                 # if dataset not in f:
@@ -262,22 +262,23 @@ def main(visualize=False):
                 # if np.all(data == data[0]):
                 #     print(path)
                 if dataset not in f:
-                    return None
-                data = f[dataset][:]
-                label = data[0, 0, 0]
-                for i in range(data.shape[0]):
-                    for j in range(data.shape[1]):
-                        for k in range(data.shape[2]):
-                            if data[i, j, k] != label:
-                                break
-                        else:
-                            continue
-                        break
-                    else:
-                        continue
-                    break
-                else:
                     print(path)
+                    # return None
+                # data = f[dataset][:]
+                # label = data[0, 0, 0]
+                # for i in range(data.shape[0]):
+                #     for j in range(data.shape[1]):
+                #         for k in range(data.shape[2]):
+                #             if data[i, j, k] != label:
+                #                 break
+                #         else:
+                #             continue
+                #         break
+                #     else:
+                #         continue
+                #     break
+                # else:
+                #     print(path)
         except Exception as e:
             print(f"Error reading {path}: {e}")
             

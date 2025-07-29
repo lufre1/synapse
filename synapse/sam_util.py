@@ -60,61 +60,6 @@ def get_decoder_outputs(
     return foreground, center_dists, boundary_dists
 
 
-def volumetric_segmentation(
-    predictor,
-    segmentor,
-    volume: np.ndarray,
-    embedding_path: Optional[str] = None,
-    tile_shape: Optional[Tuple[int, int]] = None,
-    halo: Optional[Tuple[int, int]] = None,
-    batch_size: int = 1,
-    gap_closing: int = 0,
-    min_z_extent: int = 0,
-    verbose: bool = False,
-    use_foreground_mask: bool = True,
-    use_center_distances: bool = True,
-    **kwargs,
-) -> np.ndarray:
-    """Run volumetric segmentation based on outputs from a microSAM segmentation decoder.
-
-    Args:
-        predictor:
-        segmentor:
-        volume:
-        embedding_path:
-        tile_shape:
-        halo:
-        batch_size:
-        gap_closing:
-        min_z_extent:
-        verbose:
-        use_foreground_mask:
-        use_center_distances:
-        kwargs:
-
-    Returns:
-        The volumetric segmentation.
-    """
-    foreground, center_dists, boundary_dists = get_decoder_outputs(
-        predictor=predictor,
-        segmentor=segmentor,
-        volume=volume,
-        embedding_path=embedding_path,
-        tile_shape=tile_shape,
-        halo=halo,
-        batch_size=batch_size,
-        verbose=verbose,
-    )
-    if not use_foreground_mask:
-        foreground = None
-    if not use_center_distances:
-        center_dists = None
-    segmentation = _volumetric_segmentation_impl(
-        center_dists, boundary_dists, foreground, gap_closing=gap_closing, min_z_extent=min_z_extent, **kwargs,
-    )
-    return segmentation
-
-
 def raw_transform(x):
     x = x.astype("float32")
     x -= x.min()
@@ -162,5 +107,6 @@ def finetune_sam_v2(name, train_images, raw_key, label_key,
     train_sam_for_configuration(
         name, train_loader, val_loader, model_type="vit_b",
         save_root=save_root, checkpoint_path=checkpoint_path,
-        early_stopping=early_stopping, n_iterations=n_iterations
+        early_stopping=early_stopping, n_iterations=n_iterations,
+        verify_n_labels_in_loader=None,
     )

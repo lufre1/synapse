@@ -1,9 +1,10 @@
 #!/bin/bash
 #SBATCH --partition=grete:shared
 #SBATCH -G A100:1
-#SBATCH --time=1-00:00:00
+#SBATCH --time=0-12:00:00
 #SBATCH --job-name=cellmap-sam
 #SBATCH -c 8
+#SBATCH --mem 32G
 
 
 source /user/freckmann15/u12103/.bashrc
@@ -15,8 +16,13 @@ PATCH_SHAPE="1 256 256"
 BS=1
 LR=1e-4
 DD="/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/"
+RAW_KEY="raw"
+# DD="/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops"
+# RAW_KEY="raw_crop"
 PATCH_SIZE=$(echo $PATCH_SHAPE | awk '{print $2}')
-EXPNAME="microsam-cellmaps-bs${BS}-ps${PATCH_SIZE}-resized-all"
+EXPNAME="microsam-cellmaps-bs${BS}-ps${PATCH_SIZE}-resized-wocyto"
+EARLY_STOPPING=5
+
 
 
 
@@ -26,4 +32,6 @@ python /user/freckmann15/u12103/synapse/training/train_organelle_groups_sam.py \
   --patch_shape ${PATCH_SHAPE} \
   --batch_size ${BS} \
   --learning_rate ${LR} \
-  --data_dir ${DD}
+  --data_dir ${DD} \
+  --early_stopping ${EARLY_STOPPING} \
+  --raw_key ${RAW_KEY}

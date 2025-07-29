@@ -5,6 +5,7 @@ import os
 import random
 import argparse
 import time
+import napari
 import torch_em
 # import torch_em.data.datasets as torchem_data
 from torch_em.data import MinInstanceSampler
@@ -15,6 +16,7 @@ from synapse_net.training.supervised_training import supervised_training, get_su
 
 # Import your util.py for data loading
 import synapse.util as util
+import synapse.io.util as io
 import synapse.cellmap_util as cutil
 import synapse.label_utils as lutil
 import synapse.sam_util as sutil
@@ -48,7 +50,7 @@ SAVE_DIR = "/scratch-grete/usr/nimlufre/cellmap/"
 # ]
 # all organelles
 ID_GROUPS = [
-    [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 37, 52, 53, 65],  # nucleus with pores and envelope
+    [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 37, 52, 53, 54 65],  # nucleus with pores and envelope
     [6, 7, 40],                                            # golgi
     [8, 9, 41],                                            # vesicle
     [10, 11, 42],                                          # endosome
@@ -57,17 +59,30 @@ ID_GROUPS = [
     [16, 17, 18, 19, 46, 51, 64],                          # endoplasmic reticulum with exit sites
     [47, 48, 49],                                          # peroxisome
     [3, 4, 5, 50],                                         # mitochondria
-    [24, 25, 26, 27, 54],                                  # chromatin
     [30, 36, 55],                                          # microtubule
-    [38, 39, 56, 57, 58, 61, 62, 60],                      # cell
+    [38],                                                   # vimentin
+    [39],                                                   # glycogen
+    [56, 57, 58, 61, 62, 60],                               # cell
     [31, 32, 33, 66],                                      # centrosome collective
     [34],                                                  # ribosomes
-    [35],                                                  # cytosol
+    # [2, 35],                                                  # cytosol
     # [0, 1, 2],                                             # extracellular space + plasma membrane
     [45],                                                  # red blood cells
 ]
 
 OUT_IDS = list(range(1, len(ID_GROUPS) + 1))  # Assigned class numbers in the output
+
+# import multiprocessing as mp
+# cell_ids = [38, 39, 56, 57, 58, 61, 62, 60]
+# cell_ids_set = set(cell_ids)
+
+
+# def process_file(path):
+#     data = io.load_data_from_file(path)
+#     if "all" in data.keys():
+#         uniq = np.unique(data["all"])
+#         if cell_ids_set.intersection(uniq):
+#             return path
 
 
 def main():
@@ -76,12 +91,13 @@ def main():
                         help="Path to the data directory")
     parser.add_argument("--data_dir2", type=str, default=None, help="Path to a second data directory")
     parser.add_argument("--patch_shape", type=int, nargs=3, default=(1, 256, 256), help="Patch shape for data loading (3D tuple)")
-    parser.add_argument("--n_iterations", type=int, default=10000, help="Number of training iterations")
+    parser.add_argument("--n_iterations", type=int, default=13000, help="Number of training iterations")
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate")
     parser.add_argument("--checkpoint_path", type=str, default=None, help="Path to checkpoint used to load model's state_dict")
-    parser.add_argument("--experiment_name", type=str, default="cellmap-organelles", help="Name that is used for the experiment and store the model's weights")
+    parser.add_argument("--experiment_name", "-ep", type=str, default="cellmap-organelles", help="Name that is used for the experiment and store the model's weights")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
-    parser.add_argument("--early_stopping", type=int, default=10, help="Number of epochs without improvement before stopping training")
+    parser.add_argument("--early_stopping", type=int, default=5, help="Number of epochs without improvement before stopping training")
+    parser.add_argument("--raw_key", type=str, default="raw", help="Raw key to be used for training e.g. raw_crop")
     parser.add_argument("--label_key", type=str, default="label_crop/all", help="Label key to be used for training e.g. label_crop/all")
     parser.add_argument("--n_samples", type=int, default=100, help="Number of samples to be used for training per dataset")
 
@@ -105,23 +121,14 @@ def main():
         print("Loading model from given checkpoint", checkpoint_path)
     else:
         checkpoint_path = None
-    # n_workers = 12 if torch.cuda.is_available() else 1
-    # device = "cuda" if torch.cuda.is_available() else "cpu"
+
     print(f"\n Experiment: {experiment_name}\n")
-    # we do not need boundary + foreground for microsam (we use distances)
-    # if [3, 4, 5, 50] in ID_GROUPS:
-    #     mito_transform = {1: lutil.CombinedLabelTransform(add_binary_target=True, dilation_footprint=np.ones((3, 3)))}
-    # else:
-    #     mito_transform = None
-    mito_transform = None
 
     label_transform = lutil.LabelAggregatorSAM(
         id_groups=ID_GROUPS,
         out_ids=OUT_IDS,
         #group_transforms=mito_transform if mito_transform is not None else None,
     )
-
-    in_channels, out_channels = 1, len(ID_GROUPS)
 
     # load data paths etc.
     start_time = time.time()
@@ -130,22 +137,75 @@ def main():
     # data_paths = cutil.get_resized_cellmap_paths(organelle_size="medium")
     data_paths = util.get_data_paths(data_dir)
     # data_paths = cutil.get_cellmap_paths_without_cell_and_nuclei()
-    # remove paths 
-    exclude_strings = [
-        "_243.h5", "_25.h5", "_26.h5", "_55.h5",
-        "_56.h5", "_57.h5", "_58.h5", "_59.h5", "_60.h5", "_61.h5",
-        "_63.h5", "_64.h5", "_65.h5", "_66.h5", "_67.h5", "_68.h5",
-        "_69.h5", "_70.h5", "_71.h5", "_72.h5", "_73.h5", "_74.h5",
-        "_75.h5", "_77.h5", "_81.h5", "_83.h5", "_84.h5", "_85.h5",
-        "_86.h5", "_87.h5", "_88.h5", "_90.h5", "_91.h5", "_92.h5",
-        "_93.h5", "_94.h5", "_95.h5", "_96.h5", "_97.h5", "_98.h5",
-        "_99.h5",
-        ]
-    data_paths = [p for p in data_paths if not any(s in p for s in exclude_strings)]
-
+    # remove paths
+    # exclude_strings = [
+    #     "_243.h5", "_25.h5", "_26.h5", "_55.h5",
+    #     "_56.h5", "_57.h5", "_58.h5", "_59.h5", "_60.h5", "_61.h5",
+    #     "_63.h5", "_64.h5", "_65.h5", "_66.h5", "_67.h5", "_68.h5",
+    #     "_69.h5", "_70.h5", "_71.h5", "_72.h5", "_73.h5", "_74.h5",
+    #     "_75.h5", "_77.h5", "_81.h5", "_83.h5", "_84.h5", "_85.h5",
+    #     "_86.h5", "_87.h5", "_88.h5", "_90.h5", "_91.h5", "_92.h5",
+    #     "_93.h5", "_94.h5", "_95.h5", "_96.h5", "_97.h5", "_98.h5",
+    #     "_99.h5",
+    #     # after correcting the sampler
+    #     "_54.h5", "_76.h5",
+    #     "_89.h5",
+    #     # "_413.h5", "_353.h5", "_366.h5", "_421.h5", "_348.h5", "_408.h5", "_76.h5",
+    #     # "_177.h5", "_247.h5", "_423.h5", "_354.h5", "_329.h5", "_351.h5", "_473.h5", "_347.h5",
+    #     # "_62.h5",
+    #     # "_379.h5",
+        # ]
+    # for all and not resized
+    # exclude_strings.extend(
+    #     [
+    #         "_254.h5", "_358.h5", "_282.h5", "_62.h5", "_82.h5"
+    #     ]
+    #     )
+    # data_paths = [p for p in data_paths if not any(s in p for s in exclude_strings)]
 
     # print("Filter paths for ID_GROUPS to keep...")
     # data_paths = cutil.get_paths_with_any_id_group(data_paths, ID_GROUPS=ID_GROUPS, min_pct_slices=0, n_workers=4)
+    
+
+# Return path or other identifier for files with matches
+
+    data_paths = cutil.get_cellmaps_paths_fully_annotated(data_paths)
+    data_paths = cutil.filter_paths_for_only_foreground_parallel(data_paths, dataset="label_crop/all", n_workers=8)
+
+    
+
+    # with mp.Pool(8) as pool:
+    #     results = pool.map(process_file, data_paths)
+
+    # # Filter out None results where no match was found
+    # matched_paths = [result for result in results if result]
+    # print("Files with matches:", matched_paths)
+    # for p in data_paths:
+    #     print(p)
+    #     data = io.load_data_from_file(p)
+    #     print(data.keys())
+    #     v = napari.Viewer()
+    #     v.add_image(data["raw_crop"])
+    #     v.add_labels(data["all"])
+    #     napari.run()
+
+    # cell_ids = [38, 39, 56, 57, 58, 61, 62, 60]
+    # for path in data_paths:
+    #     data = io.load_data_from_file(path)
+    #     print(data.keys())
+    #     if "all" in data.keys():
+    #         uniq = np.unique(data["all"])
+    #         print("np uniq", uniq)
+    #         if any(cell_id in uniq for cell_id in cell_ids):
+    #             print("\n FOUND ONE!\n")
+    #             v = napari.Viewer()
+    #             v.add_image(data["raw_crop"])
+    #             v.add_labels(data["all"])
+    #             napari.run()
+    
+    
+    
+    # data_paths = cutil.get_cellmaps_paths_fully_annotated()
     # print("Calculate statistics for filtered files...")
     # stats = cutil.parallel_group_stats_in_h5(data_paths, ID_GROUPS, n_workers=None)
     # pretty_stats = dict(stats)  # Convert nested defaultdicts to dicts if needed
@@ -166,7 +226,7 @@ def main():
     # print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
 
     sampler = cutil.AtLeastNGroupsSampler(
-        id_groups=ID_GROUPS, min_num_instances=1, min_num_groups=2, p_reject=1, min_size=100
+        id_groups=ID_GROUPS, min_num_instances=1, min_num_groups=1, p_reject=1, min_size=100
         )
 
     # semantic_ids: List[int], min_fraction: float, min_fraction_per_id: bool = False, p_reject: float = 1.0
@@ -202,27 +262,28 @@ def main():
     #         napari.run()
     
     from micro_sam.training import train_sam_for_configuration, default_sam_loader
+    from micro_sam.training.training import _check_loader
 
     roi_train, roi_val = None, None
 
-    # train_loader = default_sam_loader(
-    #     raw_paths=data["train"], raw_key="raw",
-    #     label_paths=data["train"], label_key=args.label_key,
-    #     patch_shape=patch_shape, with_segmentation_decoder=True, with_channels=False,
-    #     batch_size=batch_size, rois=roi_train, raw_transform=None,
-    #     label_transform=label_transform,
-    #     sampler=sampler, n_samples=args.n_samples
-    # )
-    # check_loader(train_loader, n_samples=args.n_samples)
+    all_loader = default_sam_loader(
+        raw_paths=data_paths, raw_key=args.raw_key,
+        label_paths=data_paths, label_key=args.label_key,
+        patch_shape=patch_shape, with_segmentation_decoder=True, with_channels=False,
+        batch_size=batch_size, rois=roi_train, raw_transform=None,
+        label_transform=label_transform,
+        sampler=sampler, n_samples=args.n_samples
+    )
+    # _check_loader(all_loader, with_segmentation_decoder=True, verify_n_labels_in_loader=10000)
     # return
     # for i in tqdm(range(0, 10000)):
-    #     x, y = next(iter(train_loader))
-    #     # print("i", i)
-    #     # print("x and y shapes:", x.shape, y.shape)
-    #     uniq = np.unique(y[0, 0, :, :])
-    #     if len(uniq) == 1:
-    #         print("np uniq y[0]", np.unique(uniq))
-    #         return
+    #     x, y = next(iter(all_loader))
+        # print("i", i)
+        # print("x and y shapes:", x.shape, y.shape)
+        # uniq = np.unique(y[0, 0, :, :])
+        # if len(uniq) == 1:
+        #     print("np uniq y[0]", np.unique(uniq))
+        #     return
     
     # val_loader = default_sam_loader(
     #     raw_paths=data["val"], raw_key="raw",
@@ -277,7 +338,7 @@ def main():
     sutil.finetune_sam_v2(
         name=experiment_name,
         train_images=data["train"],
-        raw_key="raw",
+        raw_key=args.raw_key,
         val_images=data["val"],
         label_key=args.label_key,
         patch_shape=patch_shape,
