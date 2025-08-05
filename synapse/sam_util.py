@@ -73,8 +73,10 @@ def finetune_sam_v2(name, train_images, raw_key, label_key,
                     n_iterations, checkpoint_path,
                     save_root, patch_shape, check,
                     early_stopping,
+                    model_type="vit_b",
                     label_transform=None, sampler=None,
-                    n_samples=None
+                    n_samples=None,
+                    min_size=None
                     ):
     from micro_sam.training import train_sam_for_configuration, default_sam_loader
 
@@ -88,7 +90,7 @@ def finetune_sam_v2(name, train_images, raw_key, label_key,
         label_paths=train_images, label_key=label_key,
         patch_shape=patch_shape, with_segmentation_decoder=True, with_channels=False,
         batch_size=batch_size, rois=roi_train, raw_transform=raw_transform,
-        label_transform=label_transform,
+        label_transform=label_transform, min_size=min_size,
         sampler=sampler, n_samples=n_samples
     )
     val_loader = default_sam_loader(
@@ -96,16 +98,16 @@ def finetune_sam_v2(name, train_images, raw_key, label_key,
         label_paths=val_images, label_key=label_key,
         patch_shape=patch_shape, with_segmentation_decoder=True, with_channels=False,
         batch_size=batch_size, rois=roi_val, raw_transform=raw_transform,
-        label_transform=label_transform,
+        label_transform=label_transform, min_size=min_size,
         sampler=sampler, n_samples=n_samples
     )
     if check:
         from torch_em.util.debug import check_loader
-        check_loader(train_loader, 5)
-        check_loader(val_loader, 5)
+        check_loader(train_loader, 50)
+        check_loader(val_loader, 50)
 
     train_sam_for_configuration(
-        name, train_loader, val_loader, model_type="vit_b",
+        name, train_loader, val_loader, model_type=model_type,
         save_root=save_root, checkpoint_path=checkpoint_path,
         early_stopping=early_stopping, n_iterations=n_iterations,
         verify_n_labels_in_loader=None,

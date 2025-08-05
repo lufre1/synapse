@@ -50,7 +50,8 @@ SAVE_DIR = "/scratch-grete/usr/nimlufre/cellmap/"
 # ]
 # all organelles
 ID_GROUPS = [
-    [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 37, 52, 53, 54 65],  # nucleus with pores and envelope
+    # [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 37, 52, 53, 54, 65],  # nucleus with pores and envelope
+    [20, 21, 22, 23, 65],                                      # nuclear envelope
     [6, 7, 40],                                            # golgi
     [8, 9, 41],                                            # vesicle
     [10, 11, 42],                                          # endosome
@@ -65,6 +66,7 @@ ID_GROUPS = [
     [56, 57, 58, 61, 62, 60],                               # cell
     [31, 32, 33, 66],                                      # centrosome collective
     [34],                                                  # ribosomes
+    [63],                                                  # basement membrane
     # [2, 35],                                                  # cytosol
     # [0, 1, 2],                                             # extracellular space + plasma membrane
     [45],                                                  # red blood cells
@@ -91,7 +93,7 @@ def main():
                         help="Path to the data directory")
     parser.add_argument("--data_dir2", type=str, default=None, help="Path to a second data directory")
     parser.add_argument("--patch_shape", type=int, nargs=3, default=(1, 256, 256), help="Patch shape for data loading (3D tuple)")
-    parser.add_argument("--n_iterations", type=int, default=13000, help="Number of training iterations")
+    parser.add_argument("--n_iterations", type=int, default=15000, help="Number of training iterations")
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate")
     parser.add_argument("--checkpoint_path", type=str, default=None, help="Path to checkpoint used to load model's state_dict")
     parser.add_argument("--experiment_name", "-ep", type=str, default="cellmap-organelles", help="Name that is used for the experiment and store the model's weights")
@@ -99,7 +101,9 @@ def main():
     parser.add_argument("--early_stopping", type=int, default=5, help="Number of epochs without improvement before stopping training")
     parser.add_argument("--raw_key", type=str, default="raw", help="Raw key to be used for training e.g. raw_crop")
     parser.add_argument("--label_key", type=str, default="label_crop/all", help="Label key to be used for training e.g. label_crop/all")
-    parser.add_argument("--n_samples", type=int, default=100, help="Number of samples to be used for training per dataset")
+    parser.add_argument("--n_samples", type=int, default=500, help="Number of samples to be used for training per dataset")
+    parser.add_argument("--min_size", type=int, default=10, help="Minimal pixel size for organelles 2D")
+    parser.add_argument("--model_type", type=str, default="vit_b", help="Model type to be used")
 
     # Parse arguments
     args = parser.parse_args()
@@ -136,32 +140,6 @@ def main():
 
     # data_paths = cutil.get_resized_cellmap_paths(organelle_size="medium")
     data_paths = util.get_data_paths(data_dir)
-    # data_paths = cutil.get_cellmap_paths_without_cell_and_nuclei()
-    # remove paths
-    # exclude_strings = [
-    #     "_243.h5", "_25.h5", "_26.h5", "_55.h5",
-    #     "_56.h5", "_57.h5", "_58.h5", "_59.h5", "_60.h5", "_61.h5",
-    #     "_63.h5", "_64.h5", "_65.h5", "_66.h5", "_67.h5", "_68.h5",
-    #     "_69.h5", "_70.h5", "_71.h5", "_72.h5", "_73.h5", "_74.h5",
-    #     "_75.h5", "_77.h5", "_81.h5", "_83.h5", "_84.h5", "_85.h5",
-    #     "_86.h5", "_87.h5", "_88.h5", "_90.h5", "_91.h5", "_92.h5",
-    #     "_93.h5", "_94.h5", "_95.h5", "_96.h5", "_97.h5", "_98.h5",
-    #     "_99.h5",
-    #     # after correcting the sampler
-    #     "_54.h5", "_76.h5",
-    #     "_89.h5",
-    #     # "_413.h5", "_353.h5", "_366.h5", "_421.h5", "_348.h5", "_408.h5", "_76.h5",
-    #     # "_177.h5", "_247.h5", "_423.h5", "_354.h5", "_329.h5", "_351.h5", "_473.h5", "_347.h5",
-    #     # "_62.h5",
-    #     # "_379.h5",
-        # ]
-    # for all and not resized
-    # exclude_strings.extend(
-    #     [
-    #         "_254.h5", "_358.h5", "_282.h5", "_62.h5", "_82.h5"
-    #     ]
-    #     )
-    # data_paths = [p for p in data_paths if not any(s in p for s in exclude_strings)]
 
     # print("Filter paths for ID_GROUPS to keep...")
     # data_paths = cutil.get_paths_with_any_id_group(data_paths, ID_GROUPS=ID_GROUPS, min_pct_slices=0, n_workers=4)
@@ -172,7 +150,6 @@ def main():
     data_paths = cutil.get_cellmaps_paths_fully_annotated(data_paths)
     data_paths = cutil.filter_paths_for_only_foreground_parallel(data_paths, dataset="label_crop/all", n_workers=8)
 
-    
 
     # with mp.Pool(8) as pool:
     #     results = pool.map(process_file, data_paths)
@@ -202,9 +179,9 @@ def main():
     #             v.add_image(data["raw_crop"])
     #             v.add_labels(data["all"])
     #             napari.run()
-    
-    
-    
+
+
+
     # data_paths = cutil.get_cellmaps_paths_fully_annotated()
     # print("Calculate statistics for filtered files...")
     # stats = cutil.parallel_group_stats_in_h5(data_paths, ID_GROUPS, n_workers=None)
@@ -226,7 +203,7 @@ def main():
     # print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
 
     sampler = cutil.AtLeastNGroupsSampler(
-        id_groups=ID_GROUPS, min_num_instances=1, min_num_groups=1, p_reject=1, min_size=100
+        id_groups=ID_GROUPS, min_num_groups=1, p_reject=1, min_size=args.min_size
         )
 
     # semantic_ids: List[int], min_fraction: float, min_fraction_per_id: bool = False, p_reject: float = 1.0
@@ -245,37 +222,41 @@ def main():
     #         instances=True,
     #         min_size=25,
     #     )
-    # custom_label_transform = label_transform
-    # label_transform = torch_em.transform.generic.Compose(label_transform, default_label_transform, is_multi_tensor=False)
+    # custom_label_transform = torch_em.transform.generic.Compose(label_transform, default_label_transform, is_multi_tensor=False)
     # for i in range(0, 5):
-    #     with open_file(data["train"][i]) as f:
+    #     with open_file("/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_172.h5") as f:
     #         raw = f["raw"][:]
     #         labels = f["label_crop/all"][:]
     #         v = napari.Viewer()
     #         v.add_image(raw)
     #         v.add_labels(labels, name="labels")
     #         transformed = custom_label_transform(labels)
-    #         v.add_image(transformed, name="my transformed")
-    #         default_transfromed = default_label_transform(labels)
+    #         v.add_image(transformed, name="custom")
+    #         my_transfromed = label_transform(labels)
     #         # v.add_image(default_transfromed, name="transformed distance")
-    #         v.add_image(label_transform(labels), name="combined")
+    #         v.add_image(my_transfromed, name="just my label transform")
     #         napari.run()
     
-    from micro_sam.training import train_sam_for_configuration, default_sam_loader
-    from micro_sam.training.training import _check_loader
+    # from micro_sam.training import train_sam_for_configuration, default_sam_loader
+    # from micro_sam.training.training import _check_loader
 
-    roi_train, roi_val = None, None
+    # roi_train, roi_val = None, None
+    
+    # data_paths = "/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_172.h5"
+    # data_paths = [path for path in data_paths if "172.h5" in path]
+    # print("data paths left", data_paths)
 
-    all_loader = default_sam_loader(
-        raw_paths=data_paths, raw_key=args.raw_key,
-        label_paths=data_paths, label_key=args.label_key,
-        patch_shape=patch_shape, with_segmentation_decoder=True, with_channels=False,
-        batch_size=batch_size, rois=roi_train, raw_transform=None,
-        label_transform=label_transform,
-        sampler=sampler, n_samples=args.n_samples
-    )
-    # _check_loader(all_loader, with_segmentation_decoder=True, verify_n_labels_in_loader=10000)
+    # all_loader = default_sam_loader(
+    #     raw_paths=data_paths, raw_key=args.raw_key,
+    #     label_paths=data_paths, label_key=args.label_key,
+    #     patch_shape=patch_shape, with_segmentation_decoder=True, with_channels=False,
+    #     batch_size=batch_size, rois=roi_train, raw_transform=None,
+    #     label_transform=label_transform, min_size=args.min_size,
+    #     sampler=sampler, n_samples=args.n_samples * 10
+    # )
+    # _check_loader(all_loader, with_segmentation_decoder=True, verify_n_labels_in_loader=args.n_samples * 10)
     # return
+    
     # for i in tqdm(range(0, 10000)):
     #     x, y = next(iter(all_loader))
         # print("i", i)
@@ -350,8 +331,10 @@ def main():
         early_stopping=args.early_stopping,
         # out_channels=out_channels,
         label_transform=label_transform,
-        # raw_transform=raw_transform,
+        # raw_transform=raw_transform, # added in sam_util.py
         n_samples=args.n_samples,
+        min_size=args.min_size,
+        model_type=args.model_type,
         check=(False if torch.cuda.is_available() else True),
     )
 
