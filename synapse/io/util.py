@@ -110,7 +110,7 @@ def load_data_from_file(path: str, scale: int = 1, upsample: int = 0,
             for key in f.keys():
                 if isinstance(f[key], (zarr.Group, h5py.Group, z5py.Group)):
                     print(f"Loading group: {key}")
-                    extract_data(f[key], data, scale=scale)
+                    extract_data(f[key], data, scale=scale, prefix=key)
                     continue
                 ndim = f[key].ndim
 

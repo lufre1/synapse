@@ -12,10 +12,19 @@ import torch_em
 import napari
 # import elf.parallel as parallel
 from elf.io import open_file
+from elf.parallel import label
 from tqdm import tqdm
 import z5py
 from tifffile import imread
 from skimage.transform import resize
+
+
+def _segment(foreground, boundary, block_shape=(128, 128, 128), threshold=0.5):
+    foreground_mask = np.where(foreground > threshold, 1, 0)
+    boundary_mask = np.where(boundary > threshold, 1, 0)
+    mask = np.logical_or(foreground_mask, np.logical_and(foreground_mask, boundary_mask))
+    seg = label(mask, block_shape=block_shape)
+    return seg
 
 
 def get_file_paths(path, ext=".h5", reverse=False):
@@ -28,14 +37,15 @@ def get_file_paths(path, ext=".h5", reverse=False):
 
 def visualize_data(data):
     viewer = napari.Viewer()
+    print("vis data keys", data.keys())
     for key, value in data.items():
-        if key == "raw" or "raw" in key:
+        if "raw" in key or "0" in key:
             # if data[key].ndim == 4:
             #     data[key] = util.normalize_percentile_with_channel(data[key], lower=1, upper=99, channel=0)
             # else:
             #     value = torch_em.transform.raw.normalize_percentile(value, lower=1, upper=99)
             viewer.add_image(value, name=key)
-        elif key == "prediction" or "pred" in key or "dist" in key or "fore" in key:
+        elif key == "prediction" or "pred" in key or "dist" in key or "fore" in key or "bound" in key:
             viewer.add_image(value, name=key, blending="additive")
         else:
             viewer.add_labels(value, name=key)
@@ -82,7 +92,8 @@ def upsample_data(data, factor):
     return upsampled_data
 
 
-def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False, root_label_path: str = None):
+def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False, root_label_path: str = None
+         , segment: bool = False):
     if ext is None:
         if os.path.isfile(root_path):
             ext = os.path.splitext(root_path)[1]
@@ -103,8 +114,10 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
     print("Found files:", len(paths))
     for path in tqdm(paths):
         print("\n", path)
-        if label_paths is not None:
+        if label_paths is not None and len(label_paths) > 1:
             label_path = util.find_label_file(path, label_paths)
+        elif label_paths and len(label_paths) == 1:
+            label_path = label_paths[0]
         else:
             label_path = None
         with open_file(path, mode="r") as f:
@@ -120,6 +133,8 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
                     ndim = 3
                 slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
                 data["label"] = imread(label_path)[slicing] if scale > 1 else imread(label_path)
+                import skimage as ski
+                data["label"] = ski.morphology.remove_small_objects(data["label"], min_size=1000)
             else:
                 print("No specific label path loaded.")
             if ".mrc" in path or ".rec" in path:
@@ -135,7 +150,7 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
                 for key in f.keys():
                     if isinstance(f[key], (zarr.Group, h5py.Group, z5py.Group)):
                         print(f"Loading group: {key}")
-                        extract_data(f[key], data, scale=scale)
+                        extract_data(f[key], data, scale=scale, prefix=key)
                         continue
                     ndim = f[key].ndim
 
@@ -151,16 +166,19 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
             for key in data.keys():
                 data[key] = upsample_data(data[key], upsample)
 
-        raw_shape = None
-        for k in data.keys():
-            if "raw" in k:
-                raw_shape = data[k].shape
-        if raw_shape:
-            for k in data.keys():
-                if "raw" not in k:
-                    if raw_shape != data[k].shape:
-                        print(f"Resizing {k} from {data[k].shape} to {raw_shape}")
-                        data[k] = util.downsample_to_shape(data[k], raw_shape)
+        if segment:
+            # get foreground and boundary
+            new_seg = _segment(data["pred/foreground"], data["pred/boundary"])
+            data["new_seg"] = new_seg
+        # for k in data.keys():
+        #     if "raw" in k:
+        #         raw_shape = data[k].shape
+        # if raw_shape:
+            # for k in data.keys():
+            #     if "raw" not in k:
+            #         if raw_shape != data[k].shape:
+            #             print(f"Resizing {k} from {data[k].shape} to {raw_shape}")
+            #             data[k] = util.downsample_to_shape(data[k], raw_shape)
         
         visualize_data(data)
 
@@ -172,6 +190,7 @@ if __name__ == "__main__":
     parser.add_argument("--scale", "-s", type=int, default=1)
     parser.add_argument("--upsample", "-u", type=int, default=None)
     parser.add_argument("--label_path", "-lp", type=str, default=None)
+    parser.add_argument("--segment", "-seg", default=False, action="store_true")
     
     args = parser.parse_args()
     path = args.path
@@ -179,4 +198,4 @@ if __name__ == "__main__":
     scale = args.scale
     upsample = args.upsample
     label_path = args.label_path
-    main(path, ext, scale, upsample, label_path)
+    main(path, ext, scale, upsample, label_path, segment=args.segment)

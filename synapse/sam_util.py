@@ -76,7 +76,8 @@ def finetune_sam_v2(name, train_images, raw_key, label_key,
                     model_type="vit_b",
                     label_transform=None, sampler=None,
                     n_samples=None,
-                    min_size=None
+                    min_size=None,
+                    train_instance_segmentation_only=True
                     ):
     from micro_sam.training import train_sam_for_configuration, default_sam_loader
 
@@ -91,7 +92,9 @@ def finetune_sam_v2(name, train_images, raw_key, label_key,
         patch_shape=patch_shape, with_segmentation_decoder=True, with_channels=False,
         batch_size=batch_size, rois=roi_train, raw_transform=raw_transform,
         label_transform=label_transform, min_size=min_size,
-        sampler=sampler, n_samples=n_samples
+        sampler=sampler, n_samples=n_samples,
+        train_instance_segmentation_only=train_instance_segmentation_only,
+        is_multi_tensor=False
     )
     val_loader = default_sam_loader(
         raw_paths=val_images, raw_key=raw_key,
@@ -99,7 +102,9 @@ def finetune_sam_v2(name, train_images, raw_key, label_key,
         patch_shape=patch_shape, with_segmentation_decoder=True, with_channels=False,
         batch_size=batch_size, rois=roi_val, raw_transform=raw_transform,
         label_transform=label_transform, min_size=min_size,
-        sampler=sampler, n_samples=n_samples
+        sampler=sampler, n_samples=n_samples,
+        train_instance_segmentation_only=train_instance_segmentation_only,
+        is_multi_tensor=False
     )
     if check:
         from torch_em.util.debug import check_loader
@@ -111,4 +116,6 @@ def finetune_sam_v2(name, train_images, raw_key, label_key,
         save_root=save_root, checkpoint_path=checkpoint_path,
         early_stopping=early_stopping, n_iterations=n_iterations,
         verify_n_labels_in_loader=None,
+        train_instance_segmentation_only=train_instance_segmentation_only  # this disables training of without training the model parts for interactive segmentation,
+        #  i.e. without training the prompt encoder and mask decoder
     )

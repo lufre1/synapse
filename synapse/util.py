@@ -1,3 +1,4 @@
+import fnmatch
 import os
 from glob import glob
 import h5py
@@ -21,13 +22,43 @@ from scipy.ndimage import label, sum_labels
 from skimage.transform import resize
 from synapse_net.inference.util import apply_size_filter, _postprocess_seg_3d
 from synapse_net.file_utils import read_ome_zarr
-
+from torch_em.model import AnisotropicUNet
 # used for combined_datasets
 from typing import Dict, List, Union, Tuple, Optional, Any
 
 # Define the data path and filename
 # data_path = "/scratch-grete/projects/nim00007/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt/170_2_rec.h5"
 # data_format = "*.h5"
+
+
+def get_3d_model(
+    out_channels: int,
+    in_channels: int = 1,
+    scale_factors: Tuple[Tuple[int, int, int]] = [[1, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2]],
+    initial_features: int = 32,
+    final_activation: str = "Sigmoid",
+) -> torch.nn.Module:
+    """Get the U-Net model for 3D segmentation tasks.
+
+    Args:
+        out_channels: The number of output channels of the network.
+        scale_factors: The downscaling factors for each level of the U-Net encoder.
+        initial_features: The number of features in the first level of the U-Net.
+            The number of features increases by a factor of two in each level.
+        final_activation: The activation applied to the last output layer.
+
+    Returns:
+        The U-Net.
+    """
+    model = AnisotropicUNet(
+        scale_factors=scale_factors,
+        in_channels=in_channels,
+        out_channels=out_channels,
+        initial_features=initial_features,
+        gain=2,
+        final_activation=final_activation,
+    )
+    return model
 
 
 def read_data(path, scale=1):
@@ -684,6 +715,9 @@ def get_rois_coordinates_skimage(file, label_key, min_shape, euler_threshold=Non
 
 
 def get_data_paths(data_dir, data_format="*.h5"):
+    # check if data_dir is file
+    if os.path.isfile(data_dir) or fnmatch.fnmatch(data_dir, data_format):
+        return [data_dir]
     data_paths = glob(os.path.join(data_dir, "**", data_format), recursive=True)
     return data_paths
 

@@ -51,7 +51,7 @@ SAVE_DIR = "/scratch-grete/usr/nimlufre/cellmap/"
 # all organelles
 ID_GROUPS = [
     # [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 37, 52, 53, 54, 65],  # nucleus with pores and envelope
-    [20, 21, 22, 23, 65],                                      # nuclear envelope
+    # [20, 21, 22, 23, 65],                                      # nuclear envelope
     [6, 7, 40],                                            # golgi
     [8, 9, 41],                                            # vesicle
     [10, 11, 42],                                          # endosome
@@ -63,10 +63,12 @@ ID_GROUPS = [
     [30, 36, 55],                                          # microtubule
     [38],                                                   # vimentin
     [39],                                                   # glycogen
-    [56, 57, 58, 61, 62, 60],                               # cell
+    [61],                                                   # actin
+    [62],                                                   # t-bar
+    [56, 57, 58, 60],                                   # cell
     [31, 32, 33, 66],                                      # centrosome collective
     [34],                                                  # ribosomes
-    [63],                                                  # basement membrane
+    # [63],                                                  # basement membrane
     # [2, 35],                                                  # cytosol
     # [0, 1, 2],                                             # extracellular space + plasma membrane
     [45],                                                  # red blood cells
@@ -116,7 +118,7 @@ def main():
 
     if torch.cuda.is_available():
         os.makedirs("/scratch-grete/usr/nimlufre/cellmap/", exist_ok=True)
-    #load model from checkpoint if exists
+    # load model from checkpoint if exists
     if os.path.exists(os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")):
         checkpoint_path = os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")
         print("Checkpoint exists, loading model from checkpoint", checkpoint_path)
@@ -131,7 +133,7 @@ def main():
     label_transform = lutil.LabelAggregatorSAM(
         id_groups=ID_GROUPS,
         out_ids=OUT_IDS,
-        #group_transforms=mito_transform if mito_transform is not None else None,
+        # group_transforms=mito_transform if mito_transform is not None else None,
     )
 
     # load data paths etc.
@@ -143,13 +145,17 @@ def main():
 
     # print("Filter paths for ID_GROUPS to keep...")
     # data_paths = cutil.get_paths_with_any_id_group(data_paths, ID_GROUPS=ID_GROUPS, min_pct_slices=0, n_workers=4)
-    
+
 
 # Return path or other identifier for files with matches
-
+    print("Before filtering data_paths", len(data_paths))
     data_paths = cutil.get_cellmaps_paths_fully_annotated(data_paths)
+    print("After filtering data_paths for fully annotated", len(data_paths))
     data_paths = cutil.filter_paths_for_only_foreground_parallel(data_paths, dataset="label_crop/all", n_workers=8)
+    print("After filtering data_paths for foreground and not only one label", len(data_paths))
 
+    # specified_ids = [31, 32, 33, 66]
+    # data_paths = cutil.get_paths_with_any_id_group(data_paths, ID_GROUPS=[specified_ids], min_pct_slices=0, n_workers=4)
 
     # with mp.Pool(8) as pool:
     #     results = pool.map(process_file, data_paths)
@@ -157,14 +163,23 @@ def main():
     # # Filter out None results where no match was found
     # matched_paths = [result for result in results if result]
     # print("Files with matches:", matched_paths)
-    # for p in data_paths:
+    # for p in tqdm(data_paths):
     #     print(p)
     #     data = io.load_data_from_file(p)
     #     print(data.keys())
+    #     print("labels np uniq", np.unique(data[args.label_key]))
     #     v = napari.Viewer()
-    #     v.add_image(data["raw_crop"])
-    #     v.add_labels(data["all"])
+    #     v.add_image(data[args.raw_key])
+    #     v.add_labels(data[args.label_key])
+    #     # Filter labels to only include specified ids
+    #     label_data = data[args.label_key]
+    #     filtered_labels = np.isin(label_data, specified_ids) * label_data
+
+    #     # Add the filtered labels to the viewer
+    #     v.add_labels(filtered_labels, name="Filtered Labels")
+
     #     napari.run()
+    # return
 
     # cell_ids = [38, 39, 56, 57, 58, 61, 62, 60]
     # for path in data_paths:
@@ -179,8 +194,6 @@ def main():
     #             v.add_image(data["raw_crop"])
     #             v.add_labels(data["all"])
     #             napari.run()
-
-
 
     # data_paths = cutil.get_cellmaps_paths_fully_annotated()
     # print("Calculate statistics for filtered files...")

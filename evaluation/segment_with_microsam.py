@@ -14,6 +14,7 @@ from tqdm import tqdm
 from elf.io import open_file
 import numpy as np
 import synapse.io.util as io
+import synapse.label_utils as lutils
 # from synapse_net.inference.mitochondria import segment_mitochondria
 # from synapse_net.ground_truth.matching import find_additional_objects
 from elf.evaluation.matching import label_overlap, intersection_over_union
@@ -30,6 +31,33 @@ from micro_sam.instance_segmentation import (
     AutomaticMaskGenerator, InstanceSegmentationWithDecoder,
     TiledAutomaticMaskGenerator, TiledInstanceSegmentationWithDecoder,
 )
+
+ID_GROUPS = [
+    # [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 37, 52, 53, 54, 65],  # nucleus with pores and envelope
+    # [20, 21, 22, 23, 65],                                      # nuclear envelope
+    [6, 7, 40],                                            # golgi
+    [8, 9, 41],                                            # vesicle
+    [10, 11, 42],                                          # endosome
+    [12, 13, 43],                                          # lysosome
+    [14, 15, 44],                                          # lipid droplet
+    [16, 17, 18, 19, 46, 51, 64],                          # endoplasmic reticulum with exit sites
+    [47, 48, 49],                                          # peroxisome
+    [3, 4, 5, 50],                                         # mitochondria
+    [30, 36, 55],                                          # microtubule
+    [38],                                                   # vimentin
+    [39],                                                   # glycogen
+    [61],                                                   # actin
+    [62],                                                   # t-bar
+    [56, 57, 58, 60],                                   # cell
+    [31, 32, 33, 66],                                      # centrosome collective
+    [34],                                                  # ribosomes
+    # [63],                                                  # basement membrane
+    # [2, 35],                                                  # cytosol
+    # [0, 1, 2],                                             # extracellular space + plasma membrane
+    [45],                                                  # red blood cells
+]
+
+OUT_IDS = list(range(1, len(ID_GROUPS) + 1))
 
 
 def _default_seed_function(
@@ -270,6 +298,64 @@ def get_all_dataset_keys(file_path):
     return keys
 
 
+def raw_transform(x):
+    x = x.astype("float32")
+    x -= x.min()
+    x /= x.max()
+    x *= 255
+    return x.astype("uint8")
+
+
+def alt_segmentation(foreground, boundary_distances, verbose=False, **kwargs):
+    """
+    Alternative segmentation algorithm based on foreground and boundary distances only.
+
+    Parameters:
+        foreground (array): foreground probability map
+        boundary_distances (array): boundary distance map
+        verbose (bool): verbosity flag
+        **kwargs: additional keyword arguments
+
+    Returns:
+        segmentation (array): segmentation label array
+    """
+    tile_shape = (64, 512, 512)
+    halo = (8, 32, 32)
+    n_threads = mp.cpu_count()
+
+    if foreground is None:
+        fg_mask = None
+    else:
+        fg_mask = foreground > kwargs.get("foreground_threshold", 0.5)
+    # breakpoint()
+
+    seeds = np.zeros_like(foreground, dtype=int)
+    mask = np.logical_and(foreground > kwargs.get("foreground_threshold", 0.5), foreground - boundary_distances >
+                          kwargs.get("seed_threshold", 0.2))
+    seeds[mask] = True
+    seed_map = boundary_distances < kwargs.get("boundary_distance_threshold", 0.5)
+    if fg_mask is not None:
+        seed_map[~fg_mask] = 0
+
+    seeds = parallel.label(
+        seed_map, out=seeds, block_shape=tile_shape, n_threads=n_threads, verbose=verbose,
+    )
+
+    seg = np.zeros_like(seeds, dtype="uint64")
+    seg = parallel.seeded_watershed(
+        boundary_distances, seeds=seeds, out=seg, block_shape=tile_shape,
+        halo=halo, n_threads=n_threads, verbose=verbose, mask=fg_mask,
+    )
+
+    segmentation = np.zeros_like(seg, dtype="uint64")
+    segmentation = parallel.size_filter(
+        seg, out=segmentation, min_size=kwargs.get("min_size", 0),
+        block_shape=tile_shape, n_threads=n_threads, verbose=verbose
+    )
+
+    return segmentation
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base_path", "-b",  type=str, default="/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/", help="Path to the root data directory")
@@ -279,10 +365,10 @@ def main():
     parser.add_argument("--export_path", "-e",  type=str, default="/scratch-grete/usr/nimlufre/cellmap/test_segmentations_microsam_resized", help="Path to the root data directory")
     parser.add_argument("--model_type", "-mt",  type=str, default="vit-b", help="Type of the model: vit-b")
     parser.add_argument("--model_path", "-m", type=str, default="/scratch-grete/usr/nimlufre/cellmap/checkpoints/microsam-cellmaps-bs1-ps256-all")
-    parser.add_argument("--force_override", "-fo", action="store_true", help="Force overwrite of existing files")
+    parser.add_argument("--force_override", "-fo", action="store_true", default=False, help="Force overwrite of existing files")
     parser.add_argument("--block_shape", "-bs",  type=int, nargs=3, default=(1, 256, 256), help="Path to the root data directory")
     parser.add_argument("--halo", "-halo",  type=int, nargs=3, default=None, help="Path to the root data directory")
-    parser.add_argument("--with_distances", "-wd",  action="store_true", default=False, help="Save distances as well.")
+    parser.add_argument("--with_distances", "-wd",  action="store_true", default=True, help="Save distance map predictions (other options not implemented atm).")
     args = parser.parse_args()
     print("model path", args.model_path)
     os.makedirs(args.export_path, exist_ok=True)
@@ -305,15 +391,31 @@ def main():
     h5_paths = ['/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_266.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_78.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_377.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_225.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_1.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_272.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_13.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_252.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_208.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_188.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_165.h5']
     # microsam-cellmaps-vit_b_em_organelles-bs1-ps256-resized-wocytonucleis
     h5_paths = ['/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_266.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_78.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_377.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_278.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_51.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_272.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_147.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_252.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_143.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_188.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_165.h5']
+    # microsam-cellmaps-vit_b_em_organelles-bs1-ps256-all-wocytonuc
+    h5_paths = ['/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_34.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_51.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_116.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_188.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_217.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_107.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_160.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_259.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_270.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_146.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_6.h5']
+    # microsam-cellmaps-vit_b_em_organelles-bs1-ps256-resized-wocytonucmem
+    h5_paths = ['/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_266.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_78.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_174.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_35.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_1.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_272.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_147.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_141.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_122.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_188.h5', '/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_165.h5']
     # h5_paths.append('/mnt/lustre-grete/usr/u12103/cellmap/resized_crops/crop_380.h5') # big one
     # test crops for eval for data_crops
     # h5_paths = ['/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_180.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_351.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_231.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_291.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_165.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_175.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_198.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_107.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_36.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_270.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_34.h5', '/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops/crop_278.h5']
     print("len(h5_paths)", len(h5_paths))
-    
     # predictor, decoder = get_predictor_and_decoder(
     #     model_type=args.model_type, checkpoint_path=args.model_path, peft_kwargs=None,
     # )
     # grid_search_values = instance_segmentation.default_grid_search_values_instance_segmentation_with_decoder
+    
+    custom_label_transform = lutils.LabelAggregatorSAM(id_groups=ID_GROUPS, out_ids=OUT_IDS)
+    default_label_transform = torch_em.transform.label.PerObjectDistanceTransform(
+            distances=True,
+            boundary_distances=True,
+            directed_distances=False,
+            foreground=True,
+            instances=True,
+            min_size=10,
+        )
+    label_transform = torch_em.transform.generic.Compose(
+            custom_label_transform, default_label_transform, is_multi_tensor=False
+        )
 
     if args.with_distances:
         # breakpoint()
@@ -326,24 +428,36 @@ def main():
                 print("Skipping, because it already exists", pred_path)
                 continue
             elif os.path.exists(pred_path) and args.force_override:
+                print("overriding", pred_path)
                 os.remove(pred_path)
             raw = _read_h5(sample_path, args.key, 1)
             res = run_prediction(
-                data=raw,
+                data=raw_transform(raw),
                 checkpoint=checkpoint_path,
                 use_tiling=True if any(dim > 256 for dim in raw.shape) else False,
             )
             out = {
                 "raw": raw,
-                "label": _read_h5(sample_path, args.label_key, 1)
+                # "label": label_transform(_read_h5(sample_path, args.label_key, 1))
             }
+            num_channels = label_transform(_read_h5(sample_path, args.label_key, 1)).shape[0]
+
+            # Dynamically add all channels to the out dictionary
+            for i in range(num_channels):
+                out[f"label_{i}"] = label_transform(_read_h5(sample_path, args.label_key, 1))[i, :, :, :]
+            out["sem_label"] = custom_label_transform(_read_h5(sample_path, args.label_key, 1))
             out.update(res)
             seg = volumetric_segmentation(
                 foreground=out["prediction/foreground"],
                 center_dists=out["prediction/center_dists"],
                 boundary_dists=out["prediction/boundary_dists"],
             )
+            seg2 = alt_segmentation(
+                foreground=out["prediction/foreground"],
+                boundary_distances=out["prediction/boundary_dists"],
+            )
             out["segmentation"] = seg
+            out["segmentation2"] = seg2
             
             export_to_h5(out, pred_path)
     else:

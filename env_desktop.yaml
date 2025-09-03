@@ -1,0 +1,27 @@
+# mamba env create --file=env.yaml
+name: desktop
+channels:
+    - conda-forge
+dependencies:
+    - python=3.11
+    - imagecodecs
+    - magicgui
+    - napari
+    - pip
+    - pooch
+    - pyqt
+    - python-xxhash
+    - python-elf >=0.4.8
+    # - "pytorch=*=cpu*"
+    - pytorch
+    # - pytorch-cuda>=12.1  # you may need to update the cuda version to match your system
+    # - segment-anything
+    - torchvision
+    - torchaudio
+    - torch_em >=0.7.0
+    - tqdm
+    - timm
+    - zarr <3
+    - pip:
+        # - git+https://github.com/ChaoningZhang/MobileSAM.git
+        - napari-skimage-regionprops

@@ -18,9 +18,9 @@ RAW_KEY="raw"
 # RAW_KEY="raw_crop"
 LABEL_KEY="label_crop/all"
 WITH_DISTANCES=True
-EXPORT_PATH="/scratch-grete/usr/nimlufre/cellmap/test_segmentations_microsam-cellmaps-vit_b_em_organelles-bs1-ps256-resized-wocytonucleis/"
+EXPORT_PATH="/scratch-grete/usr/nimlufre/cellmap/test_segmentations_microsam-cellmaps-vit_b_em_organelles-bs1-ps256-resized-wocytonucmem/"
 FORCE_OVERRIDE=True
-MODEL_PATH="/scratch-grete/usr/nimlufre/cellmap/checkpoints/microsam-cellmaps-vit_b_em_organelles-bs1-ps256-resized-wocytonucleis"
+MODEL_PATH="/scratch-grete/usr/nimlufre/cellmap/checkpoints/microsam-cellmaps-vit_b_em_organelles-bs1-ps256-resized-wocytonucmem"
 
 
 python /user/freckmann15/u12103/synapse/evaluation/segment_with_microsam.py \
