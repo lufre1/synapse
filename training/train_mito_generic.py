@@ -43,6 +43,8 @@ def main():
     parser.add_argument("--label_key", type=str, default=None, help="Label key to be used for training e.g. label_crop/all | None for tiff")
     parser.add_argument("--n_samples", type=int, default=500, help="Number of samples to be used for training per dataset")
     parser.add_argument("--min_size", type=int, default=10, help="Minimal pixel size for organelles 2D")
+    parser.add_argument("--second_data_dir", "-sdd", type=str, default=None, help="Path to a second data directory")
+    parser.add_argument("--second_label_dir", type=str, default=None, help="Path to a second label directory")
 
     # Parse arguments
     args = parser.parse_args()
@@ -77,31 +79,24 @@ def main():
     # load data paths etc.
     start_time = time.time()
     print(f"Start time {time.ctime()}")
-    # print(data_dir)
-    # import synapse.io.util as io
-    # raw = io.load_data_from_file(data_dir)
-    # print([(k, v.shape) for k, v in raw.items()])
 
     data_paths = util.get_data_paths(data_dir, data_format=args.raw_file_extension)
+    if args.second_data_dir is not None:
+        data_paths += util.get_data_paths(args.second_data_dir, data_format=args.raw_file_extension)
 
     print(data_paths)
     if label_dir is not None:
         label_paths = util.get_data_paths(label_dir, data_format="*.tif")
-
-    random.seed(42)
-    random.shuffle(data_paths)
+        if args.second_label_dir is not None:
+            label_paths += util.get_data_paths(args.second_label_dir, data_format="*.tif")
+    else:
+        random.seed(42)
+        random.shuffle(data_paths)
     data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.6, val_ratio=0.4, test_ratio=0.00)
 
     end_time = time.time()
     # Calculate execution time in seconds
     execution_time = end_time - start_time
-    print(f"Data preprocessing execution time: {execution_time:.6f} seconds")
-
-    print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
-    print("data['train']", data["train"])
-    print("data['val']", data["val"])
-    print("data['test']", data["test"])
-    print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
 
     sampler = MinInstanceSampler(p_reject=0.95)
     # label_transform = lutil.CombinedLabelTransform(add_binary_target=True, dilation_footprint=np.ones((3, 3)))
@@ -110,6 +105,12 @@ def main():
     print("label paths", label_paths)
 
     if label_paths is None:
+        print(f"Data preprocessing execution time: {execution_time:.6f} seconds")
+        print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
+        print("data['train']", data["train"])
+        print("data['val']", data["val"])
+        print("data['test']", data["test"])
+        print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
         supervised_training(
             name=experiment_name,
             train_paths=data["train"],
@@ -127,6 +128,9 @@ def main():
             check=(False if torch.cuda.is_available() else True),
         )
     else:
+        print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
+        print("data paths", data_paths)
+        print("label paths", label_paths)
         # use torch em trainer and torchem loader to customize paths
         with_channels = False
         with_label_channels = False
@@ -150,7 +154,7 @@ def main():
             raw_transform=raw_transform,
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
-            sampler=sampler, rois=[np.s_[:80, :, :]],
+            sampler=sampler, rois=[np.s_[:80, :, :], np.s_[:160, :, :]],
         )
         val_loader = torch_em.default_segmentation_loader(
             raw_paths=data_paths, raw_key=args.raw_key,
@@ -159,7 +163,7 @@ def main():
             raw_transform=raw_transform,
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
-            sampler=sampler, rois=[np.s_[80:, :, :]],
+            sampler=sampler, rois=[np.s_[80:, :, :], np.s_[160:, :, :]],
         )
         trainer = torch_em.default_segmentation_trainer(
             name=experiment_name, model=model,

@@ -150,7 +150,7 @@ def main(visualize=False):
     parser.add_argument("--export_path", "-e",  type=str, default="/scratch-grete/usr/nimlufre/volume-em/mitochondria/test_segmentations", help="Path to the root data directory")
     parser.add_argument("--model_path", "-m", type=str, default="/scratch-grete/projects/nim00007/models/exports_for_cooper/mito_model_s2.pt")
     parser.add_argument("--add_missing_mitos", "-am", default=False, action='store_true', help="If to add missing mitos to segmentation and keep original labels")
-    parser.add_argument("--resize", "-r", default=False, action='store_true', help="Resize to some shape")
+    # parser.add_argument("--resize", "-r", default=False, action='store_true', help="Resize to some shape")
     parser.add_argument("--seed_distance", "-sd", type=int, default=6*2, help="Seed distance")
     parser.add_argument("--boundary_threshold", "-bt", type=float, default=0.15, help="Boundary threshold")
     parser.add_argument("--tile_shape", "-ts", type=int, nargs=3, default=(32, 512, 512), help="Tile shape")
@@ -210,27 +210,46 @@ def main(visualize=False):
             if args.key is not None and not args.all_keys:
                 image = f[args.key][::scale_factor, ::scale_factor, ::scale_factor]
             else:
-                for key in keys:
-                    image = f[args.key][::scale_factor, ::scale_factor, ::scale_factor]
-                    data[key] = f[key][::scale_factor, ::scale_factor, ::scale_factor]
+                # max_shape = (128, 1024, 1024)
+                max_shape = (200, 1600, 1600)
+                slices = None
+                for idx, key in enumerate(keys):
+                    arr = f[key][...]
+                    if slices is None:
+                        # Compute centered crop slices once
+                        slices = []
+                        for i, max_sz in enumerate(max_shape):
+                            if arr.shape[i] > max_sz:
+                                start = (arr.shape[i] - max_sz) // 2
+                                slices.append(slice(start, start + max_sz))
+                            else:
+                                slices.append(slice(None))
+                        slices = tuple(slices)
+                    data[key] = arr[slices]
+                    # data[key] = f[key][:128, :512*2, :512*2]
             orig_shape = None
-            if args.resize:
-                orig_shape = data[args.key].shape
-                raw = data[args.key]
-                image = resize(
-                    raw,
-                    output_shape=(
-                        int(raw.shape[0] * 1.67),
-                        int(raw.shape[1] * 1.33),
-                        int(raw.shape[2] * 1.33),
-                    ),
-                    order=1,
-                    preserve_range=True,
-                    anti_aliasing=True
-                    )
+            # if args.resize:
+            #     orig_shape = data[args.key].shape
+            #     raw = data[args.key]
+            #     image = resize(
+            #         raw,
+            #         output_shape=(
+            #             int(raw.shape[0] * 1.67),
+            #             int(raw.shape[1] * 1.33),
+            #             int(raw.shape[2] * 1.33),
+            #         ),
+            #         order=1,
+            #         preserve_range=True,
+            #         anti_aliasing=True
+            #         )
 
             # image = torch_em.transform.raw.standardize(image)
-            image = torch_em.transform.raw.normalize_percentile(image)
+            image = torch_em.transform.raw.normalize_percentile(data[args.key])
+        uniq = np.unique(data[args.key])
+        print("np unique raw", uniq)
+        if np.all(uniq == 0):
+            print("Skipping empty file", path)
+            continue
 
         seg, pred = segment_mitochondria(
             image, args.model_path,
@@ -244,41 +263,33 @@ def main(visualize=False):
             boundary_threshold=args.boundary_threshold,
             area_threshold=500,
             )
-        if args.resize and orig_shape is not None:
-            pred = None
-            seg = resize(seg, output_shape=orig_shape, order=0, preserve_range=True, anti_aliasing=False)
         with open_file(output_path, "w", ".h5") as f1:
             print("output_path", output_path)
+
+            # Save all relevant keys if requested, else save raw
             if args.key is not None and args.all_keys:
-                # f1.create_dataset(args.key, data=image, compression="gzip")
                 print("keys", keys)
                 for key in keys:
-                    if "mito" in key:
-                        if add_missing_mitos:
-                            additional_objects = find_additional_objects(data[key], seg, matching_threshold=0.1)
-                            f1[key] = label(data[key] + additional_objects)
-                        else:
-                            f1.create_dataset(key, data=data[key], compression="gzip")
+                    if "mito" in key and add_missing_mitos:
+                        added = label(data[key] + find_additional_objects(data[key], seg, matching_threshold=0.1))
+                        f1.create_dataset(key, data=added, compression="gzip")
                     else:
-                        f1.create_dataset(key, data=image, compression="gzip")
-            else:
-                # just keep raw dataset
-                f1.create_dataset("raw", data=image, compression="gzip", dtype=image.dtype)
+                        f1.create_dataset(key, data=data[key], compression="gzip")
+
             f1.create_dataset("seg", data=seg, compression="gzip", dtype=seg.dtype)
-            if args.resize:
-                f1.create_dataset("pred", data=pred, compression="gzip", dtype=pred.dtype)
-            else:
-                f1.create_dataset("pred/foreground", data=pred[0], compression="gzip", dtype=pred.dtype)
-                f1.create_dataset("pred/boundary", data=pred[1], compression="gzip", dtype=pred.dtype)
+
+            f1.create_dataset("pred/foreground", data=pred[0], compression="gzip", dtype=pred.dtype)
+            f1.create_dataset("pred/boundary", data=pred[1], compression="gzip", dtype=pred.dtype)
+
+            # Optionally include additional label datasets
             if args.label_path is not None:
                 with open_file(args.label_path, "r") as f2:
                     if args.label_key is not None:
-                        f1.create_dataset(f"labels/{args.label_key}", data=f2[args.label_key], compression="gzip",
-                                          dtype=f2[args.label_key].dtype)
+                        f1.create_dataset(f"labels/{args.label_key}", data=f2[args.label_key], compression="gzip", dtype=f2[args.label_key].dtype)
                     else:
                         for key2 in f2.keys():
                             f1.create_dataset(f"labels/{key2}", data=f2[key2], compression="gzip", dtype=f2[key2].dtype)
-                print("Saved orignial segmentation from ", args.label_path, " to", output_path)
+                print("Saved original segmentation from", args.label_path, "to", output_path)
             print("Saved to", output_path)
 
 

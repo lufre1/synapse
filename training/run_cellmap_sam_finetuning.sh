@@ -8,7 +8,7 @@
 
 
 source /user/freckmann15/u12103/.bashrc
-micromamba activate /mnt/lustre-grete/usr/u12103/micromamba/envs/sam
+micromamba activate /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/sam
 
 # ================ Define ALL parameters here ONCE ================
 N_ITER=20000
