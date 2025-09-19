@@ -51,8 +51,32 @@ def load_zarr_image(path, key):
     return image
 
 
+def load_h5_image(path, key):
+    """
+    Load an HDF5 dataset from given path and key, then return the image.
+
+    Parameters:
+        path (str): Path to the HDF5 (.h5) file.
+        key (str): Key to the dataset.
+
+    Returns:
+        image (numpy.ndarray): The image loaded from the HDF5 dataset.
+    """
+    if not path.endswith('.h5'):
+        raise ValueError(f"Not an HDF5 file; must end with '.h5', but got: {path}")
+
+    with h5py.File(path, 'r') as f:
+        image = f[key][::1, ::1, ::1]
+    return image
+
+
 def main(args):
-    image = load_zarr_image(args.input_path, args.key)
+    if ".zarr" in args.input_path:
+        image = load_zarr_image(args.input_path, args.key)
+    elif ".h5" in args.input_path:
+        image = load_h5_image(args.input_path, args.key)
+    else:
+        raise NotImplementedError("Not a zarr or h5 file; must end with '.zarr' or '.h5', but got:", args.input_path)
     image_reordered = np.transpose(image, (2, 1, 0))
 
     # see https://github.com/hoogenboom-group/mitonet-seg/blob/main/src/mitonet_seg/inferencer.py

@@ -156,6 +156,7 @@ def main(visualize=False):
     parser.add_argument("--tile_shape", "-ts", type=int, nargs=3, default=(32, 512, 512), help="Tile shape")
     parser.add_argument("--all_keys", "-ak", default=False, action='store_true', help="If to add all keys from raw file to export file")
     parser.add_argument("--force_overwrite", "-fo", action="store_true", default=False, help="Force overwrite of existing files")
+    parser.add_argument("--centered_crop", "-cc", action="store_true", default=False, help="Centered crop")
     
     args = parser.parse_args()
     add_missing_mitos = args.add_missing_mitos
@@ -191,7 +192,7 @@ def main(visualize=False):
         print("opening file", path)
         os.makedirs(args.export_path, exist_ok=True)
         output_path = os.path.join(args.export_path, os.path.basename(args.model_path).replace(".pt", "") +
-                                   f"_sd{args.seed_distance}_bt{args.boundary_threshold}_with_pred_" +
+                                   f"_sd{args.seed_distance}_bt{args.boundary_threshold}_with_pred_ts_z{ts['z']}_y{ts['y']}_x{ts['x']}_halo_z{halo['z']}_y{halo['y']}_x{halo['x']}" +
                                    os.path.basename(path))
         output_path = output_path.replace(".zarr", ".h5")
         if os.path.exists(output_path) and not args.force_overwrite:
@@ -207,24 +208,28 @@ def main(visualize=False):
         data = {}
         scale_factor = 1
         with open_file(path, "r") as f:
+            centered_crop = args.centered_crop
             if args.key is not None and not args.all_keys:
                 image = f[args.key][::scale_factor, ::scale_factor, ::scale_factor]
             else:
-                # max_shape = (128, 1024, 1024)
                 max_shape = (200, 1600, 1600)
                 slices = None
                 for idx, key in enumerate(keys):
                     arr = f[key][...]
                     if slices is None:
-                        # Compute centered crop slices once
-                        slices = []
-                        for i, max_sz in enumerate(max_shape):
-                            if arr.shape[i] > max_sz:
-                                start = (arr.shape[i] - max_sz) // 2
-                                slices.append(slice(start, start + max_sz))
-                            else:
-                                slices.append(slice(None))
-                        slices = tuple(slices)
+                        if centered_crop:
+                            # Compute centered crop slices once
+                            slices = []
+                            for i, max_sz in enumerate(max_shape):
+                                if arr.shape[i] > max_sz:
+                                    start = (arr.shape[i] - max_sz) // 2
+                                    slices.append(slice(start, start + max_sz))
+                                else:
+                                    slices.append(slice(None))
+                            slices = tuple(slices)
+                        else:
+                            slices = tuple(slice(None, max_sz) for max_sz in max_shape)
+                    print(f"Using slices {slices} for key {key}")
                     data[key] = arr[slices]
                     # data[key] = f[key][:128, :512*2, :512*2]
             orig_shape = None
@@ -245,11 +250,11 @@ def main(visualize=False):
 
             # image = torch_em.transform.raw.standardize(image)
             image = torch_em.transform.raw.normalize_percentile(data[args.key])
-        uniq = np.unique(data[args.key])
-        print("np unique raw", uniq)
-        if np.all(uniq == 0):
-            print("Skipping empty file", path)
-            continue
+        # uniq = np.unique(data[args.key])
+        # print("np unique raw", uniq)
+        # if np.all(uniq == 0):
+        #     print("Skipping empty file", path)
+        #     continue
 
         seg, pred = segment_mitochondria(
             image, args.model_path,
