@@ -92,6 +92,8 @@ def load_data_from_file(path: str, scale: int = 1, upsample: int = 0,
         label_path = util.find_label_file(path, label_paths)
     else:
         label_path = None
+    if ".tif" in path:
+        return imread(path)[:]
     with open_file(path, mode="r") as f:
         data = {}
         if label_path is not None:
