@@ -118,7 +118,13 @@ def correct_mitochondria(args):
     file_paths = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
     
     iteration = 0
+    continue_from = "M2_eb3_model.h5"
+    continue_now = False
     for path in tqdm(file_paths):
+        if continue_from in path:
+            continue_now = True
+        if not continue_now:
+            continue
         iteration += 1
         old_path, fname = os.path.split(path)
         fname, _ = os.path.splitext(fname)
@@ -129,9 +135,9 @@ def correct_mitochondria(args):
         if iteration <= 0:
             continue
 
-        if os.path.exists(output_path):
+        if os.path.exists(output_path) and not args.force_overwrite:
+            print(f"Already exists: \n{output_path}\n")
             continue
-
         print(f"Loading: \n{path} \nwould save to: \n{output_path}\n")
 
         if not run_correction(path, output_path, fname):
@@ -142,10 +148,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base_path", type=str, default=BASE_PATH, help="Path to the data directory")
     parser.add_argument("--save_dir", type=str, default=SAVE_DIR, help="Path to save the data to")
+    parser.add_argument("--force_overwrite", "-f", action="store_true", help="Whether to over-write already present segmentation results.")
     args = parser.parse_args()
 
     correct_mitochondria(args)
-
 
 
 if __name__ == "__main__":
