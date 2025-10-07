@@ -149,14 +149,7 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
     else:
         label_paths = None
     print("Found files:", len(paths))
-    skip = True
     for path in tqdm(paths):
-        if "block_z000384_000512_y000000_001936_x003312_004968" in path:
-            print("checked if it's block_z000384_000512_y000000_001936_x003312_004968 in path:", path)
-            skip = False
-        if skip:
-            print("Skipping", path)
-            continue
         print("\n", path)
         if label_paths is not None and len(label_paths) > 1:
             label_path = util.find_label_file(path, label_paths)
