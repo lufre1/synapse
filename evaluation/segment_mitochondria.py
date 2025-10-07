@@ -212,7 +212,9 @@ def main(visualize=False):
             if args.key is not None and not args.all_keys:
                 image = f[args.key][::scale_factor, ::scale_factor, ::scale_factor]
             else:
-                max_shape = (200, 1600, 1600)
+                image = None
+                max_shape = (200, 2000, 2000)
+                print("Cropping to", max_shape)
                 slices = None
                 for idx, key in enumerate(keys):
                     arr = f[key][...]
@@ -229,7 +231,6 @@ def main(visualize=False):
                             slices = tuple(slices)
                         else:
                             slices = tuple(slice(None, max_sz) for max_sz in max_shape)
-                    print(f"Using slices {slices} for key {key}")
                     data[key] = arr[slices]
                     # data[key] = f[key][:128, :512*2, :512*2]
             orig_shape = None
@@ -249,7 +250,10 @@ def main(visualize=False):
             #         )
 
             # image = torch_em.transform.raw.standardize(image)
-            image = torch_em.transform.raw.normalize_percentile(data[args.key])
+            if image is None:
+                image = torch_em.transform.raw.normalize_percentile(data[args.key])
+            else:
+                image = torch_em.transform.raw.normalize_percentile(image)
         # uniq = np.unique(data[args.key])
         # print("np unique raw", uniq)
         # if np.all(uniq == 0):

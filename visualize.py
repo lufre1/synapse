@@ -170,16 +170,6 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
             # get foreground and boundary
             new_seg = _segment(data["pred/foreground"], data["pred/boundary"])
             data["new_seg"] = new_seg
-        # for k in data.keys():
-        #     if "raw" in k:
-        #         raw_shape = data[k].shape
-        # if raw_shape:
-            # for k in data.keys():
-            #     if "raw" not in k:
-            #         if raw_shape != data[k].shape:
-            #             print(f"Resizing {k} from {data[k].shape} to {raw_shape}")
-            #             data[k] = util.downsample_to_shape(data[k], raw_shape)
-        
         visualize_data(data)
 
 
