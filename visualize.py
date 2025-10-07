@@ -17,6 +17,7 @@ from tqdm import tqdm
 import z5py
 from tifffile import imread
 from skimage.transform import resize
+import dask.array as da
 
 
 def _segment(foreground, boundary, block_shape=(128, 128, 128), threshold=0.5):
@@ -35,11 +36,11 @@ def get_file_paths(path, ext=".h5", reverse=False):
         return paths
 
 
-def visualize_data(data):
+def visualize_data(data, offset_z=None):
     viewer = napari.Viewer()
     print("vis data keys", data.keys())
     for key, value in data.items():
-        if "raw" in key or "0" in key:
+        if "raw" in key or key == "0":
             # if data[key].ndim == 4:
             #     data[key] = util.normalize_percentile_with_channel(data[key], lower=1, upper=99, channel=0)
             # else:
@@ -48,7 +49,9 @@ def visualize_data(data):
         elif key == "prediction" or "pred" in key or "dist" in key or "fore" in key or "bound" in key:
             viewer.add_image(value, name=key, blending="additive")
         else:
-            viewer.add_labels(value, name=key)
+            if offset_z is not None:
+                viewer.add_labels(value.astype(np.uint8), name=key, translate=(0, 0, offset_z))
+            viewer.add_labels(value.astype(np.uint8), name=key)
     # Get the "raw" layer
     raw_layer = next((layer for layer in viewer.layers if "raw" in layer.name), None)
     if raw_layer:
@@ -80,6 +83,39 @@ def extract_data(group: Any, data: Dict[str, Any], prefix: str = "", scale: int 
             # data[full_key] = item[:]
 
 
+def _as_lazy(item, scale: int = 1) -> da.Array:
+    """
+    Convert a NumPy/Zarr/H5/Z5 dataset to a *lazy* Dask array.
+    `scale` is applied only to the last three (spatial) axes.
+    """
+    # 1️⃣  Already a NumPy array → just wrap it (no copy)
+    if isinstance(item, np.ndarray):
+        return da.from_array(item, chunks=item.shape)
+
+    # 2️⃣  Zarr / H5 / Z5 objects – they expose a ``chunks`` attribute
+    if hasattr(item, "chunks"):
+        ndim = item.ndim
+        # Down‑sample only the spatial axes (the last three dimensions)
+        slicing = tuple(
+            slice(None, None, scale) if i >= (ndim - 3) else slice(None)
+            for i in range(ndim)
+        )
+        # Create a lazy Dask array and apply the slicing
+        return da.from_array(item, chunks=item.chunks)[slicing]
+
+    # 3️⃣  Fallback – treat anything else as a NumPy‑like object
+    return da.from_array(item, chunks=item.shape)
+
+
+def extract_data_lazy(group, data, prefix="", scale=1):
+    for key, item in group.items():
+        full_key = f"{prefix}/{key}" if prefix else key
+        if isinstance(item, (zarr.Group, h5py.Group, z5py.Group)):
+            extract_data_lazy(item, data, prefix=full_key, scale=scale)
+        else:
+            data[full_key] = _as_lazy(item, scale)
+
+
 def upsample_data(data, factor):
     """Upsample a 3D dataset in chunks to avoid memory overload."""
     upsampled_data = np.zeros(tuple(dim * factor for dim in data.shape), dtype=data.dtype)
@@ -92,8 +128,9 @@ def upsample_data(data, factor):
     return upsampled_data
 
 
-def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False, root_label_path: str = None
-         , segment: bool = False):
+def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False,
+         root_label_path: str = None, segment: bool = False,
+         offset_z: int = None):
     if ext is None:
         if os.path.isfile(root_path):
             ext = os.path.splitext(root_path)[1]
@@ -112,7 +149,14 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
     else:
         label_paths = None
     print("Found files:", len(paths))
+    skip = True
     for path in tqdm(paths):
+        if "block_z000384_000512_y000000_001936_x003312_004968" in path:
+            print("checked if it's block_z000384_000512_y000000_001936_x003312_004968 in path:", path)
+            skip = False
+        if skip:
+            print("Skipping", path)
+            continue
         print("\n", path)
         if label_paths is not None and len(label_paths) > 1:
             label_path = util.find_label_file(path, label_paths)
@@ -180,7 +224,7 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
             #             print(f"Resizing {k} from {data[k].shape} to {raw_shape}")
             #             data[k] = util.downsample_to_shape(data[k], raw_shape)
         
-        visualize_data(data)
+        visualize_data(data, offset_z=offset_z)
 
 
 if __name__ == "__main__":
@@ -191,6 +235,7 @@ if __name__ == "__main__":
     parser.add_argument("--upsample", "-u", type=int, default=None)
     parser.add_argument("--label_path", "-lp", type=str, default=None)
     parser.add_argument("--segment", "-seg", default=False, action="store_true")
+    parser.add_argument("--offset_z", "-o", type=int, default=None, help="Offset in z direction")
     
     args = parser.parse_args()
     path = args.path
@@ -198,4 +243,4 @@ if __name__ == "__main__":
     scale = args.scale
     upsample = args.upsample
     label_path = args.label_path
-    main(path, ext, scale, upsample, label_path, segment=args.segment)
+    main(path, ext, scale, upsample, label_path, segment=args.segment, offset_z=args.offset_z)

@@ -114,11 +114,11 @@ def correct_mitochondria(args):
     save_dir = args.save_dir
     os.makedirs(save_dir, exist_ok=True)
 
-    #raw_files = sorted(glob(os.path.join(base_path, "**/*raw.mrc"), recursive=True))
+    # raw_files = sorted(glob(os.path.join(base_path, "**/*raw.mrc"), recursive=True))
     file_paths = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
-    
+
     iteration = 0
-    continue_from = "M2_eb3_model.h5"
+    continue_from = "36859_J1_66K_TS_PS_01_rec_2kb1dawbp_crop_downscaled.h5"
     continue_now = False
     for path in tqdm(file_paths):
         if continue_from in path:
@@ -146,8 +146,8 @@ def correct_mitochondria(args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--base_path", type=str, default=BASE_PATH, help="Path to the data directory")
-    parser.add_argument("--save_dir", type=str, default=SAVE_DIR, help="Path to save the data to")
+    parser.add_argument("--base_path", "-b", type=str, default=BASE_PATH, help="Path to the data directory")
+    parser.add_argument("--save_dir", "-s", type=str, default=SAVE_DIR, help="Path to save the data to")
     parser.add_argument("--force_overwrite", "-f", action="store_true", help="Whether to over-write already present segmentation results.")
     args = parser.parse_args()
 

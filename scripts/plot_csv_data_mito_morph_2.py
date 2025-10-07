@@ -1,6 +1,7 @@
 # --------------------------------------------------------------
 # 1️⃣  IMPORTS & SETTINGS
 # --------------------------------------------------------------
+import argparse
 import pathlib, numpy as np, pandas as pd
 from typing import Dict, List, Optional, Tuple
 import matplotlib.pyplot as plt
@@ -33,6 +34,46 @@ except Exception as exc:                # pragma: no cover
 import pathlib, matplotlib.pyplot as plt, seaborn as sns
 import pandas as pd
 from typing import List, Tuple, Optional
+
+
+CB_PALETTE = [
+    "#4C72B0",  # blue
+    "#DD8452",  # orange
+    "#55A868",  # green
+    "#C44E52",  # red
+    "#8172B2",  # purple
+    "#937860",  # brown
+    "#DA8BC3",  # pink
+    "#8C8C8C",  # gray
+    "#CCB974",  # olive
+    "#64B5CD",  # cyan
+]
+
+PALETTE_DICT: dict = {}
+
+
+def make_palette_dict(df: pd.DataFrame) -> dict:
+    """Return a dict {phenotype_name: hex_colour} for the phenotypes present."""
+    phenos = sorted(df["phenotype"].unique())          # deterministic order
+    # Cycle through CB_PALETTE if there are more phenotypes than colours
+    colour_cycle = (CB_PALETTE * ((len(phenos) // len(CB_PALETTE)) + 1))[:len(phenos)]
+    return dict(zip(phenos, colour_cycle))
+
+
+def get_palette(df: pd.DataFrame) -> dict:
+    """
+    Return the colour‑map for the current DataFrame.
+    The first call builds the dict and stores it in the module‑level
+    ``PALETTE_DICT``; subsequent calls just return the cached version.
+    """
+    global PALETTE_DICT
+    if not PALETTE_DICT:               # empty → build it once
+        PALETTE_DICT = make_palette_dict(df)
+    return PALETTE_DICT
+
+
+sns.set_palette(CB_PALETTE)
+
 
 # --------------------------------------------------------------
 # 1️⃣  Box‑plot + optional jittered strip (good for small‑N groups)
@@ -173,6 +214,7 @@ def auto_plot_metric(
     pathlib.Path – path of the saved figure.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
+    palette = get_palette(df)
 
     # ------------------------------------------------------------------
     # 1️⃣  Basic stats that drive the decision
@@ -193,7 +235,7 @@ def auto_plot_metric(
             data=df,
             x=col,
             hue="phenotype",
-            palette="Set2",
+            palette=palette,
             edgecolor="black",
         )
         plt.title(f"{label} (counts) by phenotype")
@@ -216,7 +258,7 @@ def auto_plot_metric(
             data=df,
             x="phenotype",
             y=col,
-            palette="pastel",
+            palette=palette,
             showcaps=True,
             boxprops=dict(alpha=0.7),
             whiskerprops=dict(lw=1.5),
@@ -256,7 +298,7 @@ def auto_plot_metric(
             df,
             by="phenotype",
             column=col,
-            colormap=plt.cm.viridis,
+            colormap=palette,
             linewidth=1,
             overlap=1,
             fade=True,
@@ -279,7 +321,7 @@ def auto_plot_metric(
             x="phenotype",
             y=col,
             inner="box",
-            palette="muted",
+            palette=palette,
             cut=0,
         )
         plt.title(f"{label} by phenotype")
@@ -298,7 +340,7 @@ def auto_plot_metric(
     # 6️⃣  Fallback – simple box‑plot (should rarely be hit)
     # ------------------------------------------------------------------
     plt.figure(figsize=(8, 6))
-    sns.boxplot(data=df, x="phenotype", y=col, palette="pastel")
+    sns.boxplot(data=df, x="phenotype", y=col, palette=palette)
     plt.title(f"{label} by phenotype")
     plt.ylabel(label)
     plt.xlabel("Phenotype")
@@ -531,7 +573,7 @@ def plot_pairgrid(
     df: pd.DataFrame,
     vars_: List[str],
     hue: str = "phenotype",
-    palette: str = "Set2",
+    palette: str = CB_PALETTE,
     out_dir: pathlib.Path = FIG_DIR,
 ) -> pathlib.Path:
     """
@@ -679,70 +721,21 @@ def wilson_ci(k: int, n: int, alpha: float = 0.05) -> Tuple[float, float]:
     return (centre - rad) / denom, (centre + rad) / denom
 
 
-# def plot_phenotype_fractions(
-#     df: pd.DataFrame,
-#     out_dir: pathlib.Path = FIG_DIR,
-#     palette: str = {
-#         "Cluster 1": "#6596DF",  # pastel blue",
-#         "Cluster 2": "#FF6961",  # pastel red
-#     },  #"pastel",
-# ) -> pathlib.Path:
-#     """
-#     Bar plot showing the proportion of each phenotype together with a
-#     95 % Wilson confidence interval.
-
-#     Returns the path to the saved PNG.
-#     """
-#     out_dir.mkdir(parents=True, exist_ok=True)
-
-#     prop_df = (
-#         df.groupby("phenotype")
-#         .size()
-#         .reset_index(name="count")
-#         .assign(total=len(df))
-#     )
-#     prop_df["prop"] = prop_df["count"] / prop_df["total"]
-#     prop_df[["ci_low", "ci_high"]] = prop_df.apply(
-#         lambda r: pd.Series(wilson_ci(r["count"], r["total"])), axis=1
-#     )
-
-#     # Order bars by decreasing proportion (makes the plot easier to read)
-#     order = prop_df.sort_values("prop", ascending=False)["phenotype"]
-
-#     plt.figure()
-#     sns.barplot(
-#         data=prop_df,
-#         x="phenotype",
-#         y="prop",
-#         palette=palette,
-#         order=order,
-#         edgecolor="black",
-#         linewidth=0.8,
-#     )
-#     plt.errorbar(
-#         x=np.arange(len(prop_df)),
-#         y=prop_df["prop"],
-#         yerr=[
-#             prop_df["prop"] - prop_df["ci_low"],
-#             prop_df["ci_high"] - prop_df["prop"],
-#         ],
-#         fmt="none",
-#         c="k",
-#         capsize=5,
-#     )
-#     plt.ylim(0, 1)
-#     plt.ylabel("Fraction of mitochondria")
-#     plt.title("Phenotype composition")
-#     plt.tight_layout()
-
-#     out_path = out_dir / "phenotype_fractions.png"
-#     plt.savefig(out_path)
-#     plt.close()
-#     return out_path
-def plot_phenotype_fractions(df, out_dir=FIG_DIR, palette=None):
+def plot_phenotype_fractions(
+    df: pd.DataFrame,
+    out_dir: pathlib.Path = FIG_DIR,
+    palette: Optional[Dict[str, str]] = None,
+) -> pathlib.Path:
+    """
+    Bar plot of phenotype fractions with a 95 % Wilson confidence interval.
+    The function prints the table that is plotted and aligns the error bars
+    with the bars (no more “swapped” caps).
+    """
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # ---- 1️⃣  Compute counts, proportions and Wilson CIs -----------------
+    # ------------------------------------------------------------------
+    # 1️⃣  Build the proportion / Wilson‑CI table
+    # ------------------------------------------------------------------
     prop_df = (
         df.groupby("phenotype")
           .size()
@@ -754,13 +747,38 @@ def plot_phenotype_fractions(df, out_dir=FIG_DIR, palette=None):
         lambda r: pd.Series(wilson_ci(r["count"], r["total"])), axis=1
     )
 
-    # ---- 2️⃣  Sort by decreasing proportion (the order we want to show) ----
+    # ------------------------------------------------------------------
+    # 2️⃣  Sort by decreasing proportion (the order we will plot)
+    # ------------------------------------------------------------------
     prop_df = prop_df.sort_values("prop", ascending=False).reset_index(drop=True)
+    order = ["Cluster 1", "Cluster 2"]
+    prop_df = prop_df.set_index("phenotype").reindex([c for c in order if c in prop_df["phenotype"].values]).reset_index() # keep only present labels .reset_index() )
 
-    # ---- 3️⃣  Plot the bars ------------------------------------------------
+    # ------------------------------------------------------------------
+    # 3️⃣  Debug output – you can comment these prints out later
+    # ------------------------------------------------------------------
+    print("\n=== Phenotype‑fraction table (sorted) ===")
+    print(prop_df[["phenotype", "count", "prop", "ci_low", "ci_high"]])
+
+    err_low  = prop_df["prop"] - prop_df["ci_low"]
+    err_high = prop_df["ci_high"] - prop_df["prop"]
+    print("\n--- Error‑bar components (already sorted) ---")
+    print("err_low :", err_low.values)
+    print("err_high:", err_high.values)
+
+    # ------------------------------------------------------------------
+    # 4️⃣  Palette (colour‑blind safe) – keep your existing helper
+    # ------------------------------------------------------------------
+    if palette is None:
+        palette = get_palette(df)
+
+    # ------------------------------------------------------------------
+    # 5️⃣  Plot the bars
+    # ------------------------------------------------------------------
     plt.figure(figsize=(6, 4))
     ax = sns.barplot(
         data=prop_df,
+        order=order,
         x="phenotype",
         y="prop",
         palette=palette,
@@ -768,19 +786,28 @@ def plot_phenotype_fractions(df, out_dir=FIG_DIR, palette=None):
         linewidth=0.8,
     )
 
-    # ---- 4️⃣  Add the confidence‑interval error bars -----------------------
+    # ------------------------------------------------------------------
+    # 6️⃣  Align error‑bars with the bars
+    # ------------------------------------------------------------------
+    # `ax.patches` holds the Rectangle objects that seaborn created.
+    bar_x = [p.get_x() + p.get_width() / 2.0 for p in ax.patches]
+
+    print("\n--- Bar x‑positions (centres) ---")
+    print(bar_x)
+
     ax.errorbar(
-        x=np.arange(len(prop_df)),          # now matches the sorted order
+        x=bar_x,
         y=prop_df["prop"],
-        yerr=[
-            prop_df["prop"] - prop_df["ci_low"],
-            prop_df["ci_high"] - prop_df["prop"],
-        ],
+        yerr=[err_low, err_high],
         fmt="none",
-        c="k",
+        ecolor="k",
         capsize=5,
+        elinewidth=1,
     )
 
+    # ------------------------------------------------------------------
+    # 7️⃣  Finishing touches
+    # ------------------------------------------------------------------
     ax.set_ylim(0, 1)
     ax.set_ylabel("Fraction of mitochondria")
     ax.set_title("Phenotype composition")
@@ -941,10 +968,10 @@ def main(
         # ("skeleton_branches", "Skeleton branches"),
         # ("skeleton_endpoints", "Skeleton endpoints"),
         ("touches_border", "Touches border"),
-        ("intensity_max", "Intensity max (AU)"),
-        ("intensity_mean", "Intensity mean (AU)"),
-        ("intensity_min", "Intensity min (AU)"),
-        ("intensity_std", "Intensity std (AU)"),
+        ("intensity_max", "Intensity max"),
+        ("intensity_mean", "Intensity mean"),
+        ("intensity_min", "Intensity min"),
+        ("intensity_std", "Intensity std"),
         ("nearest_neighbor_um", "Nearest-neighbor distance (µm)"),
     ]
     print("\n📊 Creating violin‑swarm plots …")
@@ -1027,141 +1054,20 @@ def main(
 
 
 if __name__ == "__main__":
-    # Path to the original CSV (adjust to your environment)
-    CSV_PATH = pathlib.Path(
-        "/home/freckmann15/data/mitochondria/volume-em/embl/paper/cutout_1_ground_truth_phenotypes.csv"
-    )
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--csv_path", type=str, default="/home/freckmann15/data/mitochondria/volume-em/embl/paper/cutout_1_ground_truth_phenotypes.csv")
+    parser.add_argument("--use_rule_based", action="store_true", default=False)
+    parser.add_argument("--k_clusters", type=int, default=None)
+    args = parser.parse_args()
 
-    # Example 1 – let the script pick the best K‑means solution automatically
-    main(CSV_PATH, use_rule_based=False, k_clusters=None)
+    main(
+        csv_path=args.csv_path,
+        use_rule_based=args.use_rule_based,
+        k_clusters=args.k_clusters,
+    )
 
     # Example 2 – use the deterministic rule‑based phenotypes instead
     # main(CSV_PATH, use_rule_based=True)
 
     # Example 3 – force K‑means to use 4 clusters
     # main(CSV_PATH, use_rule_based=False, k_clusters=4)
-
-# metrics = [
-#     ("volume_um3", "Volume (µm³)"),
-#     ("surface_um2", "Surface area (µm²)"),
-#     ("sphericity", "Sphericity"),
-#     ("elongation_a_over_c", "Elongation (a/c)"),
-#     ("flatness_b_over_c", "Flatness (b/c)"),
-#     ("euler_char", "Euler characteristic"),
-#     ("nearest_neighbor_um", "Nearest‑neighbor distance (µm)"),
-# ]
-
-# for col, label in metrics:
-#     plt.figure()
-#     sns.violinplot(data=df, x="phenotype", y=col, inner=None, palette="muted", cut=0)
-#     sns.swarmplot(data=df, x="phenotype", y=col, color=".25", size=3, alpha=0.7)
-#     plt.title(f"{label} by phenotype")
-#     plt.ylabel(label)
-#     plt.xlabel("Phenotype")
-#     if df[col].max() / max(df[col].min(), 1e-12) > 100:
-#         plt.yscale("log")
-#     plt.tight_layout()
-#     plt.savefig(FIG_DIR / f"{col}_by_phenotype.png")
-#     plt.show()
-
-
-# pair_vars = [
-#     "volume_um3",
-#     "elongation_a_over_c",
-#     "flatness_b_over_c",
-#     "sphericity",
-#     "nearest_neighbor_um",
-# ]
-
-# g = sns.pairplot(df, vars=pair_vars, hue="phenotype", palette="Set2",
-#                 plot_kws={"alpha": 0.6, "s": 30}, diag_kind="kde", corner=True)
-# g.fig.suptitle("Pairwise relationships of mitochondrial metrics", y=1.02)
-# g.savefig(FIG_DIR / "pairgrid_shape_metrics.png")
-# plt.show()
-
-
-# if PLOTLY_AVAILABLE:
-#     size = np.log10(df["volume_um3"] + 1e-12) * 5 + 2
-#     fig = px.scatter_3d(df,
-#                         x="centroid_um_x", y="centroid_um_y", z="centroid_um_z",
-#                         color="phenotype", size=size,
-#                         hover_data=["label", "volume_um3", "elongation_a_over_c",
-#                                     "sphericity", "euler_char"],
-#                         title="3‑D distribution of mitochondria centroids",
-#                         width=900, height=800)
-#     fig.update_traces(marker=dict(opacity=0.8))
-#     fig.write_html(FIG_DIR / "centroids_3d.html")
-#     fig.show()
-# else:
-#     print("\n⚠️ Plotly not available – 3‑D scatter skipped.\n")
-
-# from scipy import stats
-# prop_df = (df.groupby("phenotype")
-#              .size()
-#              .reset_index(name="count")
-#              .assign(total=len(df)))
-# prop_df["prop"] = prop_df["count"] / prop_df["total"]
-
-# def wilson_ci(k, n, alpha=0.05):
-#     if n == 0:
-#         return 0.0, 0.0
-#     z = stats.norm.ppf(1 - alpha / 2)
-#     phat = k / n
-#     denom = 1 + z**2 / n
-#     centre = phat + z**2 / (2 * n)
-#     rad = z * np.sqrt(phat * (1 - phat) / n + z**2 / (4 * n**2))
-#     return (centre - rad) / denom, (centre + rad) / denom
-
-# prop_df[["ci_low", "ci_high"]] = prop_df.apply(
-#     lambda r: pd.Series(wilson_ci(r["count"], r["total"])), axis=1)
-
-# plt.figure()
-# sns.barplot(data=prop_df, x="phenotype", y="prop", palette="pastel",
-#             order=prop_df.sort_values("prop", ascending=False)["phenotype"],
-#             edgecolor="black", linewidth=0.8)
-# plt.errorbar(x=np.arange(len(prop_df)),
-#              y=prop_df["prop"],
-#              yerr=[prop_df["prop"] - prop_df["ci_low"],
-#                    prop_df["ci_high"] - prop_df["prop"]],
-#              fmt="none", c="k", capsize=5)
-# plt.ylim(0, 1)
-# plt.ylabel("Fraction of mitochondria")
-# plt.title("Phenotype composition")
-# plt.tight_layout()
-# plt.savefig(FIG_DIR / "phenotype_fractions.png")
-# plt.show()
-
-
-# corr_vars = [
-#     "volume_um3", "surface_um2", "sv_ratio", "sphericity",
-#     "elongation_a_over_c", "flatness_b_over_c", "isotropy_c_over_a",
-#     "euler_char", "skeleton_length_um", "nearest_neighbor_um",
-#     "intensity_mean"
-# ]
-# corr = df[corr_vars].corr()
-# plt.figure(figsize=(12, 9))
-# sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm",
-#             vmin=-1, vmax=1, linewidths=0.5,
-#             cbar_kws={"label": "Pearson r"})
-# plt.title("Correlation matrix of mitochondrial metrics")
-# plt.tight_layout()
-# plt.savefig(FIG_DIR / "correlation_matrix.png")
-# plt.show()
-
-
-# metric_names = [c for c, _ in metrics]   # only the column names
-# def summarize(col):
-#     return {"mean": df[col].mean(),
-#             "median": df[col].median(),
-#             "std": df[col].std(),
-#             "min": df[col].min(),
-#             "max": df[col].max()}
-
-# summary = {c: summarize(c) for c in metric_names}
-# print("\n=== Numeric summary ===")
-# for c, s in summary.items():
-#     print(f"{c:>20}: mean={s['mean']:.3g}, median={s['median']:.3g}, "
-#           f"sd={s['std']:.3g}, min={s['min']:.3g}, max={s['max']:.3g}")
-
-# print("\nPhenotype fractions (95 % CI):")
-# print(prop_df[["phenotype", "prop", "ci_low", "ci_high"]].to_string(index=False))
