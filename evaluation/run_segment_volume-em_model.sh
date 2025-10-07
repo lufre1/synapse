@@ -28,7 +28,7 @@ python /user/freckmann15/u12103/synapse/evaluation/segment_mitochondria.py \
   --export_path ${EXPORT_PATH} \
   --file_extension ${FILE_EXTENSION} \
   -ts ${BLOCK_SHAPE} \
-  --force_override
-  # --model_path ${MODEL_PATH} \
+  --force_override \
+  --model_path ${MODEL_PATH} 
   # --label_key ${LABEL_KEY} \
   # --force_override
