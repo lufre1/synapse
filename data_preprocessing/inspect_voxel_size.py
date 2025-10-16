@@ -40,12 +40,18 @@ def main():
     parser = argparse.ArgumentParser()
     # /mnt/lustre-emmy-hdd/projects/nim00007/data/synaptic-reconstruction/cooper/original_imod_data/20240909_cp_datatransfer
     parser.add_argument("--base_path", "-b",  type=str, default="/home/freckmann15/data/mitochondria/cooper/new_mitos", help="Path to the root data directory")
+    parser.add_argument("--second_base_path", "-b2", type=str, default=None)
     args = parser.parse_args()
     
     mrc_paths = sorted(glob(os.path.join(args.base_path, "**", "*.mrc"), recursive=True))#, reverse=True)
     rec_paths = sorted(glob(os.path.join(args.base_path, "**", "*.rec"), recursive=True))
     mod_paths = sorted(glob(os.path.join(args.base_path, "**", "*.mod"), recursive=True))
     mrc_paths.extend(rec_paths)
+    
+    if args.second_base_path:
+        mrc_paths = sorted(glob(os.path.join(args.second_base_path, "**", "*.mrc"), recursive=True))
+        rec_paths = sorted(glob(os.path.join(args.second_base_path, "**", "*.rec"), recursive=True))
+        mrc_paths.extend(rec_paths)
     
     inspect_voxel_sizes(mrc_paths)
     
