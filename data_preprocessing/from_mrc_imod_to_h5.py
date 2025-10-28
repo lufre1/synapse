@@ -24,9 +24,11 @@ def _write_h5(path, key, image):
             return
     with h5py.File(path, "a") as f:
         if "label" in key:
+            if "mito" in key:
+                image = label(image)
             f.create_dataset(key, data=image, dtype=np.uint8, compression="gzip")
         else:
-            f.create_dataset(key, data=image, dtype=image.dtype)
+            f.create_dataset(key, data=image, dtype=image.dtype, compression="gzip")
     print(f"Saved {key} to \n{path}")
 
 
@@ -256,6 +258,7 @@ def main():
     parser.add_argument("--export_path", "-e",  type=str, default="/home/freckmann15/data/mitochondria/wichmann/output", help="Path to the root data directory")
     parser.add_argument("--visualize", "-v", default=False, action='store_true', help="If to visualize or not")
     parser.add_argument("--print_labels", "-pl", default=False, action='store_true', help="If to print labels from mod file or not")
+    parser.add_argument("--force_overwrite", "-f", default=False, action='store_true', help="If to over-write already present segmentation results.")
     #parser.add_argument("--save_dir", type=str, default="", help="Path to save the data to")
     args = parser.parse_args()
     print(args.base_path)
@@ -271,9 +274,9 @@ def main():
     # mrc_paths = sorted(glob(os.path.join(args.base_path, "*.mrc")), reverse=True)
     for mod_path, mrc_path in tqdm(zip(mod_paths, mrc_paths)):
         if print_labels:
-            print("\n\n", mod_path)
+            print("\n\nmod path", mod_path)
             print(get_label_names(mod_path))
-            print("\n", mrc_path, "voxel  _size", mrcfile.open(mrc_path).voxel_size)
+            print("\nmrc path", mrc_path, "voxel  _size", mrcfile.open(mrc_path).voxel_size)
             continue
         if mod_path == "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/mitos_and_cristae/Otof-WT_P21/WT22_eb2_AZ1_10K_model2.mod":
             continue
@@ -281,14 +284,14 @@ def main():
         export_file_name, rel_path = get_filename_and_inter_dirs(mod_path, args.base_path)
         create_directories_if_not_exists(args.export_path, rel_path)
         export_file_path = os.path.join(args.export_path, rel_path, export_file_name + ".h5")
-        if os.path.exists(export_file_path):
+        if os.path.exists(export_file_path) and not args.force_overwrite:
             print("File already exists:", export_file_path)
             continue
-        mrc_basename = os.path.basename(mrc_path)
-        mod_basename = os.path.basename(mod_path).strip("_model")
+        mrc_basename = os.path.splitext(os.path.basename(mrc_path))[0]
+        mod_basename = os.path.splitext(os.path.basename(mod_path))[0]
         if mrc_basename != mod_basename:
             mrc_path = find_matching_rec_file(mod_path, mrc_paths)
-        print("\n", mrc_path, "\n", mod_path, "\n")
+        print("\nmrc path", mrc_path, "\nmod path", mod_path, "\n")
 
         label_names = get_true_labels(get_label_names(mod_path))
 

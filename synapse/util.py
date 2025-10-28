@@ -80,7 +80,8 @@ def read_data(path, scale=1):
                     print(f"Loading group: {key}")
                     extract_data(f[key], data, scale=scale)
                     continue
-            ndim = f["data"].ndim
+            k = "raw" if "raw" in f.keys() else "data"
+            ndim = f[k].ndim
             slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
             data[key] = f[key][slicing] if scale > 1 else f[key][:]
     elif (".zarr" in path):
@@ -204,7 +205,7 @@ def export_data(export_path: str, data):
             raise ValueError("For .h5 and .hdf5 formats, data must be a dictionary with dataset names as keys.")
         with h5py.File(export_path, "w") as f:
             for key, value in data.items():
-                f.create_dataset(key, data=value.astype(value.dtype))
+                f.create_dataset(key, data=value.astype(value.dtype), compression="gzip")
     
     else:
         raise ValueError(f"Unsupported file format: {ext}")

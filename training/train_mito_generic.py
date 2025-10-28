@@ -92,7 +92,7 @@ def main():
     else:
         random.seed(42)
         random.shuffle(data_paths)
-    data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.6, val_ratio=0.4, test_ratio=0.00)
+    data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.8, val_ratio=0.1, test_ratio=0.1)
 
     end_time = time.time()
     # Calculate execution time in seconds
