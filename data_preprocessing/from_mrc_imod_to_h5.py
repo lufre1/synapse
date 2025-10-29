@@ -16,19 +16,51 @@ import h5py
 from synapse_net.imod.export import get_label_names
 
 
-def _write_h5(path, key, image):
+# def _write_h5(path, key, image):
+#     if os.path.exists(path):
+#         keys = get_all_keys_from_h5(path)
+#         if key in keys:
+#             print(f"{key} already exists in {path}")
+#             return
+#     with h5py.File(path, "a") as f:
+#         if "label" in key:
+#             if "mito" in key:
+#                 image = label(image)
+#             f.create_dataset(key, data=image, dtype=np.uint8, compression="gzip")
+#         else:
+#             f.create_dataset(key, data=image, dtype=image.dtype, compression="gzip")
+#     print(f"Saved {key} to \n{path}")
+
+def _write_h5(path, key, image, mrc_path=None):
     if os.path.exists(path):
         keys = get_all_keys_from_h5(path)
         if key in keys:
             print(f"{key} already exists in {path}")
             return
+    
     with h5py.File(path, "a") as f:
         if "label" in key:
             if "mito" in key:
                 image = label(image)
-            f.create_dataset(key, data=image, dtype=np.uint8, compression="gzip")
+            dataset = f.create_dataset(key, data=image, dtype=np.uint8, compression="gzip")
         else:
-            f.create_dataset(key, data=image, dtype=image.dtype, compression="gzip")
+            dataset = f.create_dataset(key, data=image, dtype=image.dtype, compression="gzip")
+            
+        # Add voxel_size metadata if MRC path provided
+        if mrc_path and os.path.exists(mrc_path):
+            print(f"Attempting to read metadata from: {mrc_path}")
+            try:
+                voxel_size = mrcfile.open(mrc_path).voxel_size
+                voxel_dtype = np.dtype([('x', np.float32), ('y', np.float32), ('z', np.float32)])
+                voxel_size_attr = np.array(voxel_size, dtype=voxel_dtype)
+                dataset.attrs.create(name='voxel_size', data=voxel_size_attr)
+                print("voxel size debug", voxel_size, type(voxel_size))
+                # dataset.attrs.create(name='voxel_size', data=voxel_size, shape=voxel_size.shape)
+            except Exception as e:
+                print(f"Error reading MRC metadata: {e}")
+                import traceback
+                traceback.print_exc()
+    
     print(f"Saved {key} to \n{path}")
 
 
@@ -311,8 +343,7 @@ def main():
         if mrc_path is None:
             print("Could not find a mrc or rec file for", mod_path)
             continue
-        raw = mrcfile.open(mrc_path)
-        raw_data = raw.data
+        raw_data = mrcfile.open(mrc_path).data
         labels = {}
         for key, val in label_dict.items():
             labels[key] = np.flip(get_segmentation(mod_path, mrc_path, require_object=False, object_id=key), axis=1)
@@ -336,7 +367,7 @@ def main():
                 v.add_labels(val, name=k)
             napari.run()
         else:
-            _write_h5(export_file_path, "raw", raw_data)
+            _write_h5(export_file_path, "raw", raw_data, mrc_path=mrc_path)
             for key, val in true_labels.items():
                 #print("key", key, "image has vals?", np.any(val))
                 _write_h5(export_file_path, key, val)

@@ -47,8 +47,8 @@ def main():
     parser.add_argument("--base_path", "-b",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi", help="Path to the root data directory")
     parser.add_argument("--export_path", "-e", type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/cooper/s2/", help="Path to the export directory")
     parser.add_argument("--scale_factor", "-s", type=int, default=2, help="Scale factor for the image")
-    parser.add_argument("--import_file_extension", "-ife", type=str, default=".tif", help="File extension to read data")
-    parser.add_argument("--export_file_extension", "-efe", type=str, default=".tif", help="File extension to export data")
+    parser.add_argument("--import_file_extension", "-ife", type=str, default=".h5", help="File extension to read data")
+    parser.add_argument("--export_file_extension", "-efe", type=str, default=".h5", help="File extension to export data")
     args = parser.parse_args()
     scale = args.scale_factor
     ife = args.import_file_extension
@@ -56,7 +56,7 @@ def main():
 
     paths = sorted(glob(os.path.join(args.base_path, "**", f"*{ife}"), recursive=True))
     # filter all raw files
-    paths = [path for path in paths if "embedding" not in path and "mask" not in path]
+    # paths = [path for path in paths if "embedding" not in path and "mask" not in path]
 
     for path in tqdm(paths):
         export_file_name, rel_path = get_filename_and_inter_dirs(path, args.base_path)
@@ -66,7 +66,7 @@ def main():
             print("File already exists:", export_file_path)
             continue
         data = util.read_data(path, scale=scale)
-        util.export_data(export_file_path, data)
+        util.export_data(export_file_path, data, voxel_size=[8.694*2, 8.694*2, 8.694*2])
 
 
 if __name__ == "__main__":

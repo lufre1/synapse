@@ -1,20 +1,24 @@
 #!/bin/bash
 #SBATCH --partition=grete:shared
 #SBATCH -G A100:1
-#SBATCH --time=2-00:00:00
+#SBATCH --time=0-12:00:00
 #SBATCH --job-name=train-mito-net
-#SBATCH --constraint 80gb
 
+PATCH_SHAPE="32 512 512"
+BS=4
+LR=1e-4
+read -r PZ PY PX <<< "$PATCH_SHAPE"
+EXPNAME="mitotomo-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-combined-refined-thick-new"
 
 source /user/freckmann15/u12103/.bashrc
-micromamba activate /mnt/lustre-grete/usr/u12103/envs/synapse
+micromamba activate /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
 
 python /user/freckmann15/u12103/synapse/training/train_mito_wichmann.py \
-  --experiment_name "mitonet32-bs2-ps48512-lr1e-4-combined-thick" \
+  --experiment_name ${EXPNAME} \
   --data_dir /scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos \
   --data_dir2 /scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/ \
   --n_iterations 100000 \
-  --patch_shape 48 512 512 \
-  --batch_size 2 \
-  --learning_rate 1e-4 \
+  --patch_shape ${PATCH_SHAPE} \
+  --batch_size ${BS} \
+  --learning_rate ${LR} \
   --feature_size 32 \

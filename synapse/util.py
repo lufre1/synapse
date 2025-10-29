@@ -167,7 +167,7 @@ def upsample_data(data, factor, is_segmentation=True, target_size=None):
     return output
 
 
-def export_data(export_path: str, data):
+def export_data(export_path: str, data, voxel_size=None):
     """Export data to the specified path, determining format from the file extension.
     
     Args:
@@ -205,7 +205,11 @@ def export_data(export_path: str, data):
             raise ValueError("For .h5 and .hdf5 formats, data must be a dictionary with dataset names as keys.")
         with h5py.File(export_path, "w") as f:
             for key, value in data.items():
-                f.create_dataset(key, data=value.astype(value.dtype), compression="gzip")
+                ds = f.create_dataset(key, data=value.astype(value.dtype), compression="gzip")
+                if "raw" in key and voxel_size is not None:
+                    # voxel_dtype = np.dtype([('x', np.float32), ('y', np.float32), ('z', np.float32)])
+                    # voxel_size_attr = np.array(voxel_size, dtype=voxel_dtype)
+                    ds.attrs.create(name='voxel_size', data=np.array(voxel_size, dtype=np.float32))
     
     else:
         raise ValueError(f"Unsupported file format: {ext}")
