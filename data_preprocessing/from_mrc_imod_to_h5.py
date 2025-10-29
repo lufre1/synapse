@@ -220,9 +220,9 @@ def get_true_labels(label_dict):
     for key, value in label_dict.items():
         if "az" in value.lower():
             true_labels[key] = "labels/az"
-        elif "mito" in value.lower() and "cristae" not in value.lower():
+        elif "mito" in value.lower() and "cristae" not in value.lower() and "inner" not in value.lower():
             true_labels[key] = "labels/mitochondria"
-        elif "cm" in value.lower() or "cristae" in value.lower():
+        elif "cm" in value.lower() or "cristae" in value.lower() or "inner" in value.lower():
             true_labels[key] = "labels/cristae"
         elif "endbulb" in value.lower():
             true_labels[key] = "labels/endbulb"
@@ -272,14 +272,20 @@ def main():
     # use this for 06
     # mod_paths = sorted(glob(os.path.join(args.base_path, "*.mod")), reverse=True)
     # mrc_paths = sorted(glob(os.path.join(args.base_path, "*.mrc")), reverse=True)
+    count = 0
     for mod_path, mrc_path in tqdm(zip(mod_paths, mrc_paths)):
+        # count += 1
+        # if count <= 1:
+        #     continue
+        # if "37371_O5_66K_TS_SP_34-01_rec_2Kb1dawbp_cropF" not in mod_path:
+        #     continue
         if print_labels:
             print("\n\nmod path", mod_path)
             print(get_label_names(mod_path))
             print("\nmrc path", mrc_path, "voxel  _size", mrcfile.open(mrc_path).voxel_size)
             continue
-        if mod_path == "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/mitos_and_cristae/Otof-WT_P21/WT22_eb2_AZ1_10K_model2.mod":
-            continue
+        # if mod_path == "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/mitos_and_cristae/Otof-WT_P21/WT22_eb2_AZ1_10K_model2.mod":
+        #     continue
         scale_down = False
         export_file_name, rel_path = get_filename_and_inter_dirs(mod_path, args.base_path)
         create_directories_if_not_exists(args.export_path, rel_path)

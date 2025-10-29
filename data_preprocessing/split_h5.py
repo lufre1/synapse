@@ -7,15 +7,15 @@ import synapse.util as util
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--base_path", "-b",  type=str, default="/home/freckmann15/data/mitochondria/cooper/fidi_2025/exported_to_hdf5/m13dko/37371_O4_66K_TS_SC_50_rec_2Kb1dawbp_crop_F.h5", help="Path to the root data directory")
-    parser.add_argument("--export_path", "-e", type=str, default="/home/freckmann15/data/mitochondria/cooper/fidi_2025/exported_to_hdf5/m13dko/", help="Path to the export directory")
+    parser.add_argument("--base_path", "-b",  type=str, default="/home/freckmann15/data/mitochondria/cooper/fidi_2025/exported_to_hdf5_new/m13dko/37371_O4_66K_TS_SC_50_rec_2Kb1dawbp_crop_F.h5", help="Path to the root data directory")
+    parser.add_argument("--export_path", "-e", type=str, default="/home/freckmann15/data/mitochondria/cooper/fidi_2025/exported_to_hdf5_new/m13dko/", help="Path to the export directory")
     parser.add_argument("--split_after_z_slices", "-s", type=int, default=101, help="Split after z slices")
     args = parser.parse_args()
     base_path = args.base_path
     export_path = args.export_path
 
     if os.path.isdir(base_path):
-        paths = sorted(glob(os.path.join(base_path, "**", "*.tif"), recursive=True))
+        paths = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
     elif os.path.isfile(base_path):
         paths = [base_path]
     else:
