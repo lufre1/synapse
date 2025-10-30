@@ -31,6 +31,16 @@ from typing import Dict, List, Union, Tuple, Optional, Any
 # data_format = "*.h5"
 
 
+def read_voxel_size_h5(file_path, dataset_name="raw"):
+    voxel_size = None
+    try:
+        with h5py.File(file_path, "r") as f:
+            voxel_size = f[dataset_name].attrs["voxel_size"]
+    except KeyError:
+        print(f"Warning: Could not find voxel_size attribute in {file_path} of dataset {dataset_name}.")
+    return voxel_size
+
+
 def get_3d_model(
     out_channels: int,
     in_channels: int = 1,
