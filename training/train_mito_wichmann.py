@@ -30,6 +30,7 @@ def main():
     parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
     parser.add_argument("--data_dir", type=str, default=None, help="Path to the data directory")
     parser.add_argument("--data_dir2", type=str, default=None, help="Path to a second data directory")
+    parser.add_argument("--data_dir3", type=str, default=None, help="Path to a third data directory")
     parser.add_argument("--visualize", action="store_true", default=False, help="Visualize data with napari")
     parser.add_argument("--patch_shape", type=int, nargs=3, default=(32, 256, 256), help="Patch shape for data loading (3D tuple)")
     parser.add_argument("--n_iterations", type=int, default=10000, help="Number of training iterations")
@@ -54,26 +55,9 @@ def main():
     print(f"\n Experiment: {experiment_name}\n")
     print(f"Using {device} with {n_workers} workers.")
     label_transform = lutil.CombinedLabelTransform(add_binary_target=True, dilation_footprint=np.ones((3, 3)))
-    
-    raw_transform = None  # util.custom_raw_transform
 
     loss_name = "dice"
-    metric_name = "dice"
-    ndim = 3
-
-    loss_function = util.get_loss_function(loss_name)
-    metric_function = util.get_loss_function(metric_name)
     in_channels, out_channels = 1, 2
-    # depth = 4
-    # gain = 2
-
-    # scale_factors = 4*[[2, 2, 2]]
-    # scale_factors = [
-    #     [1, 2, 2],
-    #     [1, 2, 2],
-    #     [2, 2, 2],
-    #     [2, 2, 2]
-    # ]
 
     final_activation = None
     if final_activation is None and loss_name == "dice":
@@ -89,6 +73,9 @@ def main():
     if data_dir2 is not None:
         data_paths2 = util.get_data_paths(data_dir2)
         data_paths.extend(data_paths2)
+    if args.data_dir3 is not None:
+        data_paths3 = util.get_data_paths(args.data_dir3)
+        data_paths.extend(data_paths3)
 
     for path in data_paths:
         if "combined" in path:
@@ -109,6 +96,8 @@ def main():
     sampler = MinInstanceSampler(p_reject=0.95)
 
     print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
+    print("data['train']", data["train"])
+    print("data['val']", data["val"])
     print("data['test']", data["test"])
 
     supervised_training(
@@ -121,7 +110,7 @@ def main():
         batch_size=batch_size,
         n_iterations=n_iterations,
         sampler=sampler,
-        out_channels=2,
+        out_channels=out_channels,
         label_transform=label_transform
     )
 

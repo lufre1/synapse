@@ -27,10 +27,10 @@ SAVE_DIR = "/scratch-grete/usr/nimlufre/synapse/mitochondria"
 
 def main():
     parser = argparse.ArgumentParser(description="3D UNet for medium organelle segmentation")
-    parser.add_argument("--data_dir", type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/embl/cutout_1/images/ome-zarr/raw.ome.zarr",
+    parser.add_argument("--data_dir", type=str, required=True,
                         help="Path to the data directory")
-    parser.add_argument("--raw_file_extension", type=str, default="*.zarr", help="File extension to read data")
-    parser.add_argument("--label_dir", type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/embl/cutout_1/images/committed_objects_leonie_2025-08-07.tif", help="Path to a second data directory | labels")
+    parser.add_argument("--raw_file_extension", type=str, default=".h5", help="File extension to read data")
+    parser.add_argument("--label_dir", type=str, default=None, help="Path to a second data directory | labels")
     parser.add_argument("--patch_shape", type=int, nargs=3, default=(32, 512, 512), help="Patch shape for data loading (3D tuple)")
     parser.add_argument("--n_iterations", type=int, default=10000, help="Number of training iterations")
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate")

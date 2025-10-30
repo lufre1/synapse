@@ -78,7 +78,7 @@ def read_data(path, scale=1):
             for key in f.keys():
                 if isinstance(f[key], (zarr.Group, h5py.Group, z5py.Group)):
                     print(f"Loading group: {key}")
-                    extract_data(f[key], data, scale=scale)
+                    extract_data(f[key], data, scale=scale, prefix=key)
                     continue
             k = "raw" if "raw" in f.keys() else "data"
             ndim = f[k].ndim
