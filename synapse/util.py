@@ -33,9 +33,13 @@ from typing import Dict, List, Union, Tuple, Optional, Any
 
 def read_voxel_size_h5(file_path, dataset_name="raw"):
     voxel_size = None
+    key = [k for k in get_all_datasets(file_path) if dataset_name in k]
+    if len(key) != 1:
+        print(f"Warning: Could not find dataset {dataset_name} in {file_path}.")
+        return voxel_size
     try:
         with h5py.File(file_path, "r") as f:
-            voxel_size = f[dataset_name].attrs["voxel_size"]
+            voxel_size = f[key[0]].attrs["voxel_size"]
     except KeyError:
         print(f"Warning: Could not find voxel_size attribute in {file_path} of dataset {dataset_name}.")
     return voxel_size
@@ -219,7 +223,8 @@ def export_data(export_path: str, data, voxel_size=None):
                 if "raw" in key and voxel_size is not None:
                     # voxel_dtype = np.dtype([('x', np.float32), ('y', np.float32), ('z', np.float32)])
                     # voxel_size_attr = np.array(voxel_size, dtype=voxel_dtype)
-                    ds.attrs.create(name='voxel_size', data=np.array(voxel_size, dtype=np.float32))
+                    voxel_size_array = voxel_size if isinstance(voxel_size, np.ndarray) else np.array(voxel_size, dtype=np.float32)
+                    ds.attrs.create(name='voxel_size', data=voxel_size_array)
     
     else:
         raise ValueError(f"Unsupported file format: {ext}")
