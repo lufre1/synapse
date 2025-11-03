@@ -22,12 +22,6 @@ SAVE_DIR = "/scratch-grete/usr/nimlufre/synapse/mito_segmentation"
 # from unet import UNet3D
 
 
-def raw_transform(raw):
-    raw, mitos = raw[0], raw[1]
-    raw = torch_em.transform.raw.standardize(raw)
-    return np.stack([raw, mitos], axis=0)
-
-
 def main():
     parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
     parser.add_argument("--data_dir", type=str, default=None, help="Path to the data directory")
@@ -154,7 +148,7 @@ def main():
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
             sampler=sampler,
-            raw_transform=raw_transform
+            raw_transform=util.standardize_channel
         )
         val_loader = torch_em.default_segmentation_loader(
             raw_paths=data["val"], raw_key="raw_mitos_combined",
@@ -163,7 +157,7 @@ def main():
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
             sampler=sampler,
-            raw_transform=raw_transform
+            raw_transform=util.standardize_channel
         )
 
     trainer = torch_em.default_segmentation_trainer(
