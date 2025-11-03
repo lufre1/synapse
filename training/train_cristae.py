@@ -18,15 +18,20 @@ from torch_em.util.debug import check_loader, check_trainer
 # Import your util.py for data loading
 import synapse.util as util
 # import data_classes
-from config import DATA_DIR, SAVE_DIR, TEST_DATA_DIR, CRISTAE_DIR
+SAVE_DIR = "/scratch-grete/usr/nimlufre/synapse/mito_segmentation"
 # from unet import UNet3D
+
+
+def raw_transform(raw):
+    raw, mitos = raw[0], raw[1]
+    raw = torch_em.transform.raw.standardize(raw)
+    return np.stack([raw, mitos], axis=0)
 
 
 def main():
     parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
-    parser.add_argument("--data_dir", type=str, default=CRISTAE_DIR, help="Path to the data directory")
-    parser.add_argument("--lucchi_data_dir", type=str, default=TEST_DATA_DIR, help="Path to the lucchi data directory (optional)")
-    parser.add_argument("--visualize", action="store_true", default=False, help="Visualize data with napari")
+    parser.add_argument("--data_dir", type=str, default=None, help="Path to the data directory")
+    parser.add_argument("--data_dir2", type=str, default=None, help="Path to the second data directory")
     parser.add_argument("--patch_shape", type=int, nargs=3, default=(64, 512, 512), help="Patch shape for data loading (3D tuple)")
     parser.add_argument("--n_iterations", type=int, default=10000, help="Number of training iterations")
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate")
@@ -63,13 +68,11 @@ def main():
     loss_function = util.get_loss_function(loss_name)
     metric_function = util.get_loss_function(metric_name)
     in_channels, out_channels = 2, 2
-    # depth = 4
     gain = 2
 
-    #scale_factors = 4*[[2, 2, 2]]
     scale_factors = [
         [1, 2, 2],
-        [1, 2, 2],
+        [2, 2, 2],
         [2, 2, 2],
         [2, 2, 2]
     ]
@@ -88,9 +91,13 @@ def main():
         data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
     else:
         data_paths = util.get_data_paths(data_dir)
+        if args.data_dir2 is not None:
+            data_paths.extend(util.get_data_paths(args.data_dir2))
         substring = "_combined.h5"
         data_paths = [s for s in data_paths if substring in s]
         print("len data paths", len(data_paths))
+        random.seed(42)
+        random.shuffle(data_paths)
         data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.75, val_ratio=0.25, test_ratio=0)
 
     end_time = time.time()
@@ -104,7 +111,7 @@ def main():
         in_channels=in_channels, out_channels=out_channels, initial_features=initial_features,
         final_activation=final_activation, gain=gain, scale_factors=scale_factors
     )
-    print(model)
+    # print(model)
     if checkpoint_path:
         model = torch_em.util.load_model(checkpoint=checkpoint_path, device=device)
         # state_dict = torch.load(checkpoint_path, map_location=torch.device("cpu"))["model_state"]
@@ -116,8 +123,11 @@ def main():
     with_label_channels = False
     sampler = MinInstanceSampler(p_reject=0.95)
     # raw2_transform = torch_em.transform.label.labels_to_binary
-
-    print("train", len(data["train"]), "val", len(data["val"]))
+    print("Path for this model", os.path.join(SAVE_DIR, experiment_name))
+    print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
+    print("data['train']", data["train"])
+    print("data['val']", data["val"])
+    print("data['test']", data["test"])
 
     if with_rois:
         train_loader = torch_em.default_segmentation_loader(
@@ -143,7 +153,8 @@ def main():
             patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
-            sampler=sampler
+            sampler=sampler,
+            raw_transform=raw_transform
         )
         val_loader = torch_em.default_segmentation_loader(
             raw_paths=data["val"], raw_key="raw_mitos_combined",
@@ -151,18 +162,9 @@ def main():
             patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
-            sampler=sampler
+            sampler=sampler,
+            raw_transform=raw_transform
         )
-    # for i in range(50):
-    #     image, label = next(iter(train_loader))
-    #     tmp = image.squeeze()
-    #     print(tmp[0].shape, tmp[1].shape)
-        # vis_data = {
-        #     "raw": image[0],
-        #     "pred1": image[1],
-        #     "label": label,
-        # }
-        # util.visualize_data_napari(vis_data)
 
     trainer = torch_em.default_segmentation_trainer(
         name=experiment_name, model=model,

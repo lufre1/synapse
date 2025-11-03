@@ -103,6 +103,7 @@ def main():
     label_transform = torch_em.transform.BoundaryTransform(add_binary_target=True)
     
     print("label paths", label_paths)
+    print("Path for this model", os.path.join(SAVE_DIR, experiment_name))
 
     if label_paths is None:
         print(f"Data preprocessing execution time: {execution_time:.6f} seconds")
