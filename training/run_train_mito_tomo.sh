@@ -1,10 +1,13 @@
 #!/bin/bash
 #SBATCH --partition=grete:shared
 #SBATCH -G A100:1
-#SBATCH --time=0-12:00:00
+#SBATCH --time=1-03:00:00
 #SBATCH --job-name=train-mito-net
+#SBATCH -c 8
+#SBATCH --mem 128G
+#SBATCH --constraint 80gb
 
-PATCH_SHAPE="32 256 256"
+PATCH_SHAPE="32 512 512"
 BS=4
 LR=1e-4
 read -r PZ PY PX <<< "$PATCH_SHAPE"

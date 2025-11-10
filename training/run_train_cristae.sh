@@ -3,6 +3,8 @@
 #SBATCH -G A100:1
 #SBATCH --time=0-12:00:00
 #SBATCH --job-name=train-cristae-net
+#SBATCH -c 8
+#SBATCH --mem 64G
 
 PATCH_SHAPE="32 256 256"
 BS=4

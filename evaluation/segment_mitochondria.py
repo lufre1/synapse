@@ -147,8 +147,8 @@ def main(visualize=False):
     parser.add_argument("--key", "-k",  type=str, default="0", help="Path to the root data directory")
     parser.add_argument("--label_path", "-lp",  type=str, default=None, help="Path to a specific label file")
     parser.add_argument("--label_key", "-lk",  type=str, default=None, help="Key to label data within the label file")
-    parser.add_argument("--export_path", "-e",  type=str, default="/scratch-grete/usr/nimlufre/volume-em/mitochondria/test_segmentations", help="Path to the root data directory")
-    parser.add_argument("--model_path", "-m", type=str, default="/scratch-grete/projects/nim00007/models/exports_for_cooper/mito_model_s2.pt")
+    parser.add_argument("--export_path", "-e",  type=str, default="/scratch-grete/usr/nimlufre/synapse/mitotomo/test_segmentations", help="Path to the root data directory")
+    parser.add_argument("--model_path", "-m", type=str, default="/scratch-grete/usr/nimlufre/synapse/mito_segmentation/checkpoints/mitotomo-net32-lr1e-4-bs4-ps32x256x256-cooper-wichmann-new/best.pt")
     parser.add_argument("--add_missing_mitos", "-am", default=False, action='store_true', help="If to add missing mitos to segmentation and keep original labels")
     # parser.add_argument("--resize", "-r", default=False, action='store_true', help="Resize to some shape")
     parser.add_argument("--seed_distance", "-sd", type=int, default=6*2, help="Seed distance")
@@ -177,7 +177,13 @@ def main(visualize=False):
     # halo = {'z': 12, 'y': 128, 'x': 128}
     # ts = {'z': ts["z"]+2*halo["z"], 'y': ts["y"]+2*halo["y"], 'x': ts["x"]+2*halo["x"]}
     h5_paths = io.load_file_paths(args.base_path, args.file_extension)
-    h5_paths = ['/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M2_eb10_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5']
+    # h5_paths = ['/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M2_eb10_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5']
+
+    # test paths for 32x256x256 model
+    # h5_paths = ['/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5', '/mnt/lustre-grete/usr/u12103/mitochondria/cooper/fidi_2025/exported_to_hdf5_s2/ctrl/37371_O5_66K_TS_SP_67_rec_2Kb1dawbp_cropF_s2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5']
+
+    # test paths for 32x512x512 model bs2 und bs1
+    h5_paths = ['/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5', '/mnt/lustre-grete/usr/u12103/mitochondria/cooper/fidi_2025/exported_to_hdf5_s2/ctrl/37371_O5_66K_TS_SP_67_rec_2Kb1dawbp_cropF_s2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5']
     # if args.file_extension == ".h5":
     #     h5_paths = sorted(glob(os.path.join(args.base_path, "**", "*.h5"), recursive=True), reverse=True)
     # else:

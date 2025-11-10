@@ -22,7 +22,7 @@ import synapse.util as util
 import synapse.cellmap_util as cutil
 import synapse.label_utils as lutil
 # import data_classes
-SAVE_DIR = "/scratch-grete/usr/nimlufre/synapse/mitochondria"
+SAVE_DIR = "/scratch-grete/usr/nimlufre/mito_models"
 
 
 def main():
@@ -39,12 +39,12 @@ def main():
     parser.add_argument("--batch_size", type=int, default=4, help="Batch size to be used")
     parser.add_argument("--feature_size", type=int, default=32, help="Initial feature size of the 3D UNet")
     parser.add_argument("--early_stopping", type=int, default=10, help="Number of epochs without improvement before stopping training")
-    parser.add_argument("--raw_key", type=str, default="0", help="Raw key to be used for training e.g. raw_crop")
+    parser.add_argument("--raw_key", type=str, default="raw", help="Raw key to be used for training e.g. raw_crop")
     parser.add_argument("--label_key", type=str, default=None, help="Label key to be used for training e.g. label_crop/all | None for tiff")
     parser.add_argument("--n_samples", type=int, default=500, help="Number of samples to be used for training per dataset")
-    parser.add_argument("--min_size", type=int, default=10, help="Minimal pixel size for organelles 2D")
     parser.add_argument("--second_data_dir", "-sdd", type=str, default=None, help="Path to a second data directory")
     parser.add_argument("--second_label_dir", type=str, default=None, help="Path to a second label directory")
+    parser.add_argument("--with_rois", "-wr", default=False, action='store_true', help="Use to train with ROIs (manually set ROI in script!!)")
 
     # Parse arguments
     args = parser.parse_args()
@@ -155,7 +155,8 @@ def main():
             raw_transform=raw_transform,
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
-            sampler=sampler, rois=[np.s_[:80, :, :], np.s_[:160, :, :]],
+            sampler=sampler, n_samples=args.n_samples,
+            rois=[np.s_[:80, :, :], np.s_[:160, :, :]] if args.with_rois else None,
         )
         val_loader = torch_em.default_segmentation_loader(
             raw_paths=data_paths, raw_key=args.raw_key,
@@ -164,7 +165,8 @@ def main():
             raw_transform=raw_transform,
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
-            sampler=sampler, rois=[np.s_[80:, :, :], np.s_[160:, :, :]],
+            sampler=sampler, n_samples=args.n_samples,
+            rois=[np.s_[80:, :, :], np.s_[160:, :, :]] if args.with_rois else None,
         )
         trainer = torch_em.default_segmentation_trainer(
             name=experiment_name, model=model,

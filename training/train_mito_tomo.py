@@ -50,11 +50,22 @@ def main():
     batch_size = args.batch_size
     patch_shape = args.patch_shape
 
-    n_workers = 12 if torch.cuda.is_available() else 1
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # n_workers = 12 if torch.cuda.is_available() else 1
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"\n Experiment: {experiment_name}\n")
-    print(f"Using {device} with {n_workers} workers.")
+    # print(f"Using {device} with {n_workers} workers.")
     label_transform = lutil.CombinedLabelTransform(add_binary_target=True, dilation_footprint=np.ones((3, 3)))
+    
+    if os.path.exists(os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")):
+        checkpoint_path = os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")
+        print("Checkpoint exists, loading model from checkpoint", checkpoint_path)
+    elif args.checkpoint_path:
+        checkpoint_path = args.checkpoint_path
+        print("Loading model from given checkpoint", checkpoint_path)
+    else:
+        checkpoint_path = None
+    # if checkpoint_path:
+    #     print("synapse-net supervised training has no checkpoint loading!")
 
     loss_name = "dice"
     in_channels, out_channels = 1, 2
@@ -94,7 +105,7 @@ def main():
     print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
 
     sampler = MinInstanceSampler(p_reject=0.95)
-
+    print("Path for this model", os.path.join(SAVE_DIR, "checkpoints", experiment_name))
     print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
     print("data['train']", data["train"])
     print("data['val']", data["val"])
@@ -111,7 +122,8 @@ def main():
         n_iterations=n_iterations,
         sampler=sampler,
         out_channels=out_channels,
-        label_transform=label_transform
+        label_transform=label_transform,
+        checkpoint_path=checkpoint_path,
     )
 
 

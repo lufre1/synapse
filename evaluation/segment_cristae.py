@@ -102,18 +102,6 @@ def get_all_keys_from_h5(file_path):
         h5file.visititems(collect_keys)  # Visit all groups and datasets
     return keys
 
-def _get_data_paths():
-    # this is train split for cristae
-    data_paths = [
-        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT20_eb7_AZ1_model2_combined.h5',
-        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT20_syn7_model2_combined.h5',
-        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT20_syn2_model2_combined.h5',
-        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-KO_P10/M1_eb1_model_combined.h5',
-        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_in_endbuld/Otof_AVCN03_429C_WT_M.Stim_G3_1_model_combined.h5',
-        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT13_syn6_model2_combined.h5',
-        '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-KO_P22/M7_eb12_model_combined.h5'
-    ]
-    return data_paths
 
 def main(visualize=False):
     parser = argparse.ArgumentParser()
@@ -121,44 +109,34 @@ def main(visualize=False):
     parser.add_argument("--export_path", "-e",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/cooper/cristae_test_segmentations", help="Path to the root data directory")
     parser.add_argument("--model_path", "-m", type=str, default="/scratch-grete/usr/nimlufre/synapse/mito_segmentation/checkpoints/cristae-net32-bs2-ps48512-cooper-wichmann-new-transform")
     parser.add_argument("--add_missing", "-am", default=False, action='store_true', help="If to add missing objects to segmentation and keep original labels")
+    parser.add_argument("--tile_shape", "-ts", type=int, nargs=3, default=(32, 512, 512), help="Tile shape")
     args = parser.parse_args()
     add_missing = args.add_missing
     print(args.base_path)
+    os.makedirs(args.export_path, exist_ok=True)
     # tile_shape
+    z, y, x = args.tile_shape
     ts = {
-        "z": 48,
-        "y": 512,
-        "x": 512
+        "z": z,
+        "y": y,
+        "x": x
         }
     halo = {
-        "z": int(ts["z"] * 0.1),
+        "z": int(ts["z"] * 0.25),
         "y": int(ts["y"] * 0.25),
         "x": int(ts["x"] * 0.25)
         }
     # halo = {'z': 12, 'y': 128, 'x': 128}
-    ts = {'z': ts["z"]+2*halo["z"], 'y': ts["y"]+2*halo["y"], 'x': ts["x"]+2*halo["x"]}
-    h5_paths = sorted(glob(os.path.join(args.base_path, "**", "*.h5"), recursive=True), reverse=True)
-    h5_paths = _get_data_paths()
-    # test_file_paths = [
-        # "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M2_eb10_model.h5",
-        # '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5',
-        # '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5',
-        # '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5',
-        # '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5',
-        # '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5'
-    # ]
-    ### fidi
-    # test_file_paths = [
-    #     '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M2_eb10_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5'
-        
-    # ]
-    # test_file_paths = ['/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT20_eb7_AZ1_model2_combined.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT20_syn7_model2_combined.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT20_syn2_model2_combined.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-KO_P10/M1_eb1_model_combined.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_in_endbuld/Otof_AVCN03_429C_WT_M.Stim_G3_1_model_combined.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-WT_P10/WT13_syn6_model2_combined.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/mitos_and_cristae/Otof-KO_P22/M7_eb12_model_combined.h5']
-    #test_file_paths = ["/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2/37371_O5_66K_TS_SP_35_rec_2Kb1dawbp_crop3_combined.h5", "/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2/36859_J1_66K_TS_PS_01_rec_2kb1dawbp_crop_combined.h5"]
+    # ts = {'z': ts["z"]+2*halo["z"], 'y': ts["y"]+2*halo["y"], 'x': ts["x"]+2*halo["x"]}
+    h5_paths = ['/mnt/lustre-grete/usr/u12103/mitochondria/cooper/fidi_2025/raw_mitos_combined_s2/37371_O5_66K_TS_SP_34-01_rec_2Kb1dawbp_cropF_s2_combined.h5']
+
     test_file_paths = h5_paths
     print("len(h5_paths)", len(h5_paths))
     tiling = {"tile": ts, "halo": halo}  # prediction function automatically subtracts the 2*halo from tile
     print("tiling:", tiling)
     scale = None  # [1.0, 1.0, 1.0]
+    global raw_transform
+    raw_transform = util.standardize_channel
 
     for path in tqdm(test_file_paths):
         # skip = True
@@ -168,7 +146,7 @@ def main(visualize=False):
         # if skip:
         #     continue
         print("opening file", path)
-        output_path = os.path.join(args.export_path, os.path.basename(args.model_path) + "_new-transform_" + os.path.basename(path)).replace(".h5", ".n5")
+        output_path = os.path.join(args.export_path, os.path.basename(args.model_path) + os.path.basename(path))
         if os.path.exists(output_path):
             print("Skipping... output path exists", output_path)
             continue
@@ -193,19 +171,24 @@ def main(visualize=False):
             return_predictions=True,
             **kwargs
             )
-        with open_file(output_path, "w", ".n5") as f1:
-            print("output_path", output_path)
-            print("keys", keys)
-            for key in keys:
-                f1[key] = data[key]
-                if add_missing and "cristae" in key:
-                    additional_objects = find_additional_objects(data[key], seg, matching_threshold=0.1)
-                    f1[key] = label(data[key] + additional_objects)
+        if add_missing:
+            with open_file(output_path, "w") as f1:
+                print("output_path", output_path)
+                print("keys", keys)
+                for key in keys:
+                    f1[key] = data[key]
+                    if add_missing and "cristae" in key:
+                        additional_objects = find_additional_objects(data[key], seg, matching_threshold=0.1)
+                        f1[key] = label(data[key] + additional_objects)
 
-            f1["pred"] = pred
-            f1["labels/new_cristae_seg"] = seg
-            print("Saved to", output_path)
-            print("\n")
+                f1["pred"] = pred
+                f1["labels/new_cristae_seg"] = seg
+                print("Saved to", output_path)
+                print("\n")
+        else:
+            data["pred"] = pred
+            data["cristae_seg"] = seg
+            util.export_data(output_path, data)
 
 
 if __name__ == "__main__":
