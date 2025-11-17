@@ -54,16 +54,40 @@ def evaluate(labels, seg):
 
 def main(args):
     print("Evaluating mitos")
-    if ".tif" not in args.labels_path:
-        labels = io.load_data_from_file(args.labels_path)[args.key]
+    # evaluate single file files
+    if os.path.isfile(args.labels_path) and os.path.isfile(args.segmentations_path):
+        if ".tif" not in args.labels_path:
+            labels = io.load_data_from_file(args.labels_path)[args.key]
+        else:
+            labels = io.load_data_from_file(args.labels_path)
+        if ".tif" not in args.segmentations_path:
+            seg = io.load_data_from_file(args.segmentations_path)[args.segmentations_key]
+        else:
+            seg = io.load_data_from_file(args.segmentations_path)
+        scores = evaluate(labels, seg)
+        if args.output_path is None:
+            output_path = os.path.splitext(args.labels_path)[0] + "_results.csv"
+        export(scores, output_path, args.dataset_name)
     else:
-        labels = io.load_data_from_file(args.labels_path)
-    if ".tif" not in args.segmentations_path:
-        seg = io.load_data_from_file(args.segmentations_path)[args.segmentations_key]
-    else:
-        seg = io.load_data_from_file(args.segmentations_path)
-    scores = evaluate(labels, seg)
-    export(scores, args.output_path, args.dataset_name)
+        label_paths = io.get_file_paths(args.labels_path)
+        segmentation_paths = io.get_file_paths(args.segmentations_path)
+        for label_path, segmentation_path in tqdm(zip(label_paths, segmentation_paths), desc="Evaluating mitos in files:"):
+            filename = "mito_eval_results"
+            if args.output_path is not None:
+                out_dir = os.path.dirname(args.output_path) if os.path.isfile(args.output_path) else os.path.dirname(label_path) if not args.output_path else args.output_path
+            else:
+                out_dir = os.path.dirname(label_path)
+            output_path = os.path.join(out_dir, f"{filename}.csv")
+            if ".tif" not in label_path:
+                labels = io.load_data_from_file(label_path)[args.key]
+            else:
+                labels = io.load_data_from_file(label_path)
+            if ".tif" not in segmentation_path:
+                seg = io.load_data_from_file(segmentation_path)[args.segmentations_key]
+            else:
+                seg = io.load_data_from_file(segmentation_path)
+            scores = evaluate(labels, seg)
+            export(scores, output_path, os.path.basename(label_path.replace("0.", "0")).split(".")[0])
 
 
 if __name__ == "__main__":
@@ -73,6 +97,6 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--segmentations_path", required=True)
     parser.add_argument("-sk", "--segmentations_key", default=None)
     parser.add_argument("-d", "--dataset_name", default=None)
-    parser.add_argument("-o", "--output_path", default="/home/freckmann15/data/mitochondria/volume-em/embl/paper/cutout_1_eval_segmentation_results.csv")
+    parser.add_argument("-o", "--output_path", default=None)
     args = parser.parse_args()
     main(args)

@@ -43,7 +43,7 @@ BASE_PATH = (
 # Datasets that you want to visualise in addition to the mandatory ones.
 # They will be added as image layers and **also** used as the
 # ``foreground`` and ``boundary`` inputs for the segmentation routine.
-EXTRA_KEYS = ["pred/foreground", "pred/boundary"]
+EXTRA_KEYS = ["pred/foreground", "pred/boundary", "seg"]
 
 
 def _refresh_layer_choices(v: napari.Viewer) -> None:
@@ -460,8 +460,8 @@ def run_correction(input_path: str, output_path: str, fname: str) -> bool:
     # ------------------------------------------------------------------
     # Load the mandatory datasets
     # ------------------------------------------------------------------
-    raw = _read_h5(input_path, "data")
-    mitos = _read_h5(input_path, "seg")
+    raw = _read_h5(input_path, "raw")
+    mitos = _read_h5(input_path, "labels/mitochondria")
     cristae = _read_h5(input_path, "labels/cristae")
 
     # ------------------------------------------------------------------
@@ -480,7 +480,7 @@ def run_correction(input_path: str, output_path: str, fname: str) -> bool:
     # ------------------------------------------------------------------
     v = napari.Viewer()
     v.add_image(raw, name="raw")
-    v.add_labels(mitos, name="mitos")
+    v.add_labels(mitos, name="labels/mitochondria")
     if cristae is not None:
         v.add_labels(cristae, name="cristae")
 
@@ -603,7 +603,7 @@ def run_correction(input_path: str, output_path: str, fname: str) -> bool:
             boundary_threshold=boundary_threshold,
             min_size=min_size,
             area_threshold=area_threshold,
-            dist=v.layers["dist"].data if "dist" in v.layers else None,
+            # dist=v.layers["dist"].data if "dist" in v.layers else None,
         )
 
         # ------------------------------------------------------------------
@@ -646,7 +646,7 @@ def run_correction(input_path: str, output_path: str, fname: str) -> bool:
     v.bind_key("q", lambda _: stop_correction(v))
     v.bind_key("f", lambda _: paint_new_mitos(v))
     v.bind_key("r", lambda _: run_segmentation(v))
-
+    _refresh_layer_choices(v)
     napari.run()
     return continue_correction
 

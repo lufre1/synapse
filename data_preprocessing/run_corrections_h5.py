@@ -93,15 +93,21 @@ def _segment_mitos(foreground: np.ndarray,
 # ----------------------------------------------------------------------
 
 
-def run_correction(input_path, output_path, fname):
+def run_correction(input_path, output_path, fname, raw_key="raw_mitos_combined"):
     """Open a Napari viewer for a single HDF5 file and allow manual correction."""
     continue_correction = True
 
     # ------------------------------------------------------------------
     # Load the mandatory datasets
     # ------------------------------------------------------------------
-    raw = _read_h5(input_path, "data")
-    mitos = _read_h5(input_path, "seg")
+    raw = _read_h5(input_path, raw_key)
+    mitos = _read_h5(input_path, "labels/mitochondria")
+    if mitos is None:
+        from skimage.morphology import binary_erosion
+        original_mitos = raw[1]
+        mitos = binary_erosion(original_mitos, footprint=np.ones((1, 7, 7)))
+        # mitos = binary_erosion(mitos, footprint=np.ones((1, 3, 3)))
+        raw = raw[0]
     # mitos.setflags(write=1)
 
     cristae = _read_h5(input_path, "labels/cristae")
@@ -296,7 +302,7 @@ def correct_mitochondria(args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--base_path", "-b", type=str, default=BASE_PATH, help="Path to the data directory")
+    parser.add_argument("--base_path", "-b", type=str, required=True, help="Path to the data directory")
     parser.add_argument("--save_dir", "-s", type=str, default=SAVE_DIR, help="Path to save the data to")
     parser.add_argument("--force_overwrite", "-f", action="store_true", help="Whether to over-write already present segmentation results.")
     args = parser.parse_args()

@@ -89,21 +89,21 @@ def read_data(path, scale=1):
             data["raw"] = f["data"][slicing] if scale > 1 else f["data"][:]
     elif (".h5" in path or ".n5" in path):
         with open_file(path, "r") as f:
+            # all_ds = get_all_datasets(path)
             for key in f.keys():
                 if isinstance(f[key], (zarr.Group, h5py.Group, z5py.Group)):
-                    print(f"Loading group: {key}")
                     extract_data(f[key], data, scale=scale, prefix=key)
-                    continue
-            k = "raw" if "raw" in f.keys() else "data"
-            ndim = f[k].ndim
-            slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-            data[key] = f[key][slicing] if scale > 1 else f[key][:]
+                else:
+                    ndim = f[key].ndim
+                    slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+                    data[key] = f[key][slicing] if scale > 1 else f[key][:]
+
     elif (".zarr" in path):
         img, voxel_size = read_ome_zarr(path)
         ndim = img.ndim
         slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
         data["raw"] = img[slicing] if scale > 1 else img
-        
+
     return data
 
 
@@ -219,7 +219,7 @@ def export_data(export_path: str, data, voxel_size=None):
             raise ValueError("For .h5 and .hdf5 formats, data must be a dictionary with dataset names as keys.")
         with h5py.File(export_path, "w") as f:
             for key, value in data.items():
-                ds = f.create_dataset(key, data=value.astype(value.dtype), compression="gzip")
+                ds = f.create_dataset(name=key, data=value, dtype=value.dtype, compression="gzip")
                 if "raw" in key and voxel_size is not None:
                     # voxel_dtype = np.dtype([('x', np.float32), ('y', np.float32), ('z', np.float32)])
                     # voxel_size_attr = np.array(voxel_size, dtype=voxel_dtype)
