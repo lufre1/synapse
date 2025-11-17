@@ -183,7 +183,7 @@ def main(visualize=False):
     # h5_paths = ['/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5', '/mnt/lustre-grete/usr/u12103/mitochondria/cooper/fidi_2025/exported_to_hdf5_s2/ctrl/37371_O5_66K_TS_SP_67_rec_2Kb1dawbp_cropF_s2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5']
 
     # test paths for 32x512x512 model bs2 und bs1
-    h5_paths = ['/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5', '/mnt/lustre-grete/usr/u12103/mitochondria/cooper/fidi_2025/exported_to_hdf5_s2/ctrl/37371_O5_66K_TS_SP_67_rec_2Kb1dawbp_cropF_s2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5']
+    # h5_paths = ['/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5', '/mnt/lustre-grete/usr/u12103/mitochondria/cooper/fidi_2025/exported_to_hdf5_s2/ctrl/37371_O5_66K_TS_SP_67_rec_2Kb1dawbp_cropF_s2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5']
     # if args.file_extension == ".h5":
     #     h5_paths = sorted(glob(os.path.join(args.base_path, "**", "*.h5"), recursive=True), reverse=True)
     # else:
@@ -220,7 +220,7 @@ def main(visualize=False):
                 image = f[args.key][::scale_factor, ::scale_factor, ::scale_factor]
             else:
                 image = None
-                max_shape = (200, 2000, 2000)
+                max_shape = (300, 2000, 2000)  # to not crash
                 print("Cropping to", max_shape)
                 slices = None
                 for idx, key in enumerate(keys):

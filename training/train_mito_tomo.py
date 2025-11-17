@@ -57,7 +57,8 @@ def main():
     label_transform = lutil.CombinedLabelTransform(add_binary_target=True, dilation_footprint=np.ones((3, 3)))
     
     if os.path.exists(os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")):
-        checkpoint_path = os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")
+        # torch_em default is to load "best.pt" (do not include it in path)
+        checkpoint_path = os.path.join(SAVE_DIR, "checkpoints", experiment_name)
         print("Checkpoint exists, loading model from checkpoint", checkpoint_path)
     elif args.checkpoint_path:
         checkpoint_path = args.checkpoint_path
@@ -95,7 +96,7 @@ def main():
     random.seed(42)
     random.shuffle(data_paths)
     # data_paths.sort(reverse=True)
-    data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.8, val_ratio=0.15, test_ratio=0.05)
+    data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.8, val_ratio=0.1, test_ratio=0.1)
 
     end_time = time.time()
     # Calculate execution time in seconds
