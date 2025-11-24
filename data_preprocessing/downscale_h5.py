@@ -3,18 +3,18 @@ import os
 from glob import glob
 import numpy as np
 from tqdm import tqdm
-from skimage import measure
+# from skimage import measure
 import argparse
-import mrcfile
-from synapse.util import get_data_metadata
+# import mrcfile
+# from synapse.util import get_data_metadata
 from synapse.h5_util import read_h5, get_all_keys_from_h5
-import napari
-from elf.io import open_file
-from elf.evaluation.matching import label_overlap, intersection_over_union
+# import napari
+# from elf.io import open_file
+# from elf.evaluation.matching import label_overlap, intersection_over_union
 from elf.parallel import label as parallel_label
-from skimage.segmentation import relabel_sequential
-from skimage.morphology import binary_closing, remove_small_objects, label
-import tifffile
+# from skimage.segmentation import relabel_sequential
+# from skimage.morphology import binary_closing, remove_small_objects, label
+# import tifffile
 
 
 def export_to_h5(data, export_path):

@@ -69,8 +69,8 @@ def main(args):
             output_path = os.path.splitext(args.labels_path)[0] + "_results.csv"
         export(scores, output_path, args.dataset_name)
     else:
-        label_paths = io.get_file_paths(args.labels_path)
-        segmentation_paths = io.get_file_paths(args.segmentations_path)
+        label_paths = io.get_file_paths(args.labels_path, ext=args.labels_ext)
+        segmentation_paths = io.get_file_paths(args.segmentations_path, ext=args.segmentations_ext)
         for label_path, segmentation_path in tqdm(zip(label_paths, segmentation_paths), desc="Evaluating mitos in files:"):
             filename = "mito_eval_results"
             if args.output_path is not None:
@@ -93,8 +93,10 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--labels_path", default="/home/freckmann15/data/mitochondria/volume-em/embl/cutout_1_committed_objects_leonie_2025-08-07.tif")
-    parser.add_argument("-k", "--key", default=None)
+    parser.add_argument("-le", "--labels_ext", default=None, help="Extension of label files; leave empty for single file")
+    parser.add_argument("-k", "--key", default=None, help="Key to dataset; leave empty for tif files")
     parser.add_argument("-s", "--segmentations_path", required=True)
+    parser.add_argument("-se", "--segmentations_ext", default=None, help="Extension of segmentation files; leave empty for single file")
     parser.add_argument("-sk", "--segmentations_key", default=None)
     parser.add_argument("-d", "--dataset_name", default=None)
     parser.add_argument("-o", "--output_path", default=None)
