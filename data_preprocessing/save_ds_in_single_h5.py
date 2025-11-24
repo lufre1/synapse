@@ -47,7 +47,7 @@ def main():
     parser.add_argument("--base_path", "-b",  type=str, required=True, help="Path to the root data directory")
     parser.add_argument("--second_base_path", "-b2",  type=str, required=True, help="Path to the root data directory")
     parser.add_argument("--export_path", "-e", type=str, required=True, help="Path to the export directory")
-    parser.add_argument("--scale_factor", "-s", type=int, default=2, help="Scale factor for the image")
+    parser.add_argument("--scale_factor", "-s", type=int, default=1, help="Scale factor for the image")
     parser.add_argument("--import_file_extension", "-ife", type=str, default=".h5", help="File extension to read data")
     parser.add_argument("--second_import_file_extension", "-ife2", type=str, default=".h5", help="File extension to read data")
     parser.add_argument("--export_file_extension", "-efe", type=str, default=".h5", help="File extension to export data")
@@ -71,7 +71,10 @@ def main():
             continue
         data = util.read_data(path, scale=scale)
         data2 = util.read_data(path2, scale=scale)
-        data2["labels/mitochondria"] = data2.pop("label", None)
+        data2["labels/mitochondria"] = remove_small_objects(
+            data2.pop("label", None),
+            min_size=500
+        )
         data.update(data2)
         util.export_data(export_file_path, data, voxel_size=[8.694*2, 8.694*2, 8.694*2])
 

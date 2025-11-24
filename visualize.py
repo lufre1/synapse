@@ -168,10 +168,8 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
                 else:
                     print("Warning! Assuming NDIM = 3")
                     ndim = 3
-                scale = 2
                 slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
                 data["label"] = imread(label_path)[slicing] if scale > 1 else imread(label_path)
-                scale = 1
                 # import skimage as ski
                 # data["label"] = ski.morphology.remove_small_objects(data["label"], min_size=1000)
             else:

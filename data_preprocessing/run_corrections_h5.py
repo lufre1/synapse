@@ -7,10 +7,11 @@ import napari
 import argparse
 from magicgui import magicgui
 from skimage.measure import label
-from scipy import ndimage
+# from scipy import ndimage
 from napari.utils.notifications import show_info
 from tqdm import tqdm
-from skimage.measure import label, regionprops
+from skimage.morphology import remove_small_objects
+# from skimage.measure import label, regionprops
 from synapse_net.inference.util import apply_size_filter, _postprocess_seg_3d
 import elf.parallel as parallel
 
@@ -35,6 +36,111 @@ def _read_h5(path, key, scale_factor=1):
             return None  # Indicate error
 
         return image
+
+
+def _refresh_layer_choices(v: napari.Viewer) -> None:
+    """
+    Populate the ComboBox choices of all annotation widgets
+    (Fill Holes, Erode Object, Dilate Object, Remove Small Objects)
+    with the names of every label layer currently present in the viewer.
+
+    If a layer named ``"segmentation"`` exists, make it the default
+    selection; otherwise keep the current selection if it is still valid,
+    or fall back to the first available label layer.
+    """
+    # ---- collect label‑layer names ------------------------------------
+    label_names = [
+        layer.name
+        for layer in v.layers
+        if isinstance(layer, napari.layers.Labels)
+    ]
+
+    # ---- helper to update a single widget ----------------------------
+    def _update_widget(widget):
+        # set the list of choices first
+        widget.layer_name.choices = label_names
+
+        # decide which value to show
+        current = widget.layer_name.value
+        if current in label_names:                     # still valid → keep it
+            return
+
+        # try to select “segmentation” if it exists
+        if "segmentation" in label_names:
+            widget.layer_name.value = "segmentation"
+        # otherwise pick the first label layer (if any)
+        elif label_names:
+            widget.layer_name.value = label_names[0]
+        else:
+            widget.layer_name.value = None               # no layers → empty
+
+    # ---- apply to every widget ---------------------------------------
+    # _update_widget(fill_holes)
+    # _update_widget(erode_object)
+    # _update_widget(dilate_object)          # newly added widget
+    _update_widget(remove_small_objects_widget)
+
+
+@magicgui(
+    call_button="Remove Small Objects",
+    layer_name={"label": "Target label layer", "widget_type": "ComboBox"},
+    max_size={"label": "Maximum object size (voxels)", "widget_type": "LineEdit"},
+)
+def remove_small_objects_widget(
+    viewer: napari.Viewer,
+    layer_name: str,
+    max_size: str,
+) -> None:
+    """Delete every labeled object whose voxel count ≤ *max_size*.
+
+    The operation works on the whole 3‑D label image; connectivity is set to 3
+    (full 3‑D neighbourhood) so that only spatially coherent voxels are
+    considered a single object.
+    """
+    # ---- validate layer -------------------------------------------------
+    if layer_name not in viewer.layers:
+        return
+    layer = viewer.layers[layer_name]
+    if not isinstance(layer, napari.layers.Labels):
+        return
+
+    # ---- parse size -----------------------------------------------------
+    try:
+        size_limit = int(max_size)
+        if size_limit < 0:
+            raise ValueError
+    except ValueError:
+        return
+
+    # ---- perform removal ------------------------------------------------
+    # remove_small_objects works directly on a labeled array.
+    # Objects smaller than *size_limit* are set to 0 (background).
+    cleaned = remove_small_objects(
+        layer.data,
+        min_size=size_limit,
+        connectivity=3,   # full 3‑D connectivity
+    )
+
+    # ---- write back -----------------------------------------------------
+    layer.data = cleaned
+
+
+def _add_annotation_widgets(v: napari.Viewer) -> None:
+    """Create the two widgets, add them to the UI and keep their layer list current."""
+    # initial population (run after the mandatory layers have been added)
+    _refresh_layer_choices(v)
+
+    # keep the list up‑to‑date when layers are added / removed / renamed
+    v.layers.events.inserted.connect(lambda _: _refresh_layer_choices(v))
+    v.layers.events.removed.connect(lambda _: _refresh_layer_choices(v))
+    v.layers.events.changed.connect(lambda _: _refresh_layer_choices(v))
+
+    # add the widgets to the dock
+    # v.window.add_dock_widget(fill_holes)
+    # v.window.add_dock_widget(erode_object)
+    # v.window.add_dock_widget(dilate_object)
+    v.window.add_dock_widget(remove_small_objects_widget)
+    _refresh_layer_choices(v)
 
 
 def _segment_mitos(foreground: np.ndarray,
@@ -93,7 +199,7 @@ def _segment_mitos(foreground: np.ndarray,
 # ----------------------------------------------------------------------
 
 
-def run_correction(input_path, output_path, fname, raw_key="raw_mitos_combined"):
+def run_correction(input_path, output_path, fname, raw_key="raw"):
     """Open a Napari viewer for a single HDF5 file and allow manual correction."""
     continue_correction = True
 
@@ -115,7 +221,7 @@ def run_correction(input_path, output_path, fname, raw_key="raw_mitos_combined")
         cristae.setflags(write=1)
 
     # ------------------------------------------------------------------
-    # <<< NEW >>> Load any extra datasets the user asked for
+    # Load any extra datasets the user asked for
     # ------------------------------------------------------------------
     extra_layers = {}
     for key in EXTRA_KEYS:
@@ -249,6 +355,7 @@ def run_correction(input_path, output_path, fname, raw_key="raw_mitos_combined")
 
     # Add all widgets to the UI
     v.window.add_dock_widget(paint_new_mitos)
+    _add_annotation_widgets(v)
     v.window.add_dock_widget(save_correction)
     v.window.add_dock_widget(save_correction_cristae)
     v.window.add_dock_widget(save_correction_mitos)
@@ -271,7 +378,11 @@ def correct_mitochondria(args):
     os.makedirs(save_dir, exist_ok=True)
 
     # raw_files = sorted(glob(os.path.join(base_path, "**/*raw.mrc"), recursive=True))
-    file_paths = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
+    if os.path.isdir(base_path):
+        file_paths = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
+    else:
+        file_paths = [base_path]
+    # file_paths = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True))
 
     iteration = 0
     continue_from = "36859_J1_66K_TS_PS_01_rec_2kb1dawbp_crop_downscaled.h5"

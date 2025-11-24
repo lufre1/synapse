@@ -43,7 +43,7 @@ BASE_PATH = (
 # Datasets that you want to visualise in addition to the mandatory ones.
 # They will be added as image layers and **also** used as the
 # ``foreground`` and ``boundary`` inputs for the segmentation routine.
-EXTRA_KEYS = ["pred/foreground", "pred/boundary", "seg"]
+EXTRA_KEYS = ["pred/foreground", "pred/boundary"]# , "seg"]
 
 
 def _refresh_layer_choices(v: napari.Viewer) -> None:
@@ -461,7 +461,7 @@ def run_correction(input_path: str, output_path: str, fname: str) -> bool:
     # Load the mandatory datasets
     # ------------------------------------------------------------------
     raw = _read_h5(input_path, "raw")
-    mitos = _read_h5(input_path, "labels/mitochondria")
+    mitos = _read_h5(input_path, "seg")
     cristae = _read_h5(input_path, "labels/cristae")
 
     # ------------------------------------------------------------------
@@ -480,7 +480,7 @@ def run_correction(input_path: str, output_path: str, fname: str) -> bool:
     # ------------------------------------------------------------------
     v = napari.Viewer()
     v.add_image(raw, name="raw")
-    v.add_labels(mitos, name="labels/mitochondria")
+    v.add_labels(mitos, name="original seg")
     if cristae is not None:
         v.add_labels(cristae, name="cristae")
 
