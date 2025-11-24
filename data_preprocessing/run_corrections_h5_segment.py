@@ -43,7 +43,7 @@ BASE_PATH = (
 # Datasets that you want to visualise in addition to the mandatory ones.
 # They will be added as image layers and **also** used as the
 # ``foreground`` and ``boundary`` inputs for the segmentation routine.
-EXTRA_KEYS = ["pred/foreground", "pred/boundary"]# , "seg"]
+EXTRA_KEYS = ["pred/foreground", "pred/boundary", "labels/mitochondria"]
 
 
 def _refresh_layer_choices(v: napari.Viewer) -> None:
@@ -656,7 +656,10 @@ def run_correction(input_path: str, output_path: str, fname: str) -> bool:
 # ----------------------------------------------------------------------
 def correct_mitochondria(args):
     base_path = args.base_path
-    save_dir = args.save_dir
+    if args.save_dir is None:
+        save_dir = base_path if os.path.isdir(base_path) else os.path.dirname(base_path)
+    else:
+        save_dir = args.save_dir
     os.makedirs(save_dir, exist_ok=True)
 
     file_paths = sorted(glob(os.path.join(base_path, "**", "*.h5"), recursive=True)) if os.path.isdir(base_path) else [base_path]
@@ -674,7 +677,7 @@ def correct_mitochondria(args):
         iteration += 1
         _, fname = os.path.split(path)
         fname, _ = os.path.splitext(fname)
-        fname = fname.replace("_raw", "") + ".h5"
+        fname = fname.replace("_raw", "") + "_refined.h5"
         output_path = os.path.join(save_dir, fname)
 
         if os.path.exists(output_path) and not args.force_overwrite:
@@ -703,7 +706,7 @@ def main():
         "--save_dir",
         "-s",
         type=str,
-        default=SAVE_DIR,
+        default=None,
         help="Path to save the corrected data",
     )
     parser.add_argument(
