@@ -8,6 +8,7 @@ import argparse
 import mrcfile
 from synapse.util import get_data_metadata
 from synapse.h5_util import read_h5, get_all_keys_from_h5
+import synapse.io.util as io
 import napari
 from elf.io import open_file
 from elf.evaluation.matching import label_overlap, intersection_over_union
@@ -61,7 +62,7 @@ def main():
     for path in tqdm(h5_paths):
         export_file_name, rel_path = get_filename_and_inter_dirs(path, args.base_path)
         create_directories_if_not_exists(args.export_path, rel_path)
-        export_file_path = os.path.join(args.export_path, rel_path, export_file_name + "_s2.h5")
+        export_file_path = os.path.join(args.export_path, rel_path, export_file_name + ".h5")
         if os.path.exists(export_file_path):
             print("File already exists:", export_file_path)
             continue

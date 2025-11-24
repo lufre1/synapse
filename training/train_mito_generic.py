@@ -101,7 +101,7 @@ def main():
     sampler = MinInstanceSampler(p_reject=0.95)
     # label_transform = lutil.CombinedLabelTransform(add_binary_target=True, dilation_footprint=np.ones((3, 3)))
     label_transform = torch_em.transform.BoundaryTransform(add_binary_target=True)
-    
+
     print("label paths", label_paths)
     print("Path for this model", os.path.join(SAVE_DIR, experiment_name))
 

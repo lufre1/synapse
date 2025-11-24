@@ -51,6 +51,8 @@ def get_3d_model(
     scale_factors: Tuple[Tuple[int, int, int]] = [[1, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2]],
     initial_features: int = 32,
     final_activation: str = "Sigmoid",
+    norm: str = None,
+    gain: int = 2,
 ) -> torch.nn.Module:
     """Get the U-Net model for 3D segmentation tasks.
 
@@ -69,8 +71,9 @@ def get_3d_model(
         in_channels=in_channels,
         out_channels=out_channels,
         initial_features=initial_features,
-        gain=2,
+        gain=gain,
         final_activation=final_activation,
+        norm=norm
     )
     return model
 
@@ -823,11 +826,11 @@ def split_data_paths_to_dict(data_paths, rois_list, train_ratio=0.8, val_ratio=0
             raise ValueError(f"Length of data paths and number of ROIs in the dictionary must match: len rois {len(rois_list)}, len data_paths {len(data_paths)}")
 
     train_size = int(num_data * train_ratio)
-    val_size = int(num_data * val_ratio)  # Optional validation set
-    test_size = num_data - train_size - val_size
+    val_size = int(num_data * val_ratio)
+    test_size = int(num_data * test_ratio)
     remaining = num_data - (train_size + val_size + test_size)
     if remaining > 0:
-        test_size += remaining
+        train_size += remaining
 
     data_split = {
         "train": data_paths[:train_size],

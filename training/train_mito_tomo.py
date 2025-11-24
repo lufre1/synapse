@@ -31,15 +31,19 @@ def main():
     parser.add_argument("--data_dir", type=str, default=None, help="Path to the data directory")
     parser.add_argument("--data_dir2", type=str, default=None, help="Path to a second data directory")
     parser.add_argument("--data_dir3", type=str, default=None, help="Path to a third data directory")
+    parser.add_argument("--raw_key", "-rk", type=str, default="raw")
+    parser.add_argument("--label_key", "-lk", type=str, default="labels/mitochondria")
     parser.add_argument("--visualize", action="store_true", default=False, help="Visualize data with napari")
     parser.add_argument("--patch_shape", type=int, nargs=3, default=(32, 256, 256), help="Patch shape for data loading (3D tuple)")
     parser.add_argument("--n_iterations", type=int, default=10000, help="Number of training iterations")
+    parser.add_argument("--n_samples", type=int, default=500, help="Number of samples to be used for training per dataset")
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate")
     parser.add_argument("--checkpoint_path", type=str, default="", help="Path to checkpoint used to load model's state_dict")
     parser.add_argument("--experiment_name", type=str, default="default-mito-net", help="Name that is used for the experiment and store the model's weights")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
     parser.add_argument("--feature_size", type=int, default=32, help="Initial feature size of the 3D UNet")
     parser.add_argument("--early_stopping", type=int, default=10, help="Number of epochs without improvement before stopping training")
+    parser.add_argument("--with_batchrenorm", action="store_true", default=False, help="Create UNet with batchrenorm.")
 
     # Parse arguments
     args = parser.parse_args()
@@ -54,8 +58,9 @@ def main():
     # device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"\n Experiment: {experiment_name}\n")
     # print(f"Using {device} with {n_workers} workers.")
-    label_transform = lutil.CombinedLabelTransform(add_binary_target=True, dilation_footprint=np.ones((3, 3)))
-    
+    # label_transform = lutil.CombinedLabelTransform(add_binary_target=True, dilation_footprint=np.ones((3, 3)))
+    label_transform = torch_em.transform.BoundaryTransform(add_binary_target=True)
+
     if os.path.exists(os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")):
         # torch_em default is to load "best.pt" (do not include it in path)
         checkpoint_path = os.path.join(SAVE_DIR, "checkpoints", experiment_name)
@@ -96,7 +101,7 @@ def main():
     random.seed(42)
     random.shuffle(data_paths)
     # data_paths.sort(reverse=True)
-    data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.8, val_ratio=0.1, test_ratio=0.1)
+    data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.85, val_ratio=0.15, test_ratio=0.0)
 
     end_time = time.time()
     # Calculate execution time in seconds
@@ -112,20 +117,77 @@ def main():
     print("data['val']", data["val"])
     print("data['test']", data["test"])
 
-    supervised_training(
-        name=experiment_name,
-        train_paths=data["train"],
-        val_paths=data["val"],
-        label_key="labels/mitochondria",
-        patch_shape=patch_shape,
-        save_root=SAVE_DIR,
-        batch_size=batch_size,
-        n_iterations=n_iterations,
-        sampler=sampler,
-        out_channels=out_channels,
-        label_transform=label_transform,
-        checkpoint_path=checkpoint_path,
-    )
+    if not args.with_batchrenorm:
+        print("Training with synapse-net supervised training")
+        supervised_training(
+            name=experiment_name,
+            train_paths=data["train"],
+            val_paths=data["val"],
+            label_key=args.label_key,
+            patch_shape=patch_shape,
+            save_root=SAVE_DIR,
+            batch_size=batch_size,
+            n_iterations=n_iterations,
+            sampler=sampler,
+            out_channels=out_channels,
+            label_transform=label_transform,
+            raw_transform=torch_em.transform.raw.normalize_percentile,  # default is standardize
+            checkpoint_path=checkpoint_path,
+        )
+    else:
+        print("Training with torch_em trainer")
+        # create model
+        with_channels = False
+        with_label_channels = False
+        loss_name = "dice"
+        metric_name = "dice"
+        ndim = 3
+        scale_factors = [[1, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2]]
+        raw_transform = torch_em.transform.raw.normalize_percentile
+        n_workers = 8
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        loss_function = util.get_loss_function(loss_name)
+        metric_function = util.get_loss_function(metric_name)
+        model = util.get_3d_model(out_channels=out_channels, in_channels=in_channels, scale_factors=scale_factors,
+                                  initial_features=args.feature_size, norm="BatchRenorm")
+        if checkpoint_path is not None:
+            # model.load_state_dict(torch.load(checkpoint_path))
+            model = torch_em.util.load_model(checkpoint=checkpoint_path, device=device)
+            print("Successfully loaded model from checkpoint", checkpoint_path)
+
+        train_loader = torch_em.default_segmentation_loader(
+            raw_paths=data["train"], raw_key=args.raw_key,
+            label_paths=data["train"], label_key=args.label_key,
+            patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+            raw_transform=raw_transform,
+            label_transform=label_transform, num_workers=n_workers,
+            with_channels=with_channels, with_label_channels=with_label_channels,
+            sampler=sampler, n_samples=args.n_samples,
+        )
+        val_loader = torch_em.default_segmentation_loader(
+            raw_paths=data["val"], raw_key=args.raw_key,
+            label_paths=data["val"], label_key=args.label_key,
+            patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
+            raw_transform=raw_transform,
+            label_transform=label_transform, num_workers=n_workers,
+            with_channels=with_channels, with_label_channels=with_label_channels,
+            sampler=sampler, n_samples=args.n_samples,
+        )
+        trainer = torch_em.default_segmentation_trainer(
+            name=experiment_name, model=model,
+            train_loader=train_loader, val_loader=val_loader,
+            loss=loss_function, metric=metric_function,
+            learning_rate=args.learning_rate,
+            mixed_precision=False,
+            log_image_interval=50,
+            device=device,
+            compile_model=False,
+            save_root=SAVE_DIR,
+            early_stopping=args.early_stopping,
+        )
+
+        trainer.fit(n_iterations)
 
 
 if __name__ == "__main__":

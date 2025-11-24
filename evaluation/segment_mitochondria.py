@@ -151,7 +151,7 @@ def main(visualize=False):
     parser.add_argument("--model_path", "-m", type=str, default="/scratch-grete/usr/nimlufre/synapse/mito_segmentation/checkpoints/mitotomo-net32-lr1e-4-bs4-ps32x256x256-cooper-wichmann-new/best.pt")
     parser.add_argument("--add_missing_mitos", "-am", default=False, action='store_true', help="If to add missing mitos to segmentation and keep original labels")
     # parser.add_argument("--resize", "-r", default=False, action='store_true', help="Resize to some shape")
-    parser.add_argument("--seed_distance", "-sd", type=int, default=6*2, help="Seed distance")
+    parser.add_argument("--seed_distance", "-sd", type=int, default=6, help="Seed distance")
     parser.add_argument("--boundary_threshold", "-bt", type=float, default=0.15, help="Boundary threshold")
     parser.add_argument("--tile_shape", "-ts", type=int, nargs=3, default=(32, 512, 512), help="Tile shape")
     parser.add_argument("--all_keys", "-ak", default=False, action='store_true', help="If to add all keys from raw file to export file")
