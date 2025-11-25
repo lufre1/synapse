@@ -193,13 +193,14 @@ def main(visualize=False):
     tiling = {"tile": ts, "halo": halo}  # prediction function automatically subtracts the 2*halo from tile
     print("tiling:", tiling)
     scale = None
+    bt_string = str(args.boundary_threshold).replace(".", "")
 
     for path in tqdm(h5_paths):
 
         print("opening file", path)
         os.makedirs(args.export_path, exist_ok=True)
         output_path = os.path.join(args.export_path, os.path.basename(args.model_path).replace(".pt", "") +
-                                   f"_sd{args.seed_distance}_bt{args.boundary_threshold}_with_pred_ts_z{ts['z']}_y{ts['y']}_x{ts['x']}_halo_z{halo['z']}_y{halo['y']}_x{halo['x']}" +
+                                   f"_sd{args.seed_distance}_bt{bt_string}_with_pred_ts_z{ts['z']}_y{ts['y']}_x{ts['x']}_halo_z{halo['z']}_y{halo['y']}_x{halo['x']}" +
                                    os.path.basename(path))
         output_path = output_path.replace(".zarr", ".h5")
         if os.path.exists(output_path) and not args.force_overwrite:
@@ -221,7 +222,7 @@ def main(visualize=False):
             else:
                 image = None
                 max_shape = (300, 2000, 2000)  # to not crash
-                print("Cropping to", max_shape)
+                print("Cropping to", max_shape, "if necessary")
                 slices = None
                 for idx, key in enumerate(keys):
                     arr = f[key][...]
