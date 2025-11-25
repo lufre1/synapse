@@ -737,7 +737,23 @@ def get_rois_coordinates_skimage(file, label_key, min_shape, euler_threshold=Non
     return label_extents
 
 
+def _norm_pattern(pat: str) -> str:
+    """
+    Turn any of the following into a proper glob pattern:
+        "tif"   → "*.tif"
+        ".tif"  → "*.tif"
+        "*.tif" → "*.tif"
+    """
+    pat = pat.strip()
+    if pat.startswith("*"):
+        return pat          # already a glob
+    if pat.startswith("."):
+        pat = pat[1:]       # drop leading dot
+    return f"*.{pat}"       # add the leading "*."
+
+
 def get_data_paths(data_dir, data_format="*.h5"):
+    data_format = _norm_pattern(data_format)
     # check if data_dir is file
     if os.path.isfile(data_dir) or fnmatch.fnmatch(data_dir, data_format):
         return [data_dir]

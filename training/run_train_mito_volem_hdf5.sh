@@ -17,17 +17,16 @@ N_ITER=25000
 PATCH_SHAPE="32 256 256"
 BS=8
 LR=1e-4
-DD="/scratch-grete/projects/nim00007/data/mitochondria/embl/cutout_1/images/ome-zarr/raw.ome.zarr"
-LD="/scratch-grete/projects/nim00007/data/mitochondria/embl/cutout_1/images/committed_objects_leonie_2025-08-07.tif"
-RAW_KEY="0"
-SDD="/scratch-grete/projects/nim00007/data/mitochondria/embl/cutout_2/images/ome-zarr/raw.ome.zarr"
-SLD="/scratch-grete/projects/nim00007/data/mitochondria/embl/cutout_2/images/cutout_2_luca.tif"
+DD="/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-mitopaper/4007_split/cutout_1/"
+RAW_KEY="raw"
+LABEL_KEY="labels/mitochondria"
+SDD="/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-mitopaper/4007_split/cutout_2/"
 TDD="/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-mitopaper/4007_split/final_h5/"
 # DD="/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops"
 # RAW_KEY="raw_crop"
 PATCH_SIZE=$(echo $PATCH_SHAPE | awk '{print $2}')
 read -r PZ PY PX <<< "$PATCH_SHAPE"
-EXPNAME="volume-em-mito-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-thinboundary-cutout1and2"
+EXPNAME="volume-em-mito-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-all"
 EARLY_STOPPING=10
 # use this to continue training from given checkpoint
 # CHECKPOINT="/scratch-grete/usr/nimlufre/cellmap/checkpoints/microsam-cellmaps-vit_b_em_organelles-bs1-ps256-all-wocytonuc/best.pt"
@@ -43,7 +42,8 @@ python /user/freckmann15/u12103/synapse/training/train_mito_generic.py \
   --data_dir ${DD} \
   --early_stopping ${EARLY_STOPPING} \
   --raw_key ${RAW_KEY} \
+  --label_key ${LABEL_KEY} \
   --second_data_dir ${SDD} \
-  --second_label_dir ${SLD} \
-  --third_data_dir ${TDD}
+  --third_data_dir ${TDD} \
+  --use_synapse_training
   # --checkpoint ${CHECKPOINT}

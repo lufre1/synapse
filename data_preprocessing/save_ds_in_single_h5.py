@@ -15,6 +15,7 @@ from skimage.segmentation import relabel_sequential
 from skimage.morphology import binary_closing, remove_small_objects, label
 import tifffile
 import synapse.util as util
+import synapse.io.util as io
 
 
 def get_filename_and_inter_dirs(file_path, base_path):
@@ -57,8 +58,10 @@ def main():
     ife2 = args.second_import_file_extension
     efe = args.export_file_extension
 
-    paths = sorted(glob(os.path.join(args.base_path, "**", f"*{ife}"), recursive=True))
-    paths_2 = sorted(glob(os.path.join(args.second_base_path, "**", f"*{ife2}"), recursive=True))
+    # paths = sorted(glob(os.path.join(args.base_path, "**", f"*{ife}"), recursive=True))
+    paths = io.load_file_paths(args.base_path, ext=ife)
+    # paths_2 = sorted(glob(os.path.join(args.second_base_path, "**", f"*{ife2}"), recursive=True))
+    paths_2 = io.load_file_paths(args.second_base_path, ext=ife2)
     # filter all raw files
     # paths = [path for path in paths if "embedding" not in path and "mask" not in path]
     
@@ -71,12 +74,13 @@ def main():
             continue
         data = util.read_data(path, scale=scale)
         data2 = util.read_data(path2, scale=scale)
-        data2["labels/mitochondria"] = remove_small_objects(
-            data2.pop("label", None),
-            min_size=500
-        )
+        data2["labels/mitochondria"] = data2.pop("label", None)
+        # remove_small_objects(
+        #     data2.pop("label", None),
+        #     min_size=500
+        # )
         data.update(data2)
-        util.export_data(export_file_path, data, voxel_size=[8.694*2, 8.694*2, 8.694*2])
+        util.export_data(export_file_path, data, voxel_size=[0.025, 0.005, 0.005])  # [8.694*2, 8.694*2, 8.694*2])
 
 
 if __name__ == "__main__":
