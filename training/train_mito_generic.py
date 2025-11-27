@@ -111,23 +111,24 @@ def main():
 
     # print("label paths", label_paths)
     print("Path for this model", os.path.join(SAVE_DIR, experiment_name))
+    with_channels = False
+    with_label_channels = False
+    loss_name = "dice"
+    metric_name = "dice"
+    ndim = 3
+    scale_factors = [[1, 2, 2], [1, 2, 2], [2, 2, 2], [2, 2, 2]]
+
+    loss_function = util.get_loss_function(loss_name)
+    metric_function = util.get_loss_function(metric_name)
 
     if label_paths is None and args.use_synapse_training:
         print(f"Data preprocessing execution time: {execution_time:.6f} seconds")
         print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
+        print("Saving model to", SAVE_DIR)
         print("data['train']", data["train"])
         print("data['val']", data["val"])
         print("data['test']", data["test"])
         print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
-        with_channels = False
-        with_label_channels = False
-        loss_name = "dice"
-        metric_name = "dice"
-        ndim = 3
-        scale_factors = [[1, 2, 2], [1, 2, 2], [2, 2, 2], [2, 2, 2]]
-
-        loss_function = util.get_loss_function(loss_name)
-        metric_function = util.get_loss_function(metric_name)
         model = util.get_3d_model(out_channels=out_channels, in_channels=in_channels, scale_factors=scale_factors,
                                   initial_features=args.feature_size)
         if checkpoint_path is not None:
@@ -188,15 +189,6 @@ def main():
         print("data paths", data_paths)
         print("label paths", label_paths)
         # use torch em trainer and torchem loader to customize paths
-        with_channels = False
-        with_label_channels = False
-        loss_name = "dice"
-        metric_name = "dice"
-        ndim = 3
-        scale_factors = [[1, 2, 2], [1, 2, 2], [2, 2, 2], [2, 2, 2]]
-
-        loss_function = util.get_loss_function(loss_name)
-        metric_function = util.get_loss_function(metric_name)
         model = util.get_3d_model(out_channels=out_channels, in_channels=in_channels, scale_factors=scale_factors,
                                   initial_features=args.feature_size)
         if checkpoint_path is not None:
