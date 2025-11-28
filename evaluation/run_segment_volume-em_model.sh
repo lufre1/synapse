@@ -19,7 +19,7 @@ DD="/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-mitopaper/4007_split/test_split/
 RAW_KEY="raw"
 # DD="/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops"
 # RAW_KEY="raw_crop"
-EXPORT_PATH="/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-mitopaper/4007_split/test_split_segmentations_new_model_preprocess/"
+EXPORT_PATH="/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-mitopaper/4007_split/test_split_segmentations/"
 # FORCE_OVERRIDE=True
 MODEL_PATH="/scratch-grete/usr/nimlufre/mito_models/checkpoints/volume-em-mito-net32-lr1e-4-bs8-ps32x256x256-all/"
 # MODEL_PATH=" /scratch-grete/usr/nimlufre/synapse/mitochondria/checkpoints/volume-em-mito-net32-lr1e-4-bs4-ps32x256x256-thinboundary-cutout1and2/"
@@ -36,5 +36,5 @@ python /user/freckmann15/u12103/synapse/evaluation/segment_mitochondria.py \
   --model_path ${MODEL_PATH} \
   -ak \
   --seed_distance ${SEED_DISTANCE} \
-  -de 2
+  # -de 2
 #  --force_overwrite

@@ -309,14 +309,14 @@ def main(visualize=False):
                 for key in keys:
                     if "mito" in key and add_missing_mitos:
                         added = label(data[key] + find_additional_objects(data[key], seg, matching_threshold=0.1))
-                        f1.create_dataset(key, data=added[exp_slicing] if exp_scale != 1 else added, compression="gzip")
+                        f1.create_dataset(key, data=(added[exp_slicing] if exp_scale != 1 else added), compression="gzip")
                     else:
-                        f1.create_dataset(key, data=data[key][exp_slicing] if exp_scale != 1 else data[key], compression="gzip")
+                        f1.create_dataset(key, data=(data[key][exp_slicing] if exp_scale != 1 else data[key]), compression="gzip")
 
-            f1.create_dataset("seg", data=seg[exp_slicing if exp_scale != 1 else seg], compression="gzip", dtype=seg.dtype)
+            f1.create_dataset("seg", data=(seg[exp_slicing if exp_scale != 1 else seg]), compression="gzip", dtype=seg.dtype)
 
-            f1.create_dataset("pred/foreground", data=pred[0][exp_slicing] if exp_scale != 1 else pred[0], compression="gzip", dtype=pred.dtype)
-            f1.create_dataset("pred/boundary", data=pred[1][exp_slicing] if exp_scale != 1 else pred[1], compression="gzip", dtype=pred.dtype)
+            f1.create_dataset("pred/foreground", data=(pred[0][exp_slicing] if exp_scale != 1 else pred[0]), compression="gzip", dtype=pred.dtype)
+            f1.create_dataset("pred/boundary", data=(pred[1][exp_slicing] if exp_scale != 1 else pred[1]), compression="gzip", dtype=pred.dtype)
 
             # Optionally include additional label datasets
             if args.label_path is not None:
