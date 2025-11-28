@@ -3,6 +3,7 @@ import os
 from glob import glob
 import h5py
 import zarr
+import torch
 import torch_em
 import torch_em.transform
 from tqdm import tqdm
@@ -148,7 +149,7 @@ def main(visualize=False):
     parser.add_argument("--label_path", "-lp",  type=str, default=None, help="Path to a specific label file")
     parser.add_argument("--label_key", "-lk",  type=str, default=None, help="Key to label data within the label file")
     parser.add_argument("--export_path", "-e",  type=str, default="/scratch-grete/usr/nimlufre/synapse/mitotomo/test_segmentations", help="Path to the root data directory")
-    parser.add_argument("--model_path", "-m", type=str, default="/scratch-grete/usr/nimlufre/synapse/mito_segmentation/checkpoints/mitotomo-net32-lr1e-4-bs4-ps32x256x256-cooper-wichmann-new/best.pt")
+    parser.add_argument("--model_path", "-m", type=str, required=True, help="Path to directory where the model 'best.pt' resides.")
     parser.add_argument("--add_missing_mitos", "-am", default=False, action='store_true', help="If to add missing mitos to segmentation and keep original labels")
     # parser.add_argument("--resize", "-r", default=False, action='store_true', help="Resize to some shape")
     parser.add_argument("--seed_distance", "-sd", type=int, default=6, help="Seed distance")
@@ -157,8 +158,10 @@ def main(visualize=False):
     parser.add_argument("--all_keys", "-ak", default=False, action='store_true', help="If to add all keys from raw file to export file")
     parser.add_argument("--force_overwrite", "-fo", action="store_true", default=False, help="Force overwrite of existing files")
     parser.add_argument("--centered_crop", "-cc", action="store_true", default=False, help="Centered crop")
+    parser.add_argument("--downscale_export", "-de", type=int, default=1, help="Downscale export to reduce size")
     
     args = parser.parse_args()
+    exp_scale = args.downscale_export
     add_missing_mitos = args.add_missing_mitos
     print(args.base_path)
     print("\nUsing model", args.model_path)
@@ -194,13 +197,17 @@ def main(visualize=False):
     print("tiling:", tiling)
     scale = None
     bt_string = str(args.boundary_threshold).replace(".", "")
+    
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = torch_em.util.load_model(checkpoint=args.model_path, name="best", device=device)
+    print("Using best model from", args.model_path, "with device", device)
 
     for path in tqdm(h5_paths):
 
         print("opening file", path)
         os.makedirs(args.export_path, exist_ok=True)
-        output_path = os.path.join(args.export_path, os.path.basename(args.model_path).replace(".pt", "") +
-                                   f"_sd{args.seed_distance}_bt{bt_string}_with_pred_ts_z{ts['z']}_y{ts['y']}_x{ts['x']}_halo_z{halo['z']}_y{halo['y']}_x{halo['x']}" +
+        output_path = os.path.join(args.export_path, os.path.basename(os.path.dirname(args.model_path)).replace(".pt", "") +
+                                   f"_sd{args.seed_distance}_bt{bt_string}_with_pred_ts_z{ts['z']}_y{ts['y']}_x{ts['x']}_halo_z{halo['z']}_y{halo['y']}_x{halo['x']}_" +
                                    os.path.basename(path))
         output_path = output_path.replace(".zarr", ".h5")
         if os.path.exists(output_path) and not args.force_overwrite:
@@ -259,17 +266,26 @@ def main(visualize=False):
 
             # image = torch_em.transform.raw.standardize(image)
             if image is None:
-                image = torch_em.transform.raw.normalize_percentile(data[args.key])
+                # image = torch_em.transform.raw.normalize_percentile(data[args.key])
+                
+                image = data[args.key]
+                # test_loader = torch_em.default_segmentation_loader(
+                #     raw_paths=[path], raw_key="raw",
+                #     label_paths=[path], label_key="labels/mitochondria",
+                #     patch_shape=[128, 1600, 1600], ndim=3, batch_size=1,
+                #     raw_transform=torch_em.transform.raw.normalize_percentile,
+                #     label_transform=torch_em.transform.BoundaryTransform(add_binary_target=True),
+                #     num_workers=4,
+                #     with_channels=False, with_label_channels=False,
+                # )
+                # input, _ = next(iter(test_loader))
+                # image = input.squeeze().detach().cpu().numpy()
             else:
                 image = torch_em.transform.raw.normalize_percentile(image)
-        # uniq = np.unique(data[args.key])
-        # print("np unique raw", uniq)
-        # if np.all(uniq == 0):
-        #     print("Skipping empty file", path)
-        #     continue
 
         seg, pred = segment_mitochondria(
-            image, args.model_path,
+            image, model=model,
+            #model_path=args.model_path,
             scale=scale,
             tiling=tiling,
             return_predictions=True,
@@ -279,9 +295,13 @@ def main(visualize=False):
             ws_halo=(48, 48, 48),
             boundary_threshold=args.boundary_threshold,
             area_threshold=500,
+            preprocess=torch_em.transform.raw.normalize_percentile
             )
         with open_file(output_path, "w", ".h5") as f1:
             print("output_path", output_path)
+            ndim = seg.ndim
+            exp_slicing = tuple(slice(None, None, exp_scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+            print("")
 
             # Save all relevant keys if requested, else save raw
             if args.key is not None and args.all_keys:
@@ -289,14 +309,14 @@ def main(visualize=False):
                 for key in keys:
                     if "mito" in key and add_missing_mitos:
                         added = label(data[key] + find_additional_objects(data[key], seg, matching_threshold=0.1))
-                        f1.create_dataset(key, data=added, compression="gzip")
+                        f1.create_dataset(key, data=added[exp_slicing] if exp_scale != 1 else added, compression="gzip")
                     else:
-                        f1.create_dataset(key, data=data[key], compression="gzip")
+                        f1.create_dataset(key, data=data[key][exp_slicing] if exp_scale != 1 else data[key], compression="gzip")
 
-            f1.create_dataset("seg", data=seg, compression="gzip", dtype=seg.dtype)
+            f1.create_dataset("seg", data=seg[exp_slicing if exp_scale != 1 else seg], compression="gzip", dtype=seg.dtype)
 
-            f1.create_dataset("pred/foreground", data=pred[0], compression="gzip", dtype=pred.dtype)
-            f1.create_dataset("pred/boundary", data=pred[1], compression="gzip", dtype=pred.dtype)
+            f1.create_dataset("pred/foreground", data=pred[0][exp_slicing] if exp_scale != 1 else pred[0], compression="gzip", dtype=pred.dtype)
+            f1.create_dataset("pred/boundary", data=pred[1][exp_slicing] if exp_scale != 1 else pred[1], compression="gzip", dtype=pred.dtype)
 
             # Optionally include additional label datasets
             if args.label_path is not None:

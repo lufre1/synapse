@@ -1,5 +1,5 @@
 import h5py
-from typing import Any, Dict
+from typing import Any, Dict, List
 import mrcfile
 import tifffile
 import zarr
@@ -61,7 +61,7 @@ def export_data(export_path: str, data):
 
 
 def load_file_paths(root_path: str, ext: str = None,
-                    root_label_path: str = None) -> Dict[str, Any]:
+                    root_label_path: str = None) -> List:
     if os.path.isdir(root_path) and root_path.endswith(".zarr"):
         paths = [root_path]
     elif ext is None:
