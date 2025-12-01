@@ -15,8 +15,9 @@ micromamba activate /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/sam
 # ================ Define ALL parameters here ONCE ================
 
 DD="/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-mitopaper/4007_split/final_h5/"
-EXPORT_PATH="/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-mitopaper/4007_split/train_split_embeddings"
-MODEL_TYPE="vit_b_em_organelles"
+EXPORT_PATH="/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-mitopaper/4007_split/train_split_embeddings_lm"
+# MODEL_TYPE="vit_b_em_organelles"
+MODEL_TYPE="vit_b_lm"
 
 python /user/freckmann15/u12103/synapse/data_preprocessing/precompute_embeddings_with_sam.py \
   -b ${DD} \
