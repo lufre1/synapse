@@ -284,8 +284,8 @@ def main(visualize=False):
                 image = torch_em.transform.raw.normalize_percentile(image)
 
         seg, pred = segment_mitochondria(
-            image, model=model,
-            #model_path=args.model_path,
+            image, # model=model,
+            model_path=args.model_path,
             scale=scale,
             tiling=tiling,
             return_predictions=True,
