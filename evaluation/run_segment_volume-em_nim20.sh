@@ -4,7 +4,7 @@
 #SBATCH --time=0-12:00:00
 #SBATCH --job-name=inference-volume-em
 #SBATCH -c 8
-#SBATCH --mem 64G
+#SBATCH --mem 128G
 ##SBATCH --partition=grete:shared
 ##SBATCH -G A100:1
 
@@ -19,7 +19,7 @@ DD="/mnt/lustre-grete/projects/nim00020/moebius/4009/"
 RAW_KEY="raw"
 # DD="/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops"
 # RAW_KEY="raw_crop"
-EXPORT_PATH="/mnt/lustre-grete/usr/u15205/volume-em/4009_s2_segmentation"
+EXPORT_PATH="/mnt/lustre-grete/usr/u15205/volume-em/4009_segmentation"
 # FORCE_OVERRIDE=True
 MODEL_PATH="/mnt/lustre-grete/usr/u15205/volume-em/models/volume-em-mito-net32-lr1e-4-bs8-ps32x256x256-all"
 # MODEL_PATH=" /scratch-grete/usr/nimlufre/synapse/mitochondria/checkpoints/volume-em-mito-net32-lr1e-4-bs4-ps32x256x256-thinboundary-cutout1and2/"
@@ -36,5 +36,6 @@ python /mnt/vast-nhr/home/freckmann15/u15205/synapse/evaluation/segment_mitochon
   --model_path ${MODEL_PATH} \
   -ak \
   --seed_distance ${SEED_DISTANCE} \
-  -de 2
+  -cc \
+  # -de 2 \
 #  --force_overwrite

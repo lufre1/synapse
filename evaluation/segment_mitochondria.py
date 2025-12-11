@@ -228,7 +228,7 @@ def main(visualize=False):
                 image = f[args.key][::scale_factor, ::scale_factor, ::scale_factor]
             else:
                 image = None
-                max_shape = (300, 2000, 2000)  # to not crash
+                max_shape = (200, 2000, 2000)  # to not crash
                 print("Cropping to", max_shape, "if necessary")
                 slices = None
                 for idx, key in enumerate(keys):
@@ -313,7 +313,7 @@ def main(visualize=False):
                     else:
                         f1.create_dataset(key, data=(data[key][exp_slicing] if exp_scale != 1 else data[key]), compression="gzip")
 
-            f1.create_dataset("seg", data=(seg[exp_slicing if exp_scale != 1 else seg]), compression="gzip", dtype=seg.dtype)
+            f1.create_dataset("seg", data=(seg[exp_slicing] if exp_scale != 1 else seg), compression="gzip", dtype=seg.dtype)
 
             f1.create_dataset("pred/foreground", data=(pred[0][exp_slicing] if exp_scale != 1 else pred[0]), compression="gzip", dtype=pred.dtype)
             f1.create_dataset("pred/boundary", data=(pred[1][exp_slicing] if exp_scale != 1 else pred[1]), compression="gzip", dtype=pred.dtype)
