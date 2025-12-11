@@ -62,6 +62,21 @@ def export_data(export_path: str, data):
 
 def load_file_paths(root_path: str, ext: str = None,
                     root_label_path: str = None) -> List:
+    """
+    Load file paths from the given root path.
+
+    If the root path is a directory, it will be searched recursively for files with the given extension.
+    If the root path is a file, it will be returned as a list of one element.
+    If the root_label_path is given, it will be searched for .tif files and the paths will be returned as a tuple.
+
+    Args:
+        root_path (str): The root path to search for files.
+        ext (str, optional): The file extension to search for. Defaults to None.
+        root_label_path (str, optional): The root path to search for label files. Defaults to None.
+
+    Returns:
+        List: A list of file paths.
+    """
     if os.path.isdir(root_path) and root_path.endswith(".zarr"):
         paths = [root_path]
     elif ext is None:

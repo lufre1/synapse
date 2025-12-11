@@ -4,6 +4,7 @@ from glob import glob
 import numpy as np
 from tqdm import tqdm
 from skimage import measure
+from skimage.transform import rescale, resize
 import argparse
 import mrcfile
 from synapse.util import get_data_metadata
@@ -64,21 +65,38 @@ def main():
     paths_2 = io.load_file_paths(args.second_base_path, ext=ife2)
     # filter all raw files
     # paths = [path for path in paths if "embedding" not in path and "mask" not in path]
-    
+
     for path, path2 in tqdm(zip(paths, paths_2), total=len(paths)):
+        path2 = util.find_label_file(path, paths_2)
+        if path2 is None:
+            print("Could not find label file for", path)
+            continue
         export_file_name, rel_path = get_filename_and_inter_dirs(path, args.base_path)
+        export_file_name = export_file_name.replace("mitotomo-net32-lr1e-4-bs8-ps32x256x256-s4_sd4_bt015_with_pred_ts_z32_y256_x256_halo_z8_y64_x64_", "").replace(
+            "_s2_refined", ""
+        )
         create_directories_if_not_exists(args.export_path, rel_path)
-        export_file_path = os.path.join(args.export_path, rel_path, export_file_name + f"_s{scale}{efe}")
+        if scale > 1:
+            export_file_path = os.path.join(args.export_path, rel_path, export_file_name + f"_s{scale}{efe}")
+        else:
+            export_file_path = os.path.join(args.export_path, rel_path, export_file_name + f"{efe}")
         if os.path.exists(export_file_path):
             print("File already exists:", export_file_path)
             continue
-        data = util.read_data(path, scale=scale)
-        data2 = util.read_data(path2, scale=scale)
-        data2["labels/mitochondria"] = data2.pop("label", None)
+        data = {}
+        data["raw"] = util.read_data(path, scale=scale)["raw"]
+        if ife2 == ".h5":
+            tmp = util.read_data(path2, scale=scale)
+            tmp = tmp.pop("labels/mitochondria", None)
+        else:
+            tmp = tifffile.imread(path2)
         # remove_small_objects(
         #     data2.pop("label", None),
         #     min_size=500
         # )
+        data2 = {}
+        print("shapes data and data2", data["raw"].shape, tmp.shape)
+        data2["labels/mitochondria"] = resize(tmp, data["raw"].shape, preserve_range=True, order=0, anti_aliasing=False).astype(tmp.dtype)
         data.update(data2)
         util.export_data(export_file_path, data, voxel_size=[0.025, 0.005, 0.005])  # [8.694*2, 8.694*2, 8.694*2])
 

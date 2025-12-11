@@ -20,6 +20,7 @@ import h5py
 import napari
 import numpy as np
 from magicgui import magicgui
+from magicgui import magic_factory
 from napari.utils.notifications import show_info
 from tqdm import tqdm
 from skimage.morphology import remove_small_holes, binary_erosion, remove_small_objects, binary_dilation
@@ -354,21 +355,29 @@ def _parse_triplet(txt: str) -> tuple[int, int, int]:
         "min": 1,
         "max": 20,
         "step": 1,
-        "value": 6,
+        "value": 4,
     },
     boundary_threshold={
         "label": "Boundary threshold",
         "widget_type": "FloatSlider",
         "min": 0.0,
-        "max": 0.5,
+        "max": 0.9,
         "step": 0.01,
         "value": 0.15,
+    },
+    foreground_threshold={
+        "label": "Foreground threshold",
+        "widget_type": "FloatSlider",
+        "min": 0.0,
+        "max": 0.9,
+        "step": 0.01,
+        "value": 0.75,
     },
     min_size={
         "label": "Min object size",
         "widget_type": "Slider",
         "min": 0,
-        "max": 10000,
+        "max": 20000,
         "step": 100,
         "value": 2000,
     },
@@ -391,6 +400,7 @@ def seg_params_widget(
     halo: str,
     seed_distance: int,
     boundary_threshold: float,
+    foreground_threshold: float,
     min_size: int,
     area_threshold: int,
 ) -> None:
@@ -411,9 +421,10 @@ def _segment_mitos(
     block_shape=(32, 256, 256),
     halo=(16, 48, 48),
     seed_distance=6,
-    boundary_threshold=0.25 - 0.1,
+    boundary_threshold=0.25,
+    foreground_threshold=0.75,
     min_size=2000,
-    area_threshold=200, 
+    area_threshold=200,
     dist=None,
 ):
     """Return a dict with segmentation, seeds, distance map and h‑map."""
@@ -425,19 +436,26 @@ def _segment_mitos(
         dist = parallel.distance_transform(
             boundaries < boundary_threshold, halo=halo, verbose=True, block_shape=block_shape
         )
-    hmap = (dist.max() - dist) / dist.max()
-    hmap[
-        np.logical_and(boundaries > boundary_threshold, foreground < boundary_threshold)
-    ] = (hmap + boundaries).max()
+    hmap = (dist.max() - dist) / (dist.max() + 1e-6)
+    # hmap[
+    #     np.logical_and(boundaries > boundary_threshold, foreground < foreground_threshold)
+    # ] = (hmap + boundaries).max()
+    barrier_mask = np.logical_and(boundaries > boundary_threshold, foreground < foreground_threshold)
+    hmap[barrier_mask] = 1.0
 
-    seeds = np.logical_and(foreground > 0.5, dist > seed_distance)
+    seeds = np.logical_and(foreground > foreground_threshold, dist > seed_distance)
     # seeds = parallel.label(seeds, block_shape=block_shape, verbose=True, connectivity=1)
     seeds = label(seeds, connectivity=2)
+    seeds = apply_size_filter(seeds, 250, verbose=True, block_shape=block_shape)
+    
 
-    mask = (foreground + boundaries) > 0.5
+    # mask = (foreground + boundaries) > 0.5
+    mask = (foreground + np.where(boundaries < boundary_threshold, boundaries, 0)) > 0.5
+    # mask = np.logical_or((foreground > foreground_threshold), (boundary > boundary_threshold))  # (boundaries > (1-boundary_threshold)))
+
     seg = np.zeros_like(seeds)
     seg = parallel.seeded_watershed(
-        hmap, seeds, block_shape=block_shape, out=seg, mask=mask, verbose=True, halo=halo
+        hmap, seeds, block_shape=block_shape, out=seg, verbose=True, halo=halo, mask=mask
     )
     seg = apply_size_filter(seg, min_size, verbose=True, block_shape=block_shape)
     seg = _postprocess_seg_3d(seg, area_threshold=area_threshold, iterations=4, iterations_3d=8)
@@ -447,6 +465,7 @@ def _segment_mitos(
         "seeds": seeds.astype(np.uint8),
         "dist": dist.astype(np.float32),
         "hmap": hmap.astype(np.float32),
+        "mask": mask.astype(np.uint8),
     }
 
 
@@ -487,8 +506,11 @@ def run_correction(input_path: str, output_path: str, fname: str) -> bool:
     # Add the extra layers **as image layers** and give them the exact names
     # that the segmentation UI expects.
     for key, data in extra_layers.items():
-        layer_name = key.split("/")[-1]          # e.g. "foreground" or "boundary"
-        v.add_image(data, name=layer_name, blending="additive")
+        if "pred" in key:
+            layer_name = key.split("/")[-1]          # e.g. "foreground" or "boundary"
+            v.add_image(data, name=layer_name, blending="additive")
+        elif "mitochondria" in key:
+            v.add_labels(data, name=key)
 
     v.title = f"Tomo: {fname}, mitochondria"
 
@@ -588,6 +610,7 @@ def run_correction(input_path: str, output_path: str, fname: str) -> bool:
 
         seed_distance = params.seed_distance.value
         boundary_threshold = params.boundary_threshold.value
+        foreground_threshold = params.foreground_threshold.value
         min_size = params.min_size.value
         area_threshold = params.area_threshold.value
 
@@ -601,6 +624,7 @@ def run_correction(input_path: str, output_path: str, fname: str) -> bool:
             halo=halo,
             seed_distance=seed_distance,
             boundary_threshold=boundary_threshold,
+            foreground_threshold=foreground_threshold,
             min_size=min_size,
             area_threshold=area_threshold,
             # dist=v.layers["dist"].data if "dist" in v.layers else None,
@@ -669,6 +693,9 @@ def correct_mitochondria(args):
     continue_now = True
 
     for path in tqdm(file_paths):
+        if "refined" in path:
+            print("Skip because it is already refined")
+            continue
         if continue_from in path:
             continue_now = True
         if not continue_now:

@@ -22,7 +22,7 @@ from synapse_net.training.supervised_training import supervised_training, get_su
 import synapse.util as util
 import synapse.label_utils as lutil
 # import data_classes
-SAVE_DIR = "/scratch-grete/usr/nimlufre/synapse/mito_segmentation"
+SAVE_DIR = "/mnt/lustre-grete/usr/u12103/mitochondria/tomo"
 # from unet import UNet3D
 
 

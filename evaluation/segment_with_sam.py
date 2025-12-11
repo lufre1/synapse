@@ -409,12 +409,12 @@ def main():
                 center_dists=out["prediction/center_dists"],
                 boundary_dists=out["prediction/boundary_dists"],
             )
-            seg2 = alt_segmentation(
-                foreground=out["prediction/foreground"],
-                boundary_distances=out["prediction/boundary_dists"],
-            )
+            # seg2 = alt_segmentation(
+            #     foreground=out["prediction/foreground"],
+            #     boundary_distances=out["prediction/boundary_dists"],
+            # )
             out["segmentation"] = seg
-            out["segmentation2"] = seg2
+            # out["segmentation2"] = seg2
 
             export_to_h5(out, pred_path)
     else:

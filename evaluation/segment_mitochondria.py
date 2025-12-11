@@ -199,7 +199,7 @@ def main(visualize=False):
     bt_string = str(args.boundary_threshold).replace(".", "")
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = torch_em.util.load_model(checkpoint=args.model_path, name="best", device=device)
+    # model = torch_em.util.load_model(checkpoint=args.model_path, name="best", device=device)
     print("Using best model from", args.model_path, "with device", device)
 
     for path in tqdm(h5_paths):
@@ -280,8 +280,8 @@ def main(visualize=False):
                 # )
                 # input, _ = next(iter(test_loader))
                 # image = input.squeeze().detach().cpu().numpy()
-            else:
-                image = torch_em.transform.raw.normalize_percentile(image)
+            # else:
+            #     image = torch_em.transform.raw.normalize_percentile(image)
 
         seg, pred = segment_mitochondria(
             image, # model=model,
@@ -314,7 +314,6 @@ def main(visualize=False):
                         f1.create_dataset(key, data=(data[key][exp_slicing] if exp_scale != 1 else data[key]), compression="gzip")
 
             f1.create_dataset("seg", data=(seg[exp_slicing] if exp_scale != 1 else seg), compression="gzip", dtype=seg.dtype)
-
             f1.create_dataset("pred/foreground", data=(pred[0][exp_slicing] if exp_scale != 1 else pred[0]), compression="gzip", dtype=pred.dtype)
             f1.create_dataset("pred/boundary", data=(pred[1][exp_slicing] if exp_scale != 1 else pred[1]), compression="gzip", dtype=pred.dtype)
 

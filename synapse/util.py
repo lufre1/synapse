@@ -194,22 +194,25 @@ def export_data(export_path: str, data, voxel_size=None):
     Raises:
         ValueError: If the file format is unsupported or if data format does not match the expected type.
     """
-    ext = export_path.lower().split(".")[-1]
+
+    path, ext = os.path.split(export_path)
+    ext = ext.lower().split(".")[-1]
 
     if ext == "tif":
         if isinstance(data, dict):
-            data = next(iter(data.values()))
-        if not isinstance(data, np.ndarray):
-            raise ValueError("For .tif format, data must be a NumPy array.")
-        tifffile.imwrite(export_path, data, dtype=data.dtype, compression="zlib")
+            for key, value in data.items():
+                out_name = export_path.replace(".tif", f"_{key}.tif".replace("/", "_"))
+                tifffile.imwrite(out_name, value, dtype=value.dtype, compression="zlib")
+        elif not isinstance(data, np.ndarray):
+            raise ValueError("For .tif format, data must be a NumPy array or a dict of named NumPy arrays.")
         # iio.imwrite(export_path, data, compression="zlib")
-    
+
     elif ext in {"mrc", "rec"}:
         if not isinstance(data, np.ndarray):
             raise ValueError("For .mrc and .rec formats, data must be a NumPy array.")
         with mrcfile.new(export_path, overwrite=True) as mrc:
             mrc.set_data(data.astype(data.dtype))
-    
+
     elif ext == "zarr":
         if not isinstance(data, dict):
             raise ValueError("For .zarr format, data must be a dictionary with dataset names as keys.")

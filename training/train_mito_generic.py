@@ -22,7 +22,7 @@ import synapse.util as util
 import synapse.cellmap_util as cutil
 import synapse.label_utils as lutil
 # import data_classes
-SAVE_DIR = "/scratch-grete/usr/nimlufre/mito_models"
+SAVE_DIR = "/mnt/lustre-grete/usr/u12103/mitochondria/volem"
 
 
 def main():
@@ -135,7 +135,7 @@ def main():
             # model.load_state_dict(torch.load(checkpoint_path))
             model = torch_em.util.load_model(checkpoint=checkpoint_path, device=device)
             print("Successfully loaded model from checkpoint", checkpoint_path)
-        
+
         train_loader = torch_em.default_segmentation_loader(
             raw_paths=data["train"], raw_key=args.raw_key,
             label_paths=data["train"], label_key=args.label_key,
