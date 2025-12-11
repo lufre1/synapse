@@ -17,16 +17,16 @@ N_ITER=15000
 PATCH_SHAPE="32 512 512"
 BS=4
 LR=1e-4
-DD="/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-mitopaper/4007_split/cutout_1/"
+DD="/mnt/lustre-grete/usr/u12103/mitochondria/moebius/4007/train_split/"
 RAW_KEY="raw"
 LABEL_KEY="labels/mitochondria"
-SDD="/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-mitopaper/4007_split/cutout_2/"
-TDD="/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-mitopaper/4007_split/final_h5/"
+SDD="/mnt/lustre-grete/usr/u12103/mitochondria/moebius/4009/"
+# TDD="/mnt/lustre-grete/usr/u12103/mitopaper/4007_split/final_h5/"
 # DD="/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops"
 # RAW_KEY="raw_crop"
 PATCH_SIZE=$(echo $PATCH_SHAPE | awk '{print $2}')
 read -r PZ PY PX <<< "$PATCH_SHAPE"
-EXPNAME="volume-em-mito-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-all"
+EXPNAME="volume-em-mito-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-withWT"
 EARLY_STOPPING=20
 # use this to continue training from given checkpoint
 # CHECKPOINT="/scratch-grete/usr/nimlufre/cellmap/checkpoints/microsam-cellmaps-vit_b_em_organelles-bs1-ps256-all-wocytonuc/best.pt"
@@ -43,7 +43,7 @@ python /user/freckmann15/u12103/synapse/training/train_mito_generic.py \
   --early_stopping ${EARLY_STOPPING} \
   --raw_key ${RAW_KEY} \
   --label_key ${LABEL_KEY} \
+  --use_synapse_training \
   --second_data_dir ${SDD} \
-  --third_data_dir ${TDD} \
-  --use_synapse_training
+  # --third_data_dir ${TDD} \
   # --checkpoint ${CHECKPOINT}
