@@ -14,6 +14,49 @@ from elf.io import open_file
 from tifffile import imread
 
 
+def get_all_keys_from_h5(file_path):
+    keys = []
+    with h5py.File(file_path, 'r') as h5file:
+        def collect_keys(name, obj):
+            if isinstance(obj, h5py.Dataset):
+                keys.append(name)  # Add each key (path) to the list
+        h5file.visititems(collect_keys)  # Visit all groups and datasets
+    return keys
+
+
+def get_all_dataset_keys(file_path):
+    """
+    Returns a list of all dataset keys in a file (HDF5, Zarr, or N5).
+    
+    Parameters:
+        file_path (str): Path to the file or directory.
+        
+    Returns:
+        keys (list): List of dataset keys (paths).
+    """
+    keys = []
+
+    if os.path.isfile(file_path) and file_path.endswith(('.h5', '.hdf5')):
+        # HDF5
+        with h5py.File(file_path, 'r') as h5file:
+            def collect_keys(name, obj):
+                if isinstance(obj, h5py.Dataset):
+                    keys.append(name)
+            h5file.visititems(collect_keys)
+
+    else:
+        # Assume Zarr or N5 directory
+        store = zarr.N5Store(file_path) if 'attributes.json' in os.listdir(file_path) else zarr.DirectoryStore(file_path)
+        root = zarr.open(store, mode='r')
+
+        def collect_keys(name, obj):
+            if isinstance(obj, zarr.core.Array):
+                keys.append(name)
+        root.visititems(collect_keys)
+
+    return keys
+
+
 def export_data(export_path: str, data):
     """Export data to the specified path, determining format from the file extension.
     

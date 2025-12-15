@@ -66,7 +66,7 @@ def main():
         os.makedirs(SAVE_DIR, exist_ok=True)
     # load model from checkpoint if exists
     if os.path.exists(os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")):
-        checkpoint_path = os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")
+        checkpoint_path = os.path.join(SAVE_DIR, "checkpoints", experiment_name)
         print("Checkpoint exists, loading model from checkpoint", checkpoint_path)
     elif args.checkpoint_path is not None:
         checkpoint_path = args.checkpoint_path
