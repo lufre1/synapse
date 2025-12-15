@@ -228,7 +228,7 @@ def main(visualize=False):
                 image = f[args.key][::scale_factor, ::scale_factor, ::scale_factor]
             else:
                 image = None
-                max_shape = (300, 2000, 2000)  # to not crash
+                max_shape = (200, 2000, 2000)  # to not crash
                 print("Cropping to", max_shape, "if necessary")
                 slices = None
                 for idx, key in enumerate(keys):

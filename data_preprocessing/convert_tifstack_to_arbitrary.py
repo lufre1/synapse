@@ -57,7 +57,7 @@ def convert_data(sample):
 
     out_folder = os.path.join(ROOT, sample, "raw")
     os.makedirs(out_folder, exist_ok=True)
-    out_path = os.path.join(out_folder, f"{sample}.h5")
+    out_path = os.path.join(out_folder, f"{sample}.n5")
     print("Saving to", out_path)
     with open_file(out_path, "a") as f:
         convert_tifs(f, raw_folder, "raw")
