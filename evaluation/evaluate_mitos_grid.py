@@ -91,6 +91,7 @@ def main(args):
                 scores = evaluate(labels, seg)
                 ds_name = os.path.basename(label_path.replace("0.", "0")).split(".")[0]
                 export(scores, output_path, ds_name + "_" + str(k))
+            print("Evaluated mitos in path", label_path)
 
 
 if __name__ == "__main__":
