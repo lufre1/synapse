@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -p standard96s:shared
-#SBATCH --time=12:00:00
+#SBATCH --time=1-12:00:00
 #SBATCH --job-name=eval-segment-param-grid
 #SBATCH -c 16
 #SBATCH --mem 128G
