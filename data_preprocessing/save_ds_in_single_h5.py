@@ -53,11 +53,16 @@ def main():
     parser.add_argument("--import_file_extension", "-ife", type=str, default=".h5", help="File extension to read data")
     parser.add_argument("--second_import_file_extension", "-ife2", type=str, default=".h5", help="File extension to read data")
     parser.add_argument("--export_file_extension", "-efe", type=str, default=".h5", help="File extension to export data")
+    parser.add_argument("--voxel_size", "-vs", type=float, nargs=3, default=None, help="Voxel size tuple: z, y, x")
     args = parser.parse_args()
     scale = args.scale_factor
     ife = args.import_file_extension
     ife2 = args.second_import_file_extension
     efe = args.export_file_extension
+    voxel_size = args.voxel_size
+    if voxel_size is not None:
+        voxel_size = voxel_size if isinstance(voxel_size, np.ndarray) else np.array(voxel_size, dtype=np.float32)
+    # voxel_size = [0.025, 0.005, 0.005]  # [8.694*2, 8.694*2, 8.694*2])
 
     # paths = sorted(glob(os.path.join(args.base_path, "**", f"*{ife}"), recursive=True))
     paths = io.load_file_paths(args.base_path, ext=ife)
@@ -65,6 +70,7 @@ def main():
     paths_2 = io.load_file_paths(args.second_base_path, ext=ife2)
     # filter all raw files
     # paths = [path for path in paths if "embedding" not in path and "mask" not in path]
+    paths_2 = [path2 for path2 in paths_2 if "_mitochondria.tif" in path2]
 
     for path, path2 in tqdm(zip(paths, paths_2), total=len(paths)):
         path2 = util.find_label_file(path, paths_2)
@@ -98,7 +104,8 @@ def main():
         print("shapes data and data2", data["raw"].shape, tmp.shape)
         data2["labels/mitochondria"] = resize(tmp, data["raw"].shape, preserve_range=True, order=0, anti_aliasing=False).astype(tmp.dtype)
         data.update(data2)
-        util.export_data(export_file_path, data, voxel_size=[0.025, 0.005, 0.005])  # [8.694*2, 8.694*2, 8.694*2])
+        
+        util.export_data(export_file_path, data, voxel_size=voxel_size)
 
 
 if __name__ == "__main__":
