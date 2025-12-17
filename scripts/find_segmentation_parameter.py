@@ -141,8 +141,8 @@ def main(args):
             preprocess=preprocess
         )
         # run segmentations and save to out path
-        for sd in [4, 6, 8, 10]:
-            for bt in [0.1, 0.2, 0.3, 0.4, 0.5]:
+        for sd in [2, 3, 4, 6, 8,]:
+            for bt in [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]:
                 for ft in [0.5, 0.6, 0.7, 0.8, 0.9]:
                     seg = _segment_mitos(
                         foreground=pred[0],
@@ -162,7 +162,7 @@ def main(args):
                         f.create_dataset(
                             f"seg_sd{to_string(sd)}_bt{to_string(bt)}_ft{to_string(ft)}",
                             data=seg,
-                            compression="gzip", dtype=seg.dtype,
+                            compression="gzip", dtype=np.uint8,
                         )
 
 
