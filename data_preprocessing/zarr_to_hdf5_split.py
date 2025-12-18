@@ -75,16 +75,21 @@ def _calc_block_shape(volume_shape, max_voxels, min_shape):
     return block_z, block_y, block_x
 
 
-def _write_block(h5_path: Path, block_data: np.ndarray, h5_key: str, block_idx: int):
+def _write_block(h5_path: Path, block_data: np.ndarray, h5_key: str, block_idx: int,
+                 voxel_size: tuple[float, float, float] = [0.025, 0.005, 0.005]):
     """Write a single block to an HDF5 file."""
     with h5py.File(h5_path, "w") as f:
-        f.create_dataset(
+        ds = f.create_dataset(
             h5_key,
             data=block_data,
             compression="gzip",
             chunks=True,
         )
         f.attrs["block_index"] = block_idx   # optional meta‑data
+        if "raw" in h5_key and voxel_size is not None:
+            voxel_size_array = voxel_size if isinstance(voxel_size, np.ndarray) \
+                else np.array(voxel_size, dtype=np.float32)
+            ds.attrs.create(name='voxel_size', data=voxel_size_array)
 
 
 # ----------------------------------------------------------------------
@@ -208,7 +213,7 @@ def main():
         "--max_voxels",
         "-m",
         type=int,
-        default=500 * 1000 * 1000,
+        default=200 * 1600 * 1600,
         help="Maximum number of voxels per HDF5 file (default 5e8 ≈ 200×1600×1600).",
     )
     parser.add_argument(

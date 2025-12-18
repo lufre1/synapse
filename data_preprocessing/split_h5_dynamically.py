@@ -58,6 +58,7 @@ def main():
 
     for path in tqdm(paths, desc="Processing files..."):
         data = util.read_data(path)  # assume dict of numpy arrays / h5py-like datasets [web:8][web:14]
+        voxel_size = util.read_voxel_size_h5(path)
 
         # assume all arrays share the same spatial shape
         first_key = next(iter(data.keys()))
@@ -82,7 +83,7 @@ def main():
 
                     out_name = f"{basename}_z{z}-{z1}_y{y}-{y1}_x{x}-{x1}_{crop_idx}.h5"
                     output_path = os.path.join(export_path, out_name)
-                    util.export_data(output_path, crop)
+                    util.export_data(output_path, crop, voxel_size=voxel_size)
                     crop_idx += 1
 
 
