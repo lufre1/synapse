@@ -54,7 +54,9 @@ def main():
     parser.add_argument("--export_path", "-e", type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/cooper/s2/", help="Path to the export directory")
     parser.add_argument("--scale_factor", "-s", type=int, default=2, help="Scale factor for the image")
     parser.add_argument("--downsample", "-d", action='store_true', default=False, help="Downsample the data - quicker, but loss of information")
+    parser.add_argument("--original_voxel_size", "-ovs", nargs=3, type=float, default=None, help="Order: z y x")
     args = parser.parse_args()
+    orig_voxel_size = vs if isinstance(args.original_voxel_size, np.ndarray) else np.array(args.original_voxel_size, dtype=np.float32)
 
     if os.path.isfile(args.base_path):
         print("base path is a file:", args.base_path)
@@ -80,7 +82,7 @@ def main():
         data = {}
         for key in keys:
             if "raw" in key:
-                voxel_size = read_voxel_size(path, key)
+                voxel_size = read_voxel_size(h5_path=path, h5_key=key, default=orig_voxel_size)
             if args.downsample:
                 data[key] = read_h5(path, key, args.scale_factor)
             else:
@@ -90,7 +92,8 @@ def main():
                                         preserve_range=True,)
                 else:  # for segmentations
                     data[key] = rescale(vol, scale=float(1 / args.scale_factor), order=0, anti_aliasing=False)
-        util.export_data(export_file_path, data, voxel_size=voxel_size)
+        new_voxel_size = np.asarray(voxel_size, dtype=np.float64) * args.scale_factor
+        util.export_data(export_file_path, data, voxel_size=new_voxel_size)
         # export_to_h5(data, export_file_path)
 
 

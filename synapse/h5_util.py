@@ -114,7 +114,7 @@ def read_h5(path, key, scale_factor=1, z_offset=None):
     with h5py.File(path, "r") as f:
         try:
             print(f"{key} data shape", f[key].shape)
-            if key == "prediction" or "pred" in key:
+            if key == ("prediction" or "pred" in key) and not ("foreground" in key or "boundar" in key) :
                 image = f[key][:, ::scale_factor, ::scale_factor, ::scale_factor]
                 if z_offset:
                     image = image[z_offset[0]:z_offset[1], :, :]
