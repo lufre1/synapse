@@ -86,7 +86,7 @@ def _refresh_layer_choices(v: napari.Viewer) -> None:
     # ---- apply to every widget ---------------------------------------
     _update_widget(fill_holes)
     _update_widget(erode_object)
-    _update_widget(dilate_object)          # newly added widget
+    _update_widget(dilate_object)
     _update_widget(remove_small_objects_widget)
 
 
@@ -418,8 +418,8 @@ def seg_params_widget(
 def _segment_mitos(
     foreground: np.ndarray,
     boundary: np.ndarray,
-    block_shape=(32, 256, 256),
-    halo=(16, 48, 48),
+    block_shape=(128, 256, 256),
+    halo=(32, 48, 48),
     seed_distance=6,
     boundary_threshold=0.25,
     foreground_threshold=0.75,
@@ -450,7 +450,8 @@ def _segment_mitos(
     
 
     # mask = (foreground + boundaries) > 0.5
-    mask = (foreground + np.where(boundaries < boundary_threshold, boundaries, 0)) > 0.5
+    mask = (foreground + np.where(boundaries < boundary_threshold, boundaries, 0)) > 0.5  # take overlap
+    # mask = foreground > foreground_threshold
     # mask = np.logical_or((foreground > foreground_threshold), (boundary > boundary_threshold))  # (boundaries > (1-boundary_threshold)))
 
     seg = np.zeros_like(seeds)

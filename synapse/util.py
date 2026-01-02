@@ -22,6 +22,7 @@ from scipy.ndimage import label, sum_labels
 from skimage.transform import resize
 from synapse_net.inference.util import apply_size_filter, _postprocess_seg_3d
 from synapse_net.file_utils import read_ome_zarr
+from synapse.h5_util import read_data, read_voxel_size
 from torch_em.model import AnisotropicUNet
 # used for combined_datasets
 from typing import Dict, List, Union, Tuple, Optional, Any
@@ -32,6 +33,7 @@ from typing import Dict, List, Union, Tuple, Optional, Any
 
 
 def read_voxel_size_h5(file_path, dataset_name="raw"):
+    # deprecated, try use read_voxel_size from synapse.h5_util instead
     voxel_size = None
     key = [k for k in get_all_datasets(file_path) if dataset_name in k]
     if len(key) != 1:
@@ -78,56 +80,7 @@ def get_3d_model(
     return model
 
 
-def read_data(path, scale=1):
-    data = {}
-    if ".tif" in path:
-        img = tifffile.imread(path)
-        ndim = img.ndim
-        slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-        data["label"] = img[slicing] if scale > 1 else img
-    elif (".mrc" in path or ".rec" in path):
-        with open_file(path, "r") as f:
-            ndim = f["data"].ndim
-            slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-            data["raw"] = f["data"][slicing] if scale > 1 else f["data"][:]
-    elif (".h5" in path or ".n5" in path):
-        with open_file(path, "r") as f:
-            # all_ds = get_all_datasets(path)
-            for key in f.keys():
-                if isinstance(f[key], (zarr.Group, h5py.Group, z5py.Group)):
-                    extract_data(f[key], data, scale=scale, prefix=key)
-                else:
-                    ndim = f[key].ndim
-                    slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-                    data[key] = f[key][slicing] if scale > 1 else f[key][:]
 
-    elif (".zarr" in path):
-        img, voxel_size = read_ome_zarr(path)
-        ndim = img.ndim
-        slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-        data["raw"] = img[slicing] if scale > 1 else img
-
-    return data
-
-
-def extract_data(group: Any, data: Dict[str, Any], prefix: str = "", scale: int = 1):
-    """
-    Recursively extract datasets from a group and store them in a dictionary.
-    """
-    for key, item in group.items():
-        full_key = f"{prefix}/{key}" if prefix else key
-        if isinstance(item, (zarr.Group, h5py.Group, z5py.Group)):
-            # Recursively extract data from subgroups
-            extract_data(item, data, prefix=full_key, scale=scale)
-        else:
-            ndim = item.ndim
-            # Generate a slicing tuple based on the number of dimensions
-            slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-            
-            # Apply downsampling while preserving batch/channel dimensions
-            data[full_key] = item[slicing] if scale > 1 else item[:]
-            # # Store the dataset in the dictionary
-            # data[full_key] = item[:]
 
 
 def downsample_to_shape(arr: np.ndarray, target_shape: tuple) -> np.ndarray:
@@ -328,6 +281,8 @@ def find_label_file(raw_path: str, label_paths: list) -> str:
         str: The path to the matching label file, or None if no match is found.
     """
     raw_base = os.path.splitext(os.path.basename(raw_path))[0]  # Remove extension
+    # if "raw" in raw_base:
+    #     raw_base = raw_base.replace("_raw", "")
 
     for label_path in label_paths:
         label_base = os.path.splitext(os.path.basename(label_path))[0]  # Remove extension

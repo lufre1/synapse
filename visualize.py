@@ -36,8 +36,10 @@ def get_file_paths(path, ext=".h5", reverse=False):
         return paths
 
 
-def visualize_data(data, offset_z=None):
+def visualize_data(data, name=None, offset_z=None):
     viewer = napari.Viewer()
+    if name is not None:
+        viewer.title = name
     print("vis data keys", data.keys())
     for key, value in data.items():
         if "raw" in key or key == "0":
@@ -207,7 +209,7 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
             # get foreground and boundary
             new_seg = _segment(data["pred/foreground"], data["pred/boundary"])
             data["new_seg"] = new_seg
-        visualize_data(data)
+        visualize_data(data, name=os.path.basename(path))
 
 
 if __name__ == "__main__":

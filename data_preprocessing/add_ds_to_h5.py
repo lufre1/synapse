@@ -3,20 +3,14 @@ import os
 from glob import glob
 import numpy as np
 from tqdm import tqdm
-from skimage import measure
 from skimage.transform import rescale, resize
 import argparse
-import mrcfile
 from synapse.util import get_data_metadata
-import napari
 from elf.io import open_file
-from elf.evaluation.matching import label_overlap, intersection_over_union
-from elf.parallel import label as parallel_label
-from skimage.segmentation import relabel_sequential
-from skimage.morphology import binary_closing, remove_small_objects, label, remove_small_holes
 import tifffile
 import synapse.util as util
 import synapse.io.util as io
+import synapse.h5_util as h5_util
 
 
 def get_filename_and_inter_dirs(file_path, base_path):
@@ -48,33 +42,27 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base_path", "-b",  type=str, required=True, help="Path to the root data directory")
     parser.add_argument("--second_base_path", "-b2",  type=str, required=True, help="Path to the root data directory")
-    parser.add_argument("--export_path", "-e", type=str, required=True, help="Path to the export directory")
+    parser.add_argument("--export_path", "-e", type=str, default=None, help="Path to the export directory")
     parser.add_argument("--scale_factor", "-s", type=int, default=1, help="Scale factor for the image")
     parser.add_argument("--import_file_extension", "-ife", type=str, default=".h5", help="File extension to read data")
     parser.add_argument("--second_import_file_extension", "-ife2", type=str, default=".h5", help="File extension to read data")
-    parser.add_argument("--export_file_extension", "-efe", type=str, default=".h5", help="File extension to export data")
     parser.add_argument("--voxel_size", "-vs", type=float, nargs=3, default=None, help="Voxel size tuple: z, y, x")
     args = parser.parse_args()
     scale = args.scale_factor
     ife = args.import_file_extension
     ife2 = args.second_import_file_extension
-    efe = args.export_file_extension
+
+    dataset_name = "labels/mitochondria"
     voxel_size = args.voxel_size
     if voxel_size is not None:
         voxel_size = voxel_size if isinstance(voxel_size, np.ndarray) else np.array(voxel_size, dtype=np.float32)
     # voxel_size = [0.025, 0.005, 0.005]  # [8.694*2, 8.694*2, 8.694*2])
 
-    # paths = sorted(glob(os.path.join(args.base_path, "**", f"*{ife}"), recursive=True))
     paths = io.load_file_paths(args.base_path, ext=ife)
-    # paths_2 = sorted(glob(os.path.join(args.second_base_path, "**", f"*{ife2}"), recursive=True))
     paths_2 = io.load_file_paths(args.second_base_path, ext=ife2)
-    # filter all raw files
-    # paths = [path for path in paths if "embedding" not in path and "mask" not in path]
-    # paths_2 = [path2 for path2 in paths_2 if "_mitochondria.tif" in path2]
 
-    for path, path2 in tqdm(zip(paths, paths_2), total=len(paths)):
+    for path in tqdm(paths, total=len(paths)):
         path2 = util.find_label_file(path, paths_2)
-        # breakpoint()
         if path2 is None:
             print("Could not find label file for", path)
             continue
@@ -82,41 +70,32 @@ def main():
         export_file_name = export_file_name.replace("mitotomo-net32-lr1e-4-bs8-ps32x256x256-s4_sd4_bt015_with_pred_ts_z32_y256_x256_halo_z8_y64_x64_", "").replace(
             "_s2_refined", ""
         )
-        create_directories_if_not_exists(args.export_path, rel_path)
-        if scale > 1:
-            export_file_path = os.path.join(args.export_path, rel_path, export_file_name + f"_s{scale}{efe}")
-        else:
-            export_file_path = os.path.join(args.export_path, rel_path, export_file_name + f"{efe}")
-        if os.path.exists(export_file_path):
-            print("File already exists:", export_file_path)
-            continue
-        data = {}
-        data["raw"] = util.read_data(path, scale=scale)["raw"]
+        if voxel_size is None:
+            voxel_size = h5_util.read_voxel_size(
+                path,
+                default=None  # h5_util.read_voxel_size(path2),
+            )
+        raw_shape = util.read_data(path, scale=scale)["raw"].shape
         if ife2 == ".h5":
             tmp = util.read_data(path2, scale=scale)
-            tmp = tmp.pop("labels/mitochondria", None)
+            tmp = tmp.pop(dataset_name, None)
         else:
             tmp = tifffile.imread(path2)
-        post_process = True
-        if post_process:
-            tmp = remove_small_objects(
-                tmp,
-                min_size=200
-            )
-            
-            # tmp = remove_small_holes(tmp, area_threshold=100)
-            tmp = parallel_label(tmp, connectivity=1, block_shape=(64, 64, 64))
-            
-        # remove_small_objects(
-        #     data2.pop("label", None),
-        #     min_size=500
-        # )
         data2 = {}
-        print("shapes data and data2", data["raw"].shape, tmp.shape)
-        data2["labels/mitochondria"] = resize(tmp, data["raw"].shape, preserve_range=True, order=0, anti_aliasing=False).astype(tmp.dtype)
-        data.update(data2)
-        
-        util.export_data(export_file_path, data, voxel_size=voxel_size)
+        if not np.array_equal(tmp.shape, raw_shape):
+            data2[dataset_name] = resize(tmp, raw_shape, preserve_range=True, order=0, anti_aliasing=False).astype(np.uint8)
+        else:
+            data2[dataset_name] = tmp.astype(np.uint8)
+        with open_file(path, "a") as f:
+            ds = f.require_dataset(
+                dataset_name,
+                data=data2[dataset_name],
+                compression="gzip",
+                dtype=data2[dataset_name].dtype,
+                shape=data2[dataset_name].shape,
+            )
+            ds[:] = data2[dataset_name]
+            print("mitochondria added to file", path)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,64 @@
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 import h5py
 import numpy as np
+from synapse_net.file_utils import read_ome_zarr
+from elf.io import open_file
+import tifffile
+import zarr
+import z5py
+
+
+def read_data(path, scale=1):
+    data = {}
+    if ".tif" in path:
+        img = tifffile.imread(path)
+        ndim = img.ndim
+        slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+        data["label"] = img[slicing] if scale > 1 else img
+    elif (".mrc" in path or ".rec" in path):
+        with open_file(path, "r") as f:
+            ndim = f["data"].ndim
+            slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+            data["raw"] = f["data"][slicing] if scale > 1 else f["data"][:]
+    elif (".h5" in path or ".n5" in path):
+        with open_file(path, "r") as f:
+            # all_ds = get_all_datasets(path)
+            for key in f.keys():
+                if isinstance(f[key], (zarr.Group, h5py.Group, z5py.Group)):
+                    extract_data(f[key], data, scale=scale, prefix=key)
+                else:
+                    ndim = f[key].ndim
+                    slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+                    data[key] = f[key][slicing] if scale > 1 else f[key][:]
+
+    elif (".zarr" in path):
+        img, voxel_size = read_ome_zarr(path)
+        ndim = img.ndim
+        slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+        data["raw"] = img[slicing] if scale > 1 else img
+
+    return data
+
+
+def extract_data(group: Any, data: Dict[str, Any], prefix: str = "", scale: int = 1):
+    """
+    Recursively extract datasets from a group and store them in a dictionary.
+    """
+    for key, item in group.items():
+        full_key = f"{prefix}/{key}" if prefix else key
+        if isinstance(item, (zarr.Group, h5py.Group, z5py.Group)):
+            # Recursively extract data from subgroups
+            extract_data(item, data, prefix=full_key, scale=scale)
+        else:
+            ndim = item.ndim
+            # Generate a slicing tuple based on the number of dimensions
+            slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+            
+            # Apply downsampling while preserving batch/channel dimensions
+            data[full_key] = item[slicing] if scale > 1 else item[:]
+            # # Store the dataset in the dictionary
+            # data[full_key] = item[:]
 
 
 def read_voxel_size(
@@ -60,9 +117,11 @@ def read_voxel_size(
             if default is not None:
                 # Return the user‑provided fallback (already in z,y,x order)
                 return tuple(default)
-            raise KeyError(
-                f"'voxel_size' attribute missing on object '{h5_key}'."
-            )
+            else:
+                return None
+            # raise KeyError(
+            #     f"'voxel_size' attribute missing on object '{h5_key}'."
+            # )
 
         raw = obj.attrs["voxel_size"]
 

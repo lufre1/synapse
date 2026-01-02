@@ -56,7 +56,12 @@ def main():
     parser.add_argument("--downsample", "-d", action='store_true', default=False, help="Downsample the data - quicker, but loss of information")
     parser.add_argument("--original_voxel_size", "-ovs", nargs=3, type=float, default=None, help="Order: z y x")
     args = parser.parse_args()
-    orig_voxel_size = vs if isinstance(args.original_voxel_size, np.ndarray) else np.array(args.original_voxel_size, dtype=np.float32)
+    orig_voxel_size = None
+    if args.original_voxel_size is not None:
+        if isinstance(args.original_voxel_size, np.ndarray):
+            orig_voxel_size = args.original_voxel_size
+        else:
+            orig_voxel_size = np.array(args.original_voxel_size, dtype=np.float32)
 
     if os.path.isfile(args.base_path):
         print("base path is a file:", args.base_path)
