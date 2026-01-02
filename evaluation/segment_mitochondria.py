@@ -10,6 +10,7 @@ from tqdm import tqdm
 from elf.io import open_file
 import numpy as np
 import synapse.io.util as io
+import synapse.util as util
 from synapse_net.inference.mitochondria import segment_mitochondria
 # from synapse_net.ground_truth.matching import find_additional_objects
 from elf.evaluation.matching import label_overlap, intersection_over_union
@@ -154,6 +155,9 @@ def main(visualize=False):
     # parser.add_argument("--resize", "-r", default=False, action='store_true', help="Resize to some shape")
     parser.add_argument("--seed_distance", "-sd", type=int, default=6, help="Seed distance")
     parser.add_argument("--boundary_threshold", "-bt", type=float, default=0.15, help="Boundary threshold")
+    parser.add_argument("--foreground_threshold", "-ft", type=float, default=0.8, help="Foreground threshold")
+    parser.add_argument("--min_size", "-ms", type=int, default=5000, help="Minimum size of mitos")
+    parser.add_argument("--use_custom_segment", "-uc", default=False, action='store_true', help="Use custom segmentation")
     parser.add_argument("--tile_shape", "-ts", type=int, nargs=3, default=(32, 512, 512), help="Tile shape")
     parser.add_argument("--all_keys", "-ak", default=False, action='store_true', help="If to add all keys from raw file to export file")
     parser.add_argument("--force_overwrite", "-fo", action="store_true", default=False, help="Force overwrite of existing files")
@@ -284,18 +288,27 @@ def main(visualize=False):
             #     image = torch_em.transform.raw.normalize_percentile(image)
 
         seg, pred = segment_mitochondria(
-            image, # model=model,
+            image,  # model=model,
             model_path=args.model_path,
             scale=scale,
             tiling=tiling,
             return_predictions=True,
-            min_size=5000,  # 50000*1,
+            min_size=args.min_size,  # 5000,  # 50000*1,
             seed_distance=args.seed_distance,  # default 6
             ws_block_shape=(128, 256, 256),
             ws_halo=(48, 48, 48),
             boundary_threshold=args.boundary_threshold,
             area_threshold=500,
             preprocess=torch_em.transform.raw.normalize_percentile
+            )
+        if args.use_custom_segment:
+            seg = util.segment_mitos(
+                foreground=pred[0],
+                boundaries=pred[1],
+                seed_distance=args.seed_distance,
+                min_size=args.min_size,
+                area_threshold=500,
+                
             )
         with open_file(output_path, "w", ".h5") as f1:
             print("output_path", output_path)

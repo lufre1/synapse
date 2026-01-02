@@ -31,6 +31,7 @@ from skimage.measure import label
 # ----------------------------------------------------------------------
 import elf.parallel as parallel
 from synapse_net.inference.util import apply_size_filter, _postprocess_seg_3d
+import synapse.util as util
 
 # ----------------------------------------------------------------------
 #  Paths – change them to whatever you need
@@ -415,59 +416,59 @@ def seg_params_widget(
 # ----------------------------------------------------------------------
 #  The actual segmentation routine (unchanged)
 # ----------------------------------------------------------------------
-def _segment_mitos(
-    foreground: np.ndarray,
-    boundary: np.ndarray,
-    block_shape=(128, 256, 256),
-    halo=(32, 48, 48),
-    seed_distance=6,
-    boundary_threshold=0.25,
-    foreground_threshold=0.75,
-    min_size=2000,
-    area_threshold=200,
-    dist=None,
-):
-    """Return a dict with segmentation, seeds, distance map and h‑map."""
-    # ------------------------------------------------------------------
-    #  The code you already had – no changes required
-    # ------------------------------------------------------------------
-    boundaries = boundary
-    if dist is None:
-        dist = parallel.distance_transform(
-            boundaries < boundary_threshold, halo=halo, verbose=True, block_shape=block_shape
-        )
-    hmap = (dist.max() - dist) / (dist.max() + 1e-6)
-    # hmap[
-    #     np.logical_and(boundaries > boundary_threshold, foreground < foreground_threshold)
-    # ] = (hmap + boundaries).max()
-    barrier_mask = np.logical_and(boundaries > boundary_threshold, foreground < foreground_threshold)
-    hmap[barrier_mask] = 1.0
+# def _segment_mitos(
+#     foreground: np.ndarray,
+#     boundary: np.ndarray,
+#     block_shape=(128, 256, 256),
+#     halo=(32, 48, 48),
+#     seed_distance=6,
+#     boundary_threshold=0.25,
+#     foreground_threshold=0.75,
+#     min_size=2000,
+#     area_threshold=200,
+#     dist=None,
+# ):
+#     """Return a dict with segmentation, seeds, distance map and h‑map."""
+#     # ------------------------------------------------------------------
+#     #  The code you already had – no changes required
+#     # ------------------------------------------------------------------
+#     boundaries = boundary
+#     if dist is None:
+#         dist = parallel.distance_transform(
+#             boundaries < boundary_threshold, halo=halo, verbose=True, block_shape=block_shape
+#         )
+#     hmap = (dist.max() - dist) / (dist.max() + 1e-6)
+#     # hmap[
+#     #     np.logical_and(boundaries > boundary_threshold, foreground < foreground_threshold)
+#     # ] = (hmap + boundaries).max()
+#     barrier_mask = np.logical_and(boundaries > boundary_threshold, foreground < foreground_threshold)
+#     hmap[barrier_mask] = 1.0
 
-    seeds = np.logical_and(foreground > foreground_threshold, dist > seed_distance)
-    # seeds = parallel.label(seeds, block_shape=block_shape, verbose=True, connectivity=1)
-    seeds = label(seeds, connectivity=2)
-    seeds = apply_size_filter(seeds, 250, verbose=True, block_shape=block_shape)
+#     seeds = np.logical_and(foreground > foreground_threshold, dist > seed_distance)
+#     # seeds = parallel.label(seeds, block_shape=block_shape, verbose=True, connectivity=1)
+#     seeds = label(seeds, connectivity=2)
+#     seeds = apply_size_filter(seeds, 250, verbose=True, block_shape=block_shape)
     
 
-    # mask = (foreground + boundaries) > 0.5
-    mask = (foreground + np.where(boundaries < boundary_threshold, boundaries, 0)) > 0.5  # take overlap
-    # mask = foreground > foreground_threshold
-    # mask = np.logical_or((foreground > foreground_threshold), (boundary > boundary_threshold))  # (boundaries > (1-boundary_threshold)))
+#     # mask = (foreground + boundaries) > 0.5
+#     mask = (foreground + np.where(boundaries < boundary_threshold, boundaries, 0)) > 0.5  # take overlap
+#     # mask = foreground > foreground_threshold
+#     # mask = np.logical_or((foreground > foreground_threshold), (boundary > boundary_threshold))  # (boundaries > (1-boundary_threshold)))
 
-    seg = np.zeros_like(seeds)
-    seg = parallel.seeded_watershed(
-        hmap, seeds, block_shape=block_shape, out=seg, verbose=True, halo=halo, mask=mask
-    )
-    seg = apply_size_filter(seg, min_size, verbose=True, block_shape=block_shape)
-    seg = _postprocess_seg_3d(seg, area_threshold=area_threshold, iterations=4, iterations_3d=8)
+#     seg = np.zeros_like(seeds)
+#     seg = parallel.seeded_watershed(
+#         hmap, seeds, block_shape=block_shape, out=seg, verbose=True, halo=halo, mask=mask
+#     )
+#     seg = apply_size_filter(seg, min_size, verbose=True, block_shape=block_shape)
+#     seg = _postprocess_seg_3d(seg, area_threshold=area_threshold, iterations=4, iterations_3d=8)
 
-    return {
-        "segmentation": seg.astype(np.uint8),
-        "seeds": seeds.astype(np.uint8),
-        "dist": dist.astype(np.float32),
-        "hmap": hmap.astype(np.float32),
-        "mask": mask.astype(np.uint8),
-    }
+#     return {
+#         "segmentation": seg.astype(np.uint8),
+#         "seeds": seeds.astype(np.uint8),
+#         "dist": dist.astype(np.float32),
+#         "hmap": hmap.astype(np.float32),
+#         "mask": mask.astype(np.uint8),
+#     }
 
 
 # ----------------------------------------------------------------------
@@ -618,7 +619,7 @@ def run_correction(input_path: str, output_path: str, fname: str) -> bool:
         # ------------------------------------------------------------------
         # 3️⃣  Call the real segmentation routine
         # ------------------------------------------------------------------
-        seg_dict = _segment_mitos(
+        seg_dict = util.segment_mitos(
             foreground=foreground,
             boundary=boundary,
             block_shape=block_shape,
