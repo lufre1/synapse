@@ -695,9 +695,9 @@ def correct_mitochondria(args):
     continue_now = True
 
     for path in tqdm(file_paths):
-        if "refined" in path:
-            print("Skip because it is already refined")
-            continue
+        # if "refined" in os.path.basename(path):
+        #     print("Skip because it is already refined")
+        #     continue
         if continue_from in path:
             continue_now = True
         if not continue_now:
