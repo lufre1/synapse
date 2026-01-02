@@ -72,6 +72,7 @@ def main(args):
         label_paths = io.get_file_paths(args.labels_path, ext=args.labels_ext)
         segmentation_paths = io.get_file_paths(args.segmentations_path, ext=args.segmentations_ext)
         for label_path, segmentation_path in tqdm(zip(label_paths, segmentation_paths), desc="Evaluating mitos in files:"):
+            print(f"label and segmentation paths: \n{label_path}\n{segmentation_path}\n")
             filename = "mito_eval_results"
             if args.output_path is not None:
                 out_dir = os.path.dirname(args.output_path) if os.path.isfile(args.output_path) else os.path.dirname(label_path) if not args.output_path else args.output_path

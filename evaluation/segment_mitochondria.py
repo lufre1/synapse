@@ -208,7 +208,7 @@ def main(visualize=False):
 
     for path in tqdm(h5_paths):
 
-        print("opening file", path)
+        print("\nopening file", path)
         os.makedirs(args.export_path, exist_ok=True)
         output_path = os.path.join(args.export_path, (os.path.basename(args.model_path)).replace(".pt", "") +
                                    f"_sd{args.seed_distance}_bt{bt_string}_with_pred_ts_z{ts['z']}_y{ts['y']}_x{ts['x']}_halo_z{halo['z']}_y{halo['y']}_x{halo['x']}_" +
