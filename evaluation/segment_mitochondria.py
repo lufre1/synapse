@@ -304,12 +304,13 @@ def main(visualize=False):
         if args.use_custom_segment:
             seg = util.segment_mitos(
                 foreground=pred[0],
-                boundaries=pred[1],
+                boundary=pred[1],
+                foreground_threshold=args.foreground_threshold,
+                boundary_threshold=args.boundary_threshold,
                 seed_distance=args.seed_distance,
                 min_size=args.min_size,
                 area_threshold=500,
-                
-            )
+            )["segmentation"]
         with open_file(output_path, "w", ".h5") as f1:
             print("output_path", output_path)
             ndim = seg.ndim

@@ -19,7 +19,8 @@ import numpy as np
 import yaml
 import random
 from skimage.measure import regionprops
-from scipy.ndimage import label, sum_labels
+from scipy.ndimage import sum_labels
+from skimage.measure import label
 from skimage.transform import resize
 from synapse_net.inference.util import apply_size_filter, _postprocess_seg_3d
 from synapse_net.file_utils import read_ome_zarr

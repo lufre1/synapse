@@ -19,7 +19,7 @@ RAW_KEY="raw"
 # DD="/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops"
 # RAW_KEY="raw_crop"
 # EXPORT_PATH="/scratch-grete/usr/nimlufre/synapse/mitotomo/wichmann_s4_segmentations"
-EXPORT_PATH="/mnt/lustre-grete/usr/u12103/mitochondria/synapse-net-eval-data/eval_data_h5_s4_mito_refined_segmentations"
+EXPORT_PATH="/mnt/lustre-grete/usr/u12103/mitochondria/synapse-net-eval-data/eval_data_h5_s4_mito_refined_segmentations_new_seg_func"
 FORCE_OVERRIDE=True
 # MODEL_PATH="/scratch-grete/usr/nimlufre/synapse/mito_segmentation/checkpoints/mitotomo-net32-lr1e-4-bs8-ps32x256x256-s4/"
 MODEL_PATH="/mnt/lustre-grete/usr/u12103/mitochondria/tomo/checkpoints/mitotomo-net32-lr1e-4-bs8-ps32x256x256-s4-refined"
@@ -36,5 +36,8 @@ python /user/freckmann15/u12103/synapse/evaluation/segment_mitochondria.py \
   -ts ${BLOCK_SHAPE} \
   -ak \
   -sd ${SEED_DISTANCE} \
+  -ft 0.8 \
+  -bt 0.1 \
+  -uc
   # -am  # add missing mitos
 #  --force_overwrite
