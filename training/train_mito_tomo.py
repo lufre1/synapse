@@ -44,6 +44,7 @@ def main():
     parser.add_argument("--feature_size", type=int, default=32, help="Initial feature size of the 3D UNet")
     parser.add_argument("--early_stopping", type=int, default=10, help="Number of epochs without improvement before stopping training")
     parser.add_argument("--with_batchrenorm", action="store_true", default=False, help="Create UNet with batchrenorm.")
+    parser.add_argument("--use_synapsenet_training", "-ust", action="store_true", default=False, help="Use synapse net supervised training.")
 
     # Parse arguments
     args = parser.parse_args()
@@ -117,7 +118,7 @@ def main():
     print("data['val']", data["val"])
     print("data['test']", data["test"])
 
-    if not args.with_batchrenorm:
+    if args.use_synapsenet_training:
         print("Training with synapse-net supervised training")
         supervised_training(
             name=experiment_name,
@@ -149,8 +150,13 @@ def main():
 
         loss_function = util.get_loss_function(loss_name)
         metric_function = util.get_loss_function(metric_name)
-        model = util.get_3d_model(out_channels=out_channels, in_channels=in_channels, scale_factors=scale_factors,
-                                  initial_features=args.feature_size, norm="BatchRenorm")
+        model = util.get_3d_model(
+            out_channels=out_channels,
+            in_channels=in_channels,
+            scale_factors=scale_factors,
+            initial_features=args.feature_size,
+            norm="BatchRenorm" if args.with_batchrenorm else None
+        )
         if checkpoint_path is not None:
             # model.load_state_dict(torch.load(checkpoint_path))
             model = torch_em.util.load_model(checkpoint=checkpoint_path, device=device)

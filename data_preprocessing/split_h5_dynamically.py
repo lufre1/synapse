@@ -59,6 +59,8 @@ def main():
     for path in tqdm(paths, desc="Processing files..."):
         data = util.read_data(path)  # assume dict of numpy arrays / h5py-like datasets [web:8][web:14]
         voxel_size = util.read_voxel_size_h5(path)
+        if voxel_size is None:
+            voxel_size = np.array([0.025, 0.005, 0.005], dtype=np.float32)
 
         # assume all arrays share the same spatial shape
         first_key = next(iter(data.keys()))

@@ -1,17 +1,17 @@
 #!/bin/bash
 #SBATCH --partition=grete:shared
 #SBATCH -G A100:1
-#SBATCH --time=12:00:00
+#SBATCH --time=1-12:00:00
 #SBATCH --job-name=train-mito-net
 #SBATCH -c 8
 #SBATCH --mem 64G
 #SBATCH --constraint 80gb
 
-PATCH_SHAPE="64 256 256"
+PATCH_SHAPE="32 256 256"
 BS=8
 LR=1e-4
 read -r PZ PY PX <<< "$PATCH_SHAPE"
-EXPNAME="mitotomo-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-s4"
+EXPNAME="mitotomo-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-s4-refined"
 
 source /user/freckmann15/u12103/.bashrc
 micromamba activate /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
