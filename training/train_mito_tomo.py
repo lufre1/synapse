@@ -43,7 +43,8 @@ def main():
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
     parser.add_argument("--feature_size", type=int, default=32, help="Initial feature size of the 3D UNet")
     parser.add_argument("--early_stopping", type=int, default=10, help="Number of epochs without improvement before stopping training")
-    parser.add_argument("--with_batchrenorm", action="store_true", default=False, help="Create UNet with batchrenorm.")
+    parser.add_argument("--with_batchrenorm", action="store_true", default=False, help="Create UNet with batchrenorm. xor with instancenorm")
+    parser.add_argument("--with_instancenorm", action="store_true", default=False, help="Create UNet with instancenorm. xor with batchrenorm")
     parser.add_argument("--use_synapsenet_training", "-ust", action="store_true", default=False, help="Use synapse net supervised training.")
 
     # Parse arguments
@@ -150,12 +151,21 @@ def main():
 
         loss_function = util.get_loss_function(loss_name)
         metric_function = util.get_loss_function(metric_name)
+        if args.with_batchrenorm:
+            norm = "BatchRenorm"
+        elif args.with_instancenorm:
+            norm = "InstanceNorm"
+        else:
+            norm = None
+        print(f"Using norm layer {norm}")
+            
+        
         model = util.get_3d_model(
             out_channels=out_channels,
             in_channels=in_channels,
             scale_factors=scale_factors,
             initial_features=args.feature_size,
-            norm="BatchRenorm" if args.with_batchrenorm else None
+            norm=norm
         )
         if checkpoint_path is not None:
             # model.load_state_dict(torch.load(checkpoint_path))

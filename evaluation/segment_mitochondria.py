@@ -177,9 +177,14 @@ def main(visualize=False):
         "x": x
         }
     halo = {
-        "z": int(ts["z"] * 0.25),
-        "y": int(ts["y"] * 0.25),
-        "x": int(ts["x"] * 0.25)
+        "z": int(ts["z"] * 0.125),
+        "y": int(ts["y"] * 0.125),
+        "x": int(ts["x"] * 0.125)
+        }
+    ts = {
+        "z": z + 2 * halo["z"],
+        "y": y + 2 * halo["y"],
+        "x": x + 2 * halo["x"]
         }
     # halo = {'z': 12, 'y': 128, 'x': 128}
     # ts = {'z': ts["z"]+2*halo["z"], 'y': ts["y"]+2*halo["y"], 'x': ts["x"]+2*halo["x"]}
@@ -201,6 +206,7 @@ def main(visualize=False):
     print("tiling:", tiling)
     scale = None
     bt_string = str(args.boundary_threshold).replace(".", "")
+    ft_string = str(args.foreground_threshold).replace(".", "")
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # model = torch_em.util.load_model(checkpoint=args.model_path, name="best", device=device)
@@ -211,7 +217,7 @@ def main(visualize=False):
         print("\nopening file", path)
         os.makedirs(args.export_path, exist_ok=True)
         output_path = os.path.join(args.export_path, (os.path.basename(args.model_path)).replace(".pt", "") +
-                                   f"_sd{args.seed_distance}_bt{bt_string}_with_pred_ts_z{ts['z']}_y{ts['y']}_x{ts['x']}_halo_z{halo['z']}_y{halo['y']}_x{halo['x']}_" +
+                                   f"_sd{args.seed_distance}_bt{bt_string}_ft{ft_string}_with_pred_ts_z{ts['z']}_y{ts['y']}_x{ts['x']}_halo_z{halo['z']}_y{halo['y']}_x{halo['x']}_" +
                                    os.path.basename(path))
         output_path = output_path.replace(".zarr", ".h5")
         if os.path.exists(output_path) and not args.force_overwrite:
