@@ -8,7 +8,7 @@
 source /user/freckmann15/u12103/.bashrc
 micromamba activate /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
 
-H5_DIR="/mnt/lustre-grete/usr/u12103/mitochondria/synapse-net-eval-data/eval_data_h5_s4_mitov3_refined_segmentations/"
+H5_DIR="/mnt/lustre-grete/usr/u12103/mitochondria/synapse-net-eval-data/eval_data_h5_s4_instnorm_avg-tiling-small-test-smaller/"
 
 python /user/freckmann15/u12103/synapse/evaluation/evaluate_mitos.py \
     -l ${H5_DIR} \

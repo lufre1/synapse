@@ -19,7 +19,7 @@ RAW_KEY="raw"
 # DD="/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops"
 # RAW_KEY="raw_crop"
 # EXPORT_PATH="/scratch-grete/usr/nimlufre/synapse/mitotomo/wichmann_s4_segmentations"
-EXPORT_PATH="/mnt/lustre-grete/usr/u12103/mitochondria/synapse-net-eval-data/eval_data_h5_s4_instnorm_16halo"
+EXPORT_PATH="/mnt/lustre-grete/usr/u12103/mitochondria/synapse-net-eval-data/eval_data_h5_s4_instnorm_avg-tiling-small-test-smaller"
 FORCE_OVERRIDE=True
 # MODEL_PATH="/scratch-grete/usr/nimlufre/synapse/mito_segmentation/checkpoints/mitotomo-net32-lr1e-4-bs8-ps32x256x256-s4/"
 MODEL_PATH="/mnt/lustre-grete/usr/u12103/mitochondria/tomo/checkpoints/mitotomo-net32-lr1e-4-bs8-ps32x256x256-s4-refined-instancenorm"
@@ -27,7 +27,7 @@ FILE_EXTENSION=".h5"
 SEED_DISTANCE=4
 
 
-python /user/freckmann15/u12103/synapse/evaluation/segment_mitochondria.py \
+python /user/freckmann15/u12103/synapse/evaluation/segment_mitochondria_avg.py \
   --base_path ${DD} \
   --key ${RAW_KEY} \
   --export_path ${EXPORT_PATH} \
@@ -40,5 +40,6 @@ python /user/freckmann15/u12103/synapse/evaluation/segment_mitochondria.py \
   -bt 0.1 \
   -at 1000 \
   -uc \
-  # --force_overwrite
+  --output_all_preds \
+  --force_overwrite
   # -am  # add missing mitos

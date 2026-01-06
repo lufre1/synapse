@@ -156,6 +156,7 @@ def main(visualize=False):
     parser.add_argument("--seed_distance", "-sd", type=int, default=6, help="Seed distance")
     parser.add_argument("--boundary_threshold", "-bt", type=float, default=0.15, help="Boundary threshold")
     parser.add_argument("--foreground_threshold", "-ft", type=float, default=0.8, help="Foreground threshold")
+    parser.add_argument("--area_threshold", "-at", type=int, default=1000, help="Area to binary close segmentation in pixels")
     parser.add_argument("--min_size", "-ms", type=int, default=5000, help="Minimum size of mitos")
     parser.add_argument("--use_custom_segment", "-uc", default=False, action='store_true', help="Use custom segmentation")
     parser.add_argument("--tile_shape", "-ts", type=int, nargs=3, default=(32, 512, 512), help="Tile shape")
@@ -163,7 +164,7 @@ def main(visualize=False):
     parser.add_argument("--force_overwrite", "-fo", action="store_true", default=False, help="Force overwrite of existing files")
     parser.add_argument("--centered_crop", "-cc", action="store_true", default=False, help="Centered crop")
     parser.add_argument("--downscale_export", "-de", type=int, default=1, help="Downscale export to reduce size")
-    
+
     args = parser.parse_args()
     exp_scale = args.downscale_export
     add_missing_mitos = args.add_missing_mitos
@@ -181,25 +182,15 @@ def main(visualize=False):
         "y": int(ts["y"] * 0.125),
         "x": int(ts["x"] * 0.125)
         }
-    ts = {
-        "z": z + 2 * halo["z"],
-        "y": y + 2 * halo["y"],
-        "x": x + 2 * halo["x"]
-        }
+
+    # ts = {
+    #     "z": int(z - 2 * halo["z"]),
+    #     "y": int(y - 2 * halo["y"]),
+    #     "x": int(x - 2 * halo["x"])
+    #     }
     # halo = {'z': 12, 'y': 128, 'x': 128}
     # ts = {'z': ts["z"]+2*halo["z"], 'y': ts["y"]+2*halo["y"], 'x': ts["x"]+2*halo["x"]}
     h5_paths = io.load_file_paths(args.base_path, args.file_extension)
-    # h5_paths = ['/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M2_eb10_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5']
-
-    # test paths for 32x256x256 model
-    # h5_paths = ['/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5', '/mnt/lustre-grete/usr/u12103/mitochondria/cooper/fidi_2025/exported_to_hdf5_s2/ctrl/37371_O5_66K_TS_SP_67_rec_2Kb1dawbp_cropF_s2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5']
-
-    # test paths for 32x512x512 model bs2 und bs1
-    # h5_paths = ['/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/WT21_eb3_model2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M10_eb9_model.h5', '/mnt/lustre-grete/usr/u12103/mitochondria/cooper/fidi_2025/exported_to_hdf5_s2/ctrl/37371_O5_66K_TS_SP_67_rec_2Kb1dawbp_cropF_s2.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/KO9_eb4_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/wichmann/refined_mitos/M7_eb11_model.h5', '/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi_down_s2/36859_J1_66K_TS_CA3_PS_25_rec_2Kb1dawbp_crop_downscaled.h5']
-    # if args.file_extension == ".h5":
-    #     h5_paths = sorted(glob(os.path.join(args.base_path, "**", "*.h5"), recursive=True), reverse=True)
-    # else:
-    #     h5_paths = sorted(glob(os.path.join(args.base_path, "**", "*"+args.file_extension), recursive=True), reverse=True)
 
     print("len(h5_paths)", len(h5_paths))
     tiling = {"tile": ts, "halo": halo}  # prediction function automatically subtracts the 2*halo from tile
@@ -207,9 +198,8 @@ def main(visualize=False):
     scale = None
     bt_string = str(args.boundary_threshold).replace(".", "")
     ft_string = str(args.foreground_threshold).replace(".", "")
-    
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    # model = torch_em.util.load_model(checkpoint=args.model_path, name="best", device=device)
     print("Using best model from", args.model_path, "with device", device)
 
     for path in tqdm(h5_paths):
@@ -304,7 +294,7 @@ def main(visualize=False):
             ws_block_shape=(128, 256, 256),
             ws_halo=(48, 48, 48),
             boundary_threshold=args.boundary_threshold,
-            area_threshold=500,
+            area_threshold=args.area_threshold,
             preprocess=torch_em.transform.raw.normalize_percentile
             )
         if args.use_custom_segment:
@@ -315,7 +305,7 @@ def main(visualize=False):
                 boundary_threshold=args.boundary_threshold,
                 seed_distance=args.seed_distance,
                 min_size=args.min_size,
-                area_threshold=500,
+                area_threshold=args.area_threshold,
             )["segmentation"]
         with open_file(output_path, "w", ".h5") as f1:
             print("output_path", output_path)

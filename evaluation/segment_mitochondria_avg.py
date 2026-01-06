@@ -157,6 +157,7 @@ def main(visualize=False):
     parser.add_argument("--seed_distance", "-sd", type=int, default=6, help="Seed distance")
     parser.add_argument("--boundary_threshold", "-bt", type=float, default=0.15, help="Boundary threshold")
     parser.add_argument("--foreground_threshold", "-ft", type=float, default=0.8, help="Foreground threshold")
+    parser.add_argument("--area_threshold", "-at", type=int, default=1000, help="Area to binary close segmentation in pixels")
     parser.add_argument("--min_size", "-ms", type=int, default=5000, help="Minimum size of mitos")
     parser.add_argument("--use_custom_segment", "-uc", default=False, action='store_true', help="Use custom segmentation")
     parser.add_argument("--tile_shape", "-ts", type=int, nargs=3, default=(32, 512, 512), help="Tile shape")
@@ -164,6 +165,7 @@ def main(visualize=False):
     parser.add_argument("--force_overwrite", "-fo", action="store_true", default=False, help="Force overwrite of existing files")
     parser.add_argument("--centered_crop", "-cc", action="store_true", default=False, help="Centered crop")
     parser.add_argument("--downscale_export", "-de", type=int, default=1, help="Downscale export to reduce size")
+    parser.add_argument("--output_all_preds", "-oap", action="store_true", default=False, help="Output all predictions of different halos.")
     
     args = parser.parse_args()
     exp_scale = args.downscale_export
@@ -180,15 +182,15 @@ def main(visualize=False):
         "x": x
     }
     halos = [
+        {"z": 2, "y": 8, "x": 8},
         {"z": 2, "y": 16, "x": 16},
         {"z": 4, "y": 32, "x": 32},
-        {"z": 4, "y": 48, "x": 48},
     ]
     for halo in halos:
         ts = {
-            "z": initial_ts["z"] - 2 * halo["z"],
-            "y": initial_ts["y"] - 2 * halo["y"],
-            "x": initial_ts["x"] - 2 * halo["x"]
+            "z": initial_ts["z"],
+            "y": initial_ts["y"],
+            "x": initial_ts["x"]
         }
         tiling = {"tile": ts, "halo": halo}
         tilings.append(tiling)
@@ -196,8 +198,8 @@ def main(visualize=False):
     h5_paths = io.load_file_paths(args.base_path, args.file_extension)
 
     print("len(h5_paths)", len(h5_paths))
-    tiling = {"tile": ts, "halo": halo}  # prediction function automatically subtracts the 2*halo from tile
-    print("tiling:", tiling)
+    # prediction function automatically subtracts the 2*halo from tile
+    print("tilings:", tilings)
     scale = None
     bt_string = str(args.boundary_threshold).replace(".", "")
     ft_string = str(args.foreground_threshold).replace(".", "")
@@ -215,10 +217,10 @@ def main(visualize=False):
                                    os.path.basename(path))
         output_path = output_path.replace(".zarr", ".h5")
         if os.path.exists(output_path) and not args.force_overwrite:
-            print("Skipping... output path exists", output_path)
+            print("Skipping... output path exists:\n", output_path)
             continue
         elif os.path.exists(output_path) and args.force_overwrite:
-            print("Overwriting... output path exists", output_path)
+            print("Overwriting... output path exists:\n", output_path)
             os.remove(output_path)
         if path.endswith(".h5"):
             keys = get_all_keys_from_h5(path)
@@ -267,11 +269,12 @@ def main(visualize=False):
                 ws_block_shape=(128, 256, 256),
                 ws_halo=(48, 48, 48),
                 boundary_threshold=args.boundary_threshold,
-                area_threshold=500,
+                area_threshold=args.area_threshold,
                 preprocess=torch_em.transform.raw.normalize_percentile
             )
         if args.use_custom_segment:
-            preds = []
+            all_preds = []
+            final_pred = None
             for tiling in tilings:
                 pred = get_prediction(
                     input_volume=image,
@@ -279,11 +282,11 @@ def main(visualize=False):
                     tiling=tiling,
                     preprocess=torch_em.transform.raw.normalize_percentile
                 )
-                preds.append(pred)
-            if preds:
+                all_preds.append(pred)
+            if all_preds:
                 # Separate foreground and boundary predictions
-                foreground_preds = [pred[0] for pred in preds]
-                boundary_preds = [pred[1] for pred in preds]
+                foreground_preds = [pred[0] for pred in all_preds]
+                boundary_preds = [pred[1] for pred in all_preds]
                 # Average foreground predictions
                 avg_foreground = np.mean(foreground_preds, axis=0)
                 # Average boundary predictions
@@ -297,7 +300,7 @@ def main(visualize=False):
                 boundary_threshold=args.boundary_threshold,
                 seed_distance=args.seed_distance,
                 min_size=args.min_size,
-                area_threshold=500,
+                area_threshold=args.area_threshold,
             )["segmentation"]
         with open_file(output_path, "w", ".h5") as f1:
             print("output_path", output_path)
@@ -316,8 +319,13 @@ def main(visualize=False):
                         f1.create_dataset(key, data=(data[key][exp_slicing] if exp_scale != 1 else data[key]), compression="gzip")
 
             f1.create_dataset("seg", data=(seg[exp_slicing] if exp_scale != 1 else seg), compression="gzip", dtype=seg.dtype)
-            f1.create_dataset("pred/foreground", data=(pred[0][exp_slicing] if exp_scale != 1 else pred[0]), compression="gzip", dtype=pred.dtype)
-            f1.create_dataset("pred/boundary", data=(pred[1][exp_slicing] if exp_scale != 1 else pred[1]), compression="gzip", dtype=pred.dtype)
+            f1.create_dataset("pred/foreground", data=(final_pred[0][exp_slicing] if exp_scale != 1 else final_pred[0]), compression="gzip", dtype=final_pred[0].dtype)
+            f1.create_dataset("pred/boundary", data=(final_pred[1][exp_slicing] if exp_scale != 1 else final_pred[1]), compression="gzip", dtype=final_pred[1].dtype)
+            if args.output_all_preds:
+                names = ["small", "medium", "large"]
+                for name, p in zip(names, all_preds):
+                    f1.create_dataset(f"pred/foreground-{name}-halo", data=p[0], compression="gzip", dtype=p[0].dtype)
+                    f1.create_dataset(f"pred/boundary-{name}-halo", data=p[1], compression="gzip", dtype=p[1].dtype)
 
             # Optionally include additional label datasets
             if args.label_path is not None:
