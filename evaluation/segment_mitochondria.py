@@ -283,19 +283,27 @@ def main(visualize=False):
             # else:
             #     image = torch_em.transform.raw.normalize_percentile(image)
 
-        seg, pred = segment_mitochondria(
-            image,  # model=model,
-            model_path=args.model_path,
-            scale=scale,
-            tiling=tiling,
-            return_predictions=True,
-            min_size=args.min_size,  # 5000,  # 50000*1,
-            seed_distance=args.seed_distance,  # default 6
-            ws_block_shape=(128, 256, 256),
-            ws_halo=(48, 48, 48),
-            boundary_threshold=args.boundary_threshold,
-            area_threshold=args.area_threshold,
-            preprocess=torch_em.transform.raw.normalize_percentile
+        if not args.use_custom_segment:
+            seg, pred = segment_mitochondria(
+                image,  # model=model,
+                model_path=args.model_path,
+                scale=scale,
+                tiling=tiling,
+                return_predictions=True,
+                min_size=args.min_size,  # 5000,  # 50000*1,
+                seed_distance=args.seed_distance,  # default 6
+                ws_block_shape=(128, 256, 256),
+                ws_halo=(48, 48, 48),
+                boundary_threshold=args.boundary_threshold,
+                area_threshold=args.area_threshold,
+                preprocess=torch_em.transform.raw.normalize_percentile
+            )
+        if args.use_custom_segment:
+            pred = get_prediction(
+                input_volume=image,
+                model_path=args.model_path,
+                tiling=tiling,
+                preprocess=torch_em.transform.raw.normalize_percentile
             )
         if args.use_custom_segment:
             seg = util.segment_mitos(
@@ -324,8 +332,8 @@ def main(visualize=False):
                         f1.create_dataset(key, data=(data[key][exp_slicing] if exp_scale != 1 else data[key]), compression="gzip")
 
             f1.create_dataset("seg", data=(seg[exp_slicing] if exp_scale != 1 else seg), compression="gzip", dtype=seg.dtype)
-            f1.create_dataset("pred/foreground", data=(pred[0][exp_slicing] if exp_scale != 1 else pred[0]), compression="gzip", dtype=pred.dtype)
-            f1.create_dataset("pred/boundary", data=(pred[1][exp_slicing] if exp_scale != 1 else pred[1]), compression="gzip", dtype=pred.dtype)
+            f1.create_dataset("pred/foreground", data=(pred[0][exp_slicing] if exp_scale != 1 else pred[0]), compression="gzip", dtype=pred[0].dtype)
+            f1.create_dataset("pred/boundary", data=(pred[1][exp_slicing] if exp_scale != 1 else pred[1]), compression="gzip", dtype=pred[0].dtype)
 
             # Optionally include additional label datasets
             if args.label_path is not None:

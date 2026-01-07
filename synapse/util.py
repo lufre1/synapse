@@ -826,6 +826,112 @@ def get_data_paths_and_rois(data_dir, min_shape,
 
     return new_data_paths, rois_list
 
+def split_data_paths_to_dict_with_ensure(data_paths, ensure_strings=None, train_ratio=0.8, val_ratio=0.2, test_ratio=0.0):
+    """
+    Splits data paths into training, validation, and testing sets without shuffling.
+    Ensures that at least one file is present in the validation split for each string
+    in ensure_strings (if provided).
+
+    Args:
+        data_paths (list): List of paths to all files.
+        ensure_strings (tuple/list of str, optional): Strings that must be present in 
+            at least one file path in the validation split. Substrings of file paths are matched.
+        train_ratio (float, optional): Proportion of data for training (0.0-1.0) (default: 0.8).
+        val_ratio (float, optional): Proportion of data for validation (0.0-1.0) (default: 0.1).
+        test_ratio (float, optional): Proportion of data for testing (0.0-1.0) (default: 0.1).
+
+    Returns:
+        dict: Dictionary containing "train", "val", and "test" keys with data paths.
+
+    Raises:
+        ValueError: If the sum of ratios exceeds 1 or if ensure_strings is provided but
+                   validation set would be empty or doesn't contain required strings.
+    """
+    if train_ratio + val_ratio + test_ratio != 1.0:
+        raise ValueError("Sum of train, validation, and test ratios must equal 1.0.")
+    
+    num_data = len(data_paths)
+    
+    # Validate ensure_strings parameter
+    if ensure_strings is not None:
+        if not isinstance(ensure_strings, (tuple, list)):
+            raise ValueError("ensure_strings must be a tuple or list of strings")
+        if not all(isinstance(s, str) for s in ensure_strings):
+            raise ValueError("All elements in ensure_strings must be strings")
+    
+    train_size = int(num_data * train_ratio)
+    val_size = int(num_data * val_ratio)
+    test_size = int(num_data * test_ratio)
+    remaining = num_data - (train_size + val_size + test_size)
+    if remaining > 0:
+        train_size += remaining
+
+    # Split data paths
+    data_split = {
+        "train": data_paths[:train_size],
+        "val": data_paths[train_size:train_size+val_size],
+        "test": data_paths[train_size+val_size:]
+    }
+    
+    # Ensure validation set contains at least one file for each required string
+    if ensure_strings is not None:
+        # Check if validation set already satisfies the requirement
+        val_files = data_split["val"]
+        strings_found = []
+        
+        for string in ensure_strings:
+            found_in_val = any(string in file_path for file_path in val_files)
+            if found_in_val:
+                strings_found.append(string)
+        
+        # If not all strings are found, we need to adjust the splits
+        if len(strings_found) < len(ensure_strings):
+            # Find files that contain the missing strings
+            missing_strings = [s for s in ensure_strings if s not in strings_found]
+            
+            # Try to move files from test set to validation set
+            test_files = data_split["test"]
+            files_to_move = []
+            
+            for string in missing_strings:
+                for file_path in test_files:
+                    if string in file_path and file_path not in files_to_move:
+                        files_to_move.append(file_path)
+                        break
+            
+            # If still not enough files, try moving from train set
+            if len(files_to_move) < len(missing_strings):
+                train_files = data_split["train"]
+                for string in missing_strings:
+                    if len(files_to_move) >= len(missing_strings):
+                        break
+                    for file_path in train_files:
+                        if string in file_path and file_path not in files_to_move:
+                            files_to_move.append(file_path)
+                            break
+            
+            # If we still don't have enough files, raise an error
+            if len(files_to_move) < len(missing_strings):
+                raise ValueError(f"Cannot ensure at least one file containing each of the strings "
+                               f"{ensure_strings} in validation set. Consider adjusting ratios.")
+            
+            # Move files from test/train to validation
+            for file_path in files_to_move:
+                # Remove from original set
+                if file_path in test_files:
+                    test_files.remove(file_path)
+                    data_split["test"] = test_files
+                elif file_path in data_split["train"]:
+                    data_split["train"].remove(file_path)
+                
+                # Add to validation set
+                data_split["val"].append(file_path)
+            
+            # Re-sort to maintain order
+            data_split["val"] = sorted(data_split["val"])
+    
+    return data_split
+
 
 def split_data_paths_to_dict(data_paths, rois_list, train_ratio=0.8, val_ratio=0.2, test_ratio=0.0):
     """

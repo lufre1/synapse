@@ -14,17 +14,17 @@ micromamba activate /mnt/vast-nhr/home/freckmann15/u15205/micromamba/envs/synaps
 # ================ Define ALL parameters here ONCE ================
 BLOCK_SHAPE="32 256 256"
 # DD="/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-volume-em/MitoEM/raw_volume.h5"
-DD="/mnt/lustre-grete/projects/nim00020/moebius/4009/"
+DD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/test_split/"
 # DD="/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-mitopaper/4007_split/final_h5/4007_block_z001024_001152_y001936_003872_x003312_004968.h5"
 RAW_KEY="raw"
 # DD="/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops"
 # RAW_KEY="raw_crop"
-EXPORT_PATH="/mnt/lustre-grete/usr/u15205/volume-em/4009_segmentation"
+EXPORT_PATH="/mnt/lustre-grete/usr/u15205/volume-em/test_split_segmentations"
 # FORCE_OVERRIDE=True
 MODEL_PATH="/mnt/lustre-grete/usr/u15205/volume-em/models/volume-em-mito-net32-lr1e-4-bs8-ps32x256x256-all"
 # MODEL_PATH=" /scratch-grete/usr/nimlufre/synapse/mitochondria/checkpoints/volume-em-mito-net32-lr1e-4-bs4-ps32x256x256-thinboundary-cutout1and2/"
 FILE_EXTENSION=".h5"
-SEED_DISTANCE=3
+SEED_DISTANCE=2
 
 
 python /mnt/vast-nhr/home/freckmann15/u15205/synapse/evaluation/segment_mitochondria.py \
@@ -36,6 +36,10 @@ python /mnt/vast-nhr/home/freckmann15/u15205/synapse/evaluation/segment_mitochon
   --model_path ${MODEL_PATH} \
   -ak \
   --seed_distance ${SEED_DISTANCE} \
+  -ft 0.6 \
+  -bt 0.1 \
+  -at 500 \
+  -uc \
   # -cc \
   # -de 2 \
 #  --force_overwrite

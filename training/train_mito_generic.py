@@ -22,7 +22,7 @@ import synapse.util as util
 import synapse.cellmap_util as cutil
 import synapse.label_utils as lutil
 # import data_classes
-SAVE_DIR = "/mnt/lustre-grete/usr/u12103/mitochondria/volem"
+SAVE_DIR = "/mnt/lustre-grete/usr/u15205/volume-em/models/"
 
 
 def main():
@@ -47,6 +47,7 @@ def main():
     parser.add_argument("--third_data_dir", "-tdd", type=str, default=None, help="Path to a third data directory - loads hdf5")
     parser.add_argument("--with_rois", "-wr", default=False, action='store_true', help="Use to train with ROIs (manually set ROI in script!!)")
     parser.add_argument("--use_synapse_training", "-ust", default=False, action='store_true')
+    parser.add_argument("--save_dir", "-sd", default=None, help="Savedir to store logs and checkpoints to.")
 
     # Parse arguments
     args = parser.parse_args()
@@ -62,11 +63,15 @@ def main():
     print(f"\n Experiment: {experiment_name}\n")
     print(f"Using {device} with {n_workers} workers.")
     
+    if args.save_dir is not None:
+        save_dir = args.save_dir
+    else:
+        save_dir = SAVE_DIR
     if torch.cuda.is_available():
-        os.makedirs(SAVE_DIR, exist_ok=True)
+        os.makedirs(save_dir, exist_ok=True)
     # load model from checkpoint if exists
-    if os.path.exists(os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")):
-        checkpoint_path = os.path.join(SAVE_DIR, "checkpoints", experiment_name)
+    if os.path.exists(os.path.join(save_dir, "checkpoints", experiment_name, "best.pt")):
+        checkpoint_path = os.path.join(save_dir, "checkpoints", experiment_name)
         print("Checkpoint exists, loading model from checkpoint", checkpoint_path)
     elif args.checkpoint_path is not None:
         checkpoint_path = args.checkpoint_path
@@ -99,7 +104,14 @@ def main():
         label_paths = None
         random.seed(42)
         random.shuffle(data_paths)
-    data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.85, val_ratio=0.15, test_ratio=0.0)
+    # include following files in val split
+    ensure_strings = [
+        "4007_block_z000128_000256_y001936_003872_x003312_004968.h5",
+        "4009_raw_z0-128_y0-1600_x0-1600_0.h5"
+    ]
+    data = util.split_data_paths_to_dict_with_ensure(
+        data_paths, ensure_strings=ensure_strings, train_ratio=1, val_ratio=0.0, test_ratio=0.0
+        )
 
     end_time = time.time()
     # Calculate execution time in seconds
@@ -110,13 +122,13 @@ def main():
     label_transform = torch_em.transform.BoundaryTransform(add_binary_target=True)
 
     # print("label paths", label_paths)
-    print("Path for this model", os.path.join(SAVE_DIR, experiment_name))
+    print("Path for this model", os.path.join(save_dir, experiment_name))
     with_channels = False
     with_label_channels = False
     loss_name = "dice"
     metric_name = "dice"
     ndim = 3
-    scale_factors = [[1, 2, 2], [1, 2, 2], [2, 2, 2], [2, 2, 2]]
+    scale_factors = [[1, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2]]
 
     loss_function = util.get_loss_function(loss_name)
     metric_function = util.get_loss_function(metric_name)
@@ -124,7 +136,7 @@ def main():
     if label_paths is None and args.use_synapse_training:
         print(f"Data preprocessing execution time: {execution_time:.6f} seconds")
         print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
-        print("Saving model to", SAVE_DIR)
+        print("Saving model to", save_dir)
         print("data['train']", data["train"])
         print("data['val']", data["val"])
         print("data['test']", data["test"])
@@ -163,7 +175,7 @@ def main():
             log_image_interval=50,
             device=device,
             compile_model=False,
-            save_root=SAVE_DIR,
+            save_root=save_dir,
             early_stopping=args.early_stopping,
         )
 
@@ -175,7 +187,7 @@ def main():
         #     val_paths=data["val"],
         #     label_key=args.label_key,
         #     patch_shape=patch_shape,
-        #     save_root=SAVE_DIR,
+        #     save_root=save_dir,
         #     batch_size=batch_size,
         #     n_iterations=n_iterations,
         #     sampler=sampler,
@@ -224,7 +236,7 @@ def main():
             log_image_interval=50,
             device=device,
             compile_model=False,
-            save_root=SAVE_DIR,
+            save_root=save_dir,
             early_stopping=args.early_stopping,
         )
         if (False if torch.cuda.is_available() else True):

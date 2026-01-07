@@ -26,8 +26,9 @@ SDD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4009_hdf5/cutout
 # RAW_KEY="raw_crop"
 PATCH_SIZE=$(echo $PATCH_SHAPE | awk '{print $2}')
 read -r PZ PY PX <<< "$PATCH_SHAPE"
-EXPNAME="volume-em-mito-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-withWT-luca"
+EXPNAME="volume-em-mito-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-withWTandtestsplit"
 EARLY_STOPPING=10
+SAVE_DIR="/mnt/lustre-grete/usr/u15205/volume-em/models/"
 # use this to continue training from given checkpoint
 # CHECKPOINT="/scratch-grete/usr/nimlufre/cellmap/checkpoints/microsam-cellmaps-vit_b_em_organelles-bs1-ps256-all-wocytonuc/best.pt"
 
@@ -45,7 +46,7 @@ python /mnt/vast-nhr/home/freckmann15/u15205/synapse/training/train_mito_generic
   --early_stopping ${EARLY_STOPPING} \
   --raw_key ${RAW_KEY} \
   --label_key ${LABEL_KEY} \
-  --use_synapse_training \
   --second_data_dir ${SDD} \
+  --use_synapse_training \
   # --third_data_dir ${TDD} \
   # --checkpoint ${CHECKPOINT}
