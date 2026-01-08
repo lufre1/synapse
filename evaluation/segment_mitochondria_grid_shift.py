@@ -165,7 +165,8 @@ def main(visualize=False):
     parser.add_argument("--force_overwrite", "-fo", action="store_true", default=False, help="Force overwrite of existing files")
     parser.add_argument("--centered_crop", "-cc", action="store_true", default=False, help="Centered crop")
     parser.add_argument("--downscale_export", "-de", type=int, default=1, help="Downscale export to reduce size")
-
+    parser.add_argument("--output_all_preds", "-oap", action="store_true", default=False, help="Output all predictions of different halos.")
+    
     args = parser.parse_args()
     exp_scale = args.downscale_export
     add_missing_mitos = args.add_missing_mitos
@@ -173,35 +174,43 @@ def main(visualize=False):
     print("\nUsing model", args.model_path)
     # tile_shape
     z, y, x = args.tile_shape
-    ts = {
+    
+    tilings = []
+    initial_ts = {
         "z": z,
         "y": y,
         "x": x
-        }
-    halo = {
-        "z": int(ts["z"] * 0.125),
-        "y": int(ts["y"] * 0.125),
-        "x": int(ts["x"] * 0.125)
-        }
-    if args.use_custom_segment:
-        # adjust for blocking in torch_em 
+    }
+    halos = [
+        {"z": 2, "y": 8, "x": 8},
+        {"z": 2, "y": 16, "x": 16},
+        {"z": 4, "y": 32, "x": 32},
+    ]
+    for halo in halos:
         ts = {
-            "z": int(z - 2 * halo["z"]),
-            "y": int(y - 2 * halo["y"]),
-            "x": int(x - 2 * halo["x"])
-            }
-    # halo = {'z': 12, 'y': 128, 'x': 128}
-    # ts = {'z': ts["z"]+2*halo["z"], 'y': ts["y"]+2*halo["y"], 'x': ts["x"]+2*halo["x"]}
+            "z": initial_ts["z"] - 2 * halo["z"],
+            "y": initial_ts["y"] - 2 * halo["y"],
+            "x": initial_ts["x"] - 2 * halo["x"]
+        }
+        # ts = {
+        #     "z": initial_ts["z"],
+        #     "y": initial_ts["y"],
+        #     "x": initial_ts["x"]
+        # }
+        tiling = {"tile": ts, "halo": halo}
+        tilings.append(tiling)
+
     h5_paths = io.load_file_paths(args.base_path, args.file_extension)
 
     print("len(h5_paths)", len(h5_paths))
-    tiling = {"tile": ts, "halo": halo}  # prediction function automatically subtracts the 2*halo from tile
-    print("tiling:", tiling)
+    # prediction function automatically subtracts the 2*halo from tile
+    print("tilings:", tilings[2])
     scale = None
     bt_string = str(args.boundary_threshold).replace(".", "")
     ft_string = str(args.foreground_threshold).replace(".", "")
-
+    
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    # model = torch_em.util.load_model(checkpoint=args.model_path, name="best", device=device)
     print("Using best model from", args.model_path, "with device", device)
 
     for path in tqdm(h5_paths):
@@ -213,10 +222,10 @@ def main(visualize=False):
                                    os.path.basename(path))
         output_path = output_path.replace(".zarr", ".h5")
         if os.path.exists(output_path) and not args.force_overwrite:
-            print("Skipping... output path exists", output_path)
+            print("Skipping... output path exists:\n", output_path)
             continue
         elif os.path.exists(output_path) and args.force_overwrite:
-            print("Overwriting... output path exists", output_path)
+            print("Overwriting... output path exists:\n", output_path)
             os.remove(output_path)
         if path.endswith(".h5"):
             keys = get_all_keys_from_h5(path)
@@ -249,41 +258,9 @@ def main(visualize=False):
                         else:
                             slices = tuple(slice(None, max_sz) for max_sz in max_shape)
                     data[key] = arr[slices]
-                    # data[key] = f[key][:128, :512*2, :512*2]
-            orig_shape = None
-            # if args.resize:
-            #     orig_shape = data[args.key].shape
-            #     raw = data[args.key]
-            #     image = resize(
-            #         raw,
-            #         output_shape=(
-            #             int(raw.shape[0] * 1.67),
-            #             int(raw.shape[1] * 1.33),
-            #             int(raw.shape[2] * 1.33),
-            #         ),
-            #         order=1,
-            #         preserve_range=True,
-            #         anti_aliasing=True
-            #         )
 
-            # image = torch_em.transform.raw.standardize(image)
             if image is None:
-                # image = torch_em.transform.raw.normalize_percentile(data[args.key])
-                
                 image = data[args.key]
-                # test_loader = torch_em.default_segmentation_loader(
-                #     raw_paths=[path], raw_key="raw",
-                #     label_paths=[path], label_key="labels/mitochondria",
-                #     patch_shape=[128, 1600, 1600], ndim=3, batch_size=1,
-                #     raw_transform=torch_em.transform.raw.normalize_percentile,
-                #     label_transform=torch_em.transform.BoundaryTransform(add_binary_target=True),
-                #     num_workers=4,
-                #     with_channels=False, with_label_channels=False,
-                # )
-                # input, _ = next(iter(test_loader))
-                # image = input.squeeze().detach().cpu().numpy()
-            # else:
-            #     image = torch_em.transform.raw.normalize_percentile(image)
 
         if not args.use_custom_segment:
             seg, pred = segment_mitochondria(
@@ -301,15 +278,35 @@ def main(visualize=False):
                 preprocess=torch_em.transform.raw.normalize_percentile
             )
         if args.use_custom_segment:
-            pred = get_prediction(
-                input_volume=image,
-                model_path=args.model_path,
-                tiling=tiling,
-                preprocess=torch_em.transform.raw.normalize_percentile
-            )
+            all_preds = []
+            final_pred = None
+            shifts = [
+                [0, 0, 0],
+                [0.25, 0.25, 0.25],
+                [0.5, 0.5, 0.5],
+            ]
+            for shift in shifts:
+                pred = util.get_prediction_torch_em(
+                    input_volume=image,
+                    model_path=args.model_path,
+                    tiling=tilings[2],
+                    preprocess=torch_em.transform.raw.normalize_percentile,
+                    grid_shift=shift
+                )
+                all_preds.append(pred)
+            if all_preds:
+                # Separate foreground and boundary predictions
+                foreground_preds = [pred[0] for pred in all_preds]
+                boundary_preds = [pred[1] for pred in all_preds]
+                # Average foreground predictions
+                avg_foreground = np.mean(foreground_preds, axis=0)
+                # Average boundary predictions
+                avg_boundary = np.mean(boundary_preds, axis=0)
+                # Combine back into the same format as your prediction function output
+                final_pred = (avg_foreground, avg_boundary)
             seg = util.segment_mitos(
-                foreground=pred[0],
-                boundary=pred[1],
+                foreground=final_pred[0],
+                boundary=final_pred[1],
                 foreground_threshold=args.foreground_threshold,
                 boundary_threshold=args.boundary_threshold,
                 seed_distance=args.seed_distance,
@@ -333,8 +330,12 @@ def main(visualize=False):
                         f1.create_dataset(key, data=(data[key][exp_slicing] if exp_scale != 1 else data[key]), compression="gzip")
 
             f1.create_dataset("seg", data=(seg[exp_slicing] if exp_scale != 1 else seg), compression="gzip", dtype=seg.dtype)
-            f1.create_dataset("pred/foreground", data=(pred[0][exp_slicing] if exp_scale != 1 else pred[0]), compression="gzip", dtype=pred[0].dtype)
-            f1.create_dataset("pred/boundary", data=(pred[1][exp_slicing] if exp_scale != 1 else pred[1]), compression="gzip", dtype=pred[0].dtype)
+            f1.create_dataset("pred/foreground", data=(final_pred[0][exp_slicing] if exp_scale != 1 else final_pred[0]), compression="gzip", dtype=final_pred[0].dtype)
+            f1.create_dataset("pred/boundary", data=(final_pred[1][exp_slicing] if exp_scale != 1 else final_pred[1]), compression="gzip", dtype=final_pred[1].dtype)
+            if args.output_all_preds:
+                for i, p in enumerate(all_preds):
+                    f1.create_dataset(f"pred/foreground-{i}", data=p[0], compression="gzip", dtype=p[0].dtype)
+                    f1.create_dataset(f"pred/boundary-{i}", data=p[1], compression="gzip", dtype=p[1].dtype)
 
             # Optionally include additional label datasets
             if args.label_path is not None:

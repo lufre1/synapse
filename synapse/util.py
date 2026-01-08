@@ -1,6 +1,8 @@
 import fnmatch
 import os
 from glob import glob
+import time
+import warnings
 import h5py
 import mrcfile
 import tifffile
@@ -28,6 +30,7 @@ from synapse.h5_util import read_data, read_voxel_size
 from torch_em.model import AnisotropicUNet
 # used for combined_datasets
 from typing import Dict, List, Union, Tuple, Optional, Any
+from numpy.typing import ArrayLike
 
 # Define the data path and filename
 # data_path = "/scratch-grete/projects/nim00007/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt/170_2_rec.h5"
@@ -80,6 +83,84 @@ def get_3d_model(
         norm=norm
     )
     return model
+
+
+def get_prediction_torch_em(
+    input_volume: ArrayLike,  # [z, y, x]
+    tiling: Dict[str, Dict[str, int]],  # {"tile": {"z": int, ...}, "halo": {"z": int, ...}}
+    model_path: Optional[str] = None,
+    model: Optional[torch.nn.Module] = None,
+    verbose: bool = True,
+    with_channels: bool = False,
+    mask: Optional[ArrayLike] = None,
+    prediction: Optional[ArrayLike] = None,
+    devices: Optional[List[str]] = None,
+    preprocess: Optional[callable] = None,
+    grid_shift: Optional[Tuple[float, ...]] = None
+) -> np.ndarray:
+    """Run prediction using torch-em on a given volume.
+
+    Args:
+        input_volume: The input volume to predict on.
+        model_path: The path to the model checkpoint if 'model' is not provided.
+        model: Pre-loaded model. Either model_path or model is required.
+        tiling: The tiling configuration for the prediction.
+        verbose: Whether to print timing information.
+        with_channels: Whether to predict with channels.
+        mask: Optional binary mask. If given, the prediction will only be run in
+            the foreground region of the mask.
+        prediction: An array like object for writing the prediction.
+            If not given, the prediction will be computed in moemory.
+        devices: The devices for running prediction. If not given will use the GPU
+            if available, otherwise the CPU.
+
+    Returns:
+        The predicted volume.
+    """
+    # get block_shape and halo
+    block_shape = [tiling["tile"]["z"], tiling["tile"]["x"], tiling["tile"]["y"]]
+    halo = [tiling["halo"]["z"], tiling["halo"]["x"], tiling["halo"]["y"]]
+
+    t0 = time.time()
+    if devices is None:
+        devices = ["cuda" if torch.cuda.is_available() else "cpu"]
+
+    # Suppress warning when loading the model.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        if model is None:
+            if os.path.isdir(model_path):  # Load the model from a torch_em checkpoint.
+                model = torch_em.util.load_model(checkpoint=model_path, device=devices[0])
+            else:  # Load the model directly from a serialized pytorch model.
+                model = torch.load(model_path, weights_only=False)
+
+    # Run prediction with the model.
+    with torch.no_grad():
+
+        # Deal with 2D segmentation case
+        if len(input_volume.shape) == 2:
+            block_shape = [block_shape[1], block_shape[2]]
+            halo = [halo[1], halo[2]]
+
+        if mask is not None:
+            if verbose:
+                print("Run prediction with mask.")
+            mask = mask.astype("bool")
+
+        if preprocess is None:
+            preprocess = None if isinstance(input_volume, np.ndarray) else torch_em.transform.raw.standardize
+        else:
+            preprocess = preprocess
+        prediction = predict_with_halo(
+            input_volume, model, gpu_ids=devices,
+            block_shape=block_shape, halo=halo,
+            preprocess=preprocess, with_channels=with_channels, mask=mask,
+            output=prediction,
+            grid_shift=grid_shift
+        )
+    if verbose:
+        print("Prediction time in", time.time() - t0, "s")
+    return prediction
 
 
 def segment_mitos(
