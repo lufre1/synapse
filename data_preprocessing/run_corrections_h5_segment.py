@@ -390,6 +390,22 @@ def _parse_triplet(txt: str) -> tuple[int, int, int]:
         "step": 100,
         "value": 200,
     },
+    post_iter={
+        "label": "Postprocess-Iterations (2D)",
+        "widget_type": "Slider",
+        "min": 0,
+        "max": 12,
+        "step": 1,
+        "value": 4,
+    },
+    post_iter3d={
+        "label": "Postprocess-Iterations (3D)",
+        "widget_type": "Slider",
+        "min": 0,
+        "max": 24,
+        "step": 1,
+        "value": 8,
+    },
     layout="vertical",
     call_button=False,          # we will add a separate “Run Segmentation” button
 )
@@ -404,6 +420,8 @@ def seg_params_widget(
     foreground_threshold: float,
     min_size: int,
     area_threshold: int,
+    post_iter: int,
+    post_iter3d: int
 ) -> None:
     """
     This function **does not run** the segmentation – it only exists so that
@@ -474,23 +492,23 @@ def seg_params_widget(
 # ----------------------------------------------------------------------
 #  UI for a single file – correction + segmentation
 # ----------------------------------------------------------------------
-def run_correction(input_path: str, output_path: str, fname: str) -> bool:
+def run_correction(input_path: str, output_path: str, fname: str, downsample: int = 1) -> bool:
     """Open a Napari viewer for one HDF5 file and let the user correct / segment."""
     continue_correction = True
 
     # ------------------------------------------------------------------
     # Load the mandatory datasets
     # ------------------------------------------------------------------
-    raw = _read_h5(input_path, "raw")
-    mitos = _read_h5(input_path, "seg")
-    cristae = _read_h5(input_path, "labels/cristae")
+    raw = _read_h5(input_path, "raw", scale_factor=downsample)
+    mitos = _read_h5(input_path, "seg", scale_factor=downsample)
+    cristae = _read_h5(input_path, "labels/cristae", scale_factor=downsample)
 
     # ------------------------------------------------------------------
     # Load the extra datasets (foreground & boundary) and keep a dict
     # ------------------------------------------------------------------
     extra_layers = {}
     for key in EXTRA_KEYS:
-        data = _read_h5(input_path, key)
+        data = _read_h5(input_path, key, scale_factor=downsample)
         if data is not None:
             extra_layers[key] = data
         else:
@@ -615,6 +633,8 @@ def run_correction(input_path: str, output_path: str, fname: str) -> bool:
         foreground_threshold = params.foreground_threshold.value
         min_size = params.min_size.value
         area_threshold = params.area_threshold.value
+        post_iter = params.post_iter.value
+        post_iter3d = params.post_iter3d.value
 
         # ------------------------------------------------------------------
         # 3️⃣  Call the real segmentation routine
@@ -629,6 +649,7 @@ def run_correction(input_path: str, output_path: str, fname: str) -> bool:
             foreground_threshold=foreground_threshold,
             min_size=min_size,
             area_threshold=area_threshold,
+            post_iter3d=0
             # dist=v.layers["dist"].data if "dist" in v.layers else None,
         )
 
@@ -715,7 +736,7 @@ def correct_mitochondria(args):
 
         print(f"Loading:\n{path}\nwill save to:\n{output_path}\n")
 
-        if not run_correction(path, output_path, fname):
+        if not run_correction(path, output_path, fname, args.downsample):
             break
 
 
@@ -744,6 +765,7 @@ def main():
         action="store_true",
         help="Overwrite existing segmentation results",
     )
+    parser.add_argument("--downsample", "-ds", type=int, default=1, help="Downsampling factor for the data.")
     args = parser.parse_args()
     correct_mitochondria(args)
 
