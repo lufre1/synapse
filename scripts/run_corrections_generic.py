@@ -319,7 +319,7 @@ def _segment_mitos(foreground: np.ndarray,
     }
 
 
-def run_correction(input_path, output_path, fname, raw_key="raw"):
+def run_correction(input_path, output_path, fname, raw_key="raw", scale=1):
     """Open a Napari viewer for a single HDF5 file and allow manual correction."""
     continue_correction = True
 
@@ -327,13 +327,15 @@ def run_correction(input_path, output_path, fname, raw_key="raw"):
     # Load the mandatory datasets
     # ------------------------------------------------------------------
     data = {}
-    data = hutil.read_data(input_path)
-    vs = hutil.read_voxel_size(input_path)
+    data = hutil.read_data(input_path, scale=scale)
+    vs = hutil.read_voxel_size(input_path) 
+    if scale != 1:
+        vs = {k: v * scale for k, v in vs.items()}
 
     v = napari.Viewer()
 
     for key, val in data.items():
-        if "raw" in key or "pred" in "k":
+        if "raw" in key or "pred" in key:
             v.add_image(val, name="raw")
         else:
             v.add_labels(val, name=key)
@@ -475,7 +477,7 @@ def run_correction(input_path, output_path, fname, raw_key="raw"):
 
 def correct_mitochondria(args):
     base_path = args.base_path
-    save_dir = args.save_dir
+    save_dir = args.save_dir if args.save_dir is not None else base_path
     os.makedirs(save_dir, exist_ok=True)
 
     # raw_files = sorted(glob(os.path.join(base_path, "**/*raw.mrc"), recursive=True))
@@ -517,6 +519,7 @@ def main():
     parser.add_argument("--base_path", "-b", type=str, required=True, help="Path to the data directory")
     parser.add_argument("--save_dir", "-s", type=str, default=None, help="Path to save the data to")
     parser.add_argument("--force_overwrite", "-f", action="store_true", help="Whether to over-write already present segmentation results.")
+    parser.add_argument("--scale", "-sc", type=int, default=1, help="Downsampling factor for the data.")
     args = parser.parse_args()
 
     correct_mitochondria(args)

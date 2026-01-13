@@ -174,6 +174,8 @@ def segment_mitos(
     min_size=2000,
     area_threshold=500,
     dist=None,
+    post_iter=4,
+    post_iter3d=8
 ):
     """Return a dict with segmentation, seeds, distance map and h‑map."""
     # ------------------------------------------------------------------
@@ -184,18 +186,17 @@ def segment_mitos(
         dist = parallel.distance_transform(
             boundaries < boundary_threshold, halo=halo, verbose=True, block_shape=block_shape
         )
-    hmap = (dist.max() - dist) / (dist.max() + 1e-6)
-    # hmap[
-    #     np.logical_and(boundaries > boundary_threshold, foreground < foreground_threshold)
-    # ] = (hmap + boundaries).max()
-    barrier_mask = np.logical_and(boundaries > boundary_threshold, foreground < foreground_threshold)
-    hmap[barrier_mask] = 1.0
+    # hmap = (dist.max() - dist) / (dist.max() + 1e-6)  # inverse
+    # hmap = (hmap - hmap.min()) / (hmap.max() - hmap.min() + 1e-12)  # normalise
+    # barrier_mask = np.logical_and(boundaries > boundary_threshold, foreground < foreground_threshold)
+    # hmap[barrier_mask] = (hmap + boundaries).max()
+    hmap = (dist.max() - dist) / dist.max()
+    hmap[np.logical_and(boundaries > boundary_threshold, foreground < boundary_threshold)] = (hmap + boundaries).max()
 
     seeds = np.logical_and(foreground > foreground_threshold, dist > seed_distance)
     # seeds = parallel.label(seeds, block_shape=block_shape, verbose=True, connectivity=1)
     seeds = label(seeds, connectivity=2)
-    seeds = apply_size_filter(seeds, 250, verbose=True, block_shape=block_shape)
-    
+    seeds = apply_size_filter(seeds, min_size, verbose=True, block_shape=block_shape)
 
     # mask = (foreground + boundaries) > 0.5
     mask = (foreground + np.where(boundaries < boundary_threshold, boundaries, 0)) > 0.5  # take overlap
@@ -207,7 +208,7 @@ def segment_mitos(
         hmap, seeds, block_shape=block_shape, out=seg, verbose=True, halo=halo, mask=mask
     )
     seg = apply_size_filter(seg, min_size, verbose=True, block_shape=block_shape)
-    seg = _postprocess_seg_3d(seg, area_threshold=area_threshold, iterations=4, iterations_3d=8)
+    seg = _postprocess_seg_3d(seg, area_threshold=area_threshold, iterations=post_iter, iterations_3d=post_iter3d)
 
     return {
         "segmentation": seg.astype(np.uint8),
