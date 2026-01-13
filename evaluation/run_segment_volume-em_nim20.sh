@@ -40,6 +40,7 @@ python /mnt/vast-nhr/home/freckmann15/u15205/synapse/evaluation/segment_mitochon
   -bt 0.1 \
   -at 500 \
   -uc \
+  --post_iter3d 0
   # -cc \
   # -de 2 \
 #  --force_overwrite

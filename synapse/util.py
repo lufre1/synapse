@@ -24,8 +24,7 @@ from skimage.measure import regionprops
 from scipy.ndimage import sum_labels
 from skimage.measure import label
 from skimage.transform import resize
-from synapse_net.inference.util import apply_size_filter, _postprocess_seg_3d
-from synapse_net.file_utils import read_ome_zarr
+# from synapse_net.file_utils import read_ome_zarr
 from synapse.h5_util import read_data, read_voxel_size
 from torch_em.model import AnisotropicUNet
 # used for combined_datasets
@@ -179,6 +178,7 @@ def segment_mitos(
     # ------------------------------------------------------------------
     #  The code you already had – no changes required
     # ------------------------------------------------------------------
+    from synapse_net.inference.util import apply_size_filter, _postprocess_seg_3d
     boundaries = boundary
     if dist is None:
         dist = parallel.distance_transform(

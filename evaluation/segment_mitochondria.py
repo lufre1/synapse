@@ -159,6 +159,7 @@ def main(visualize=False):
     parser.add_argument("--foreground_threshold", "-ft", type=float, default=0.8, help="Foreground threshold")
     parser.add_argument("--area_threshold", "-at", type=int, default=1000, help="Area to binary close segmentation in pixels")
     parser.add_argument("--min_size", "-ms", type=int, default=5000, help="Minimum size of mitos")
+    parser.add_argument("--post_iter3d", "-p3d", type=int, default=8, help="How many postprocess iterations 3d to apply. (Use 0 for close neighbouring instances)")
     parser.add_argument("--use_custom_segment", "-uc", default=False, action='store_true', help="Use custom segmentation")
     parser.add_argument("--tile_shape", "-ts", type=int, nargs=3, default=(32, 512, 512), help="Tile shape")
     parser.add_argument("--all_keys", "-ak", default=False, action='store_true', help="If to add all keys from raw file to export file")
@@ -315,6 +316,7 @@ def main(visualize=False):
                 seed_distance=args.seed_distance,
                 min_size=args.min_size,
                 area_threshold=args.area_threshold,
+                post_iter3d=args.post_iter3d
             )["segmentation"]
         with open_file(output_path, "w", ".h5") as f1:
             print("output_path", output_path)
