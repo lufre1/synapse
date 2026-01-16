@@ -11,6 +11,48 @@ import tifffile
 import synapse.util as util
 import synapse.io.util as io
 import synapse.h5_util as h5_util
+from skimage.morphology import remove_small_holes
+from skimage.measure import label
+
+
+def remove_small_blobs_3d_instances(seg, min_voxels, connectivity=1):
+    """
+    Remove small connected components in an instance segmentation.
+
+    Components with voxel count < min_voxels are removed (set to 0).
+
+    Parameters
+    ----------
+    seg : np.ndarray (3D, int)
+        Instance-labeled segmentation (0 = background).
+    min_voxels : int
+        Minimum number of voxels to keep.
+    connectivity : int
+        1 = 6, 2 = 18, 3 = 26 connectivity.
+
+    Returns
+    -------
+    np.ndarray
+        Cleaned instance segmentation.
+    """
+    import numpy as np
+    from skimage.measure import label, regionprops
+
+    out = seg.copy()
+
+    # Process each label independently
+    for obj_id in np.unique(seg):
+        if obj_id == 0:
+            continue
+
+        mask = seg == obj_id
+        cc = label(mask, connectivity=connectivity)
+
+        for prop in regionprops(cc):
+            if prop.area < min_voxels:
+                out[(cc == prop.label)] = 0
+
+    return out
 
 
 def get_filename_and_inter_dirs(file_path, base_path):
@@ -47,12 +89,14 @@ def main():
     parser.add_argument("--import_file_extension", "-ife", type=str, default=".h5", help="File extension to read data")
     parser.add_argument("--second_import_file_extension", "-ife2", type=str, default=".h5", help="File extension to read data")
     parser.add_argument("--voxel_size", "-vs", type=float, nargs=3, default=None, help="Voxel size tuple: z, y, x")
+    parser.add_argument("--dataset_name", "-dn", type=str, default="labels/mitochondria", help="ds name to add")
+    parser.add_argument("--preprocess", "-pre", action="store_true", help="Whether to preprocess the data")
     args = parser.parse_args()
     scale = args.scale_factor
     ife = args.import_file_extension
     ife2 = args.second_import_file_extension
 
-    dataset_name = "labels/mitochondria"
+    dataset_name = args.dataset_name
     voxel_size = args.voxel_size
     if voxel_size is not None:
         voxel_size = voxel_size if isinstance(voxel_size, np.ndarray) else np.array(voxel_size, dtype=np.float32)
@@ -81,6 +125,11 @@ def main():
             tmp = tmp.pop(dataset_name, None)
         else:
             tmp = tifffile.imread(path2)
+        # preprocess
+        if args.preprocess:
+            tmp = remove_small_holes(tmp, area_threshold=200)
+            tmp = label(tmp)
+            tmp = remove_small_blobs_3d_instances(tmp, min_voxels=100)
         data2 = {}
         if not np.array_equal(tmp.shape, raw_shape):
             data2[dataset_name] = resize(tmp, raw_shape, preserve_range=True, order=0, anti_aliasing=False).astype(np.uint8)
