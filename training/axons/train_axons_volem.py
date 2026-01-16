@@ -21,8 +21,9 @@ from synapse_net.training.supervised_training import supervised_training, get_su
 # Import your util.py for data loading
 import synapse.util as util
 import synapse.label_utils as lutil
+import synapse.h5_util as h5_util
 # import data_classes
-SAVE_DIR = "/mnt/lustre-grete/usr/u12103/mitochondria/tomo"
+SAVE_DIR = "/mnt/lustre-grete/usr/u12103/mitochondria/axons"
 # from unet import UNet3D
 
 
@@ -97,9 +98,9 @@ def main():
         data_paths.extend(data_paths3)
 
     for path in data_paths:
-        if "combined" in path:
+        if "combined" in path or "labels/axons" not in h5_util.get_all_keys_from_h5(path):
             data_paths.remove(path)
-            print("Found path with multiple channels as raw and removed:", path)
+            print("Found path with multiple channels as raw or no axons and removed:", path)
     random.seed(42)
     random.shuffle(data_paths)
     # data_paths.sort(reverse=True)

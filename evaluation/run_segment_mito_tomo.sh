@@ -1,10 +1,12 @@
 #!/bin/bash
-#SBATCH --partition=grete:shared
-#SBATCH -G A100:1
+#SBATCH --partition=grete:interactive
+#SBATCH -G 1g.20gb:1
 #SBATCH --time=0-12:00:00
 #SBATCH --job-name=eval-mito-tomo
 #SBATCH -c 6
 #SBATCH --mem 32G
+##SBATCH --partition=grete:shared
+##SBATCH -G A100:1
 
 
 source /user/freckmann15/u12103/.bashrc
@@ -19,10 +21,10 @@ RAW_KEY="raw"
 # DD="/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops"
 # RAW_KEY="raw_crop"
 # EXPORT_PATH="/scratch-grete/usr/nimlufre/synapse/mitotomo/wichmann_s4_segmentations"
-EXPORT_PATH="/mnt/lustre-grete/usr/u12103/mitochondria/synapse-net-eval-data/eval_data_h5_s4_instnorm_16halo"
+EXPORT_PATH="/mnt/lustre-grete/usr/u12103/mitochondria/synapse-net-eval-data/eval_data_h5_s4_final"
 FORCE_OVERRIDE=True
 # MODEL_PATH="/scratch-grete/usr/nimlufre/synapse/mito_segmentation/checkpoints/mitotomo-net32-lr1e-4-bs8-ps32x256x256-s4/"
-MODEL_PATH="/mnt/lustre-grete/usr/u12103/mitochondria/tomo/checkpoints/mitotomo-net32-lr1e-4-bs8-ps32x256x256-s4-refined-instancenorm"
+MODEL_PATH="/mnt/lustre-grete/usr/u12103/mitochondria/tomo/checkpoints/mitotomo-net32-lr1e-4-bs8-ps32x256x256-s4-refined-final"
 FILE_EXTENSION=".h5"
 SEED_DISTANCE=4
 
@@ -38,7 +40,7 @@ python /user/freckmann15/u12103/synapse/evaluation/segment_mitochondria.py \
   -sd ${SEED_DISTANCE} \
   -ft 0.8 \
   -bt 0.1 \
-  -at 1000 \
-  -uc \
+  --area_threshold 1000 \
+  --use_custom_segment \
   # --force_overwrite
   # -am  # add missing mitos
