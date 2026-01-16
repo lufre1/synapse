@@ -157,9 +157,8 @@ def main():
             norm = "InstanceNorm"
         else:
             norm = None
-        print(f"Using norm layer {norm}")
-            
-        
+        print(f"Using norm layer {norm} - where None is defaulting to InstanceNorm")
+
         model = util.get_3d_model(
             out_channels=out_channels,
             in_channels=in_channels,

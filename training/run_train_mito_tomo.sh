@@ -11,7 +11,7 @@ PATCH_SHAPE="32 256 256"
 BS=8
 LR=1e-4
 read -r PZ PY PX <<< "$PATCH_SHAPE"
-EXPNAME="mitotomo-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-s4-refined-instancenorm"
+EXPNAME="mitotomo-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-s4-refined-final"
 
 source /user/freckmann15/u12103/.bashrc
 micromamba activate /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
@@ -23,6 +23,6 @@ python /user/freckmann15/u12103/synapse/training/train_mito_tomo.py \
   --patch_shape ${PATCH_SHAPE} \
   --batch_size ${BS} \
   --learning_rate ${LR} \
-  --feature_size 32 \
+  --early_stopping 20 \
   --with_instancenorm \
   # --with_batchrenorm \
