@@ -219,6 +219,55 @@ def segment_mitos(
     }
 
 
+def convert_white_patches_to_black(img, min_patch_size=20):
+    """Set connected white (255) patches of at least `min_patch_size` voxels to 0.
+
+    Parameters
+    ----------
+    img : np.ndarray
+        3D uint8 EM volume.
+    min_patch_size : int, optional
+        Minimum number of voxels for a connected white patch to be removed.
+
+    Returns
+    -------
+    np.ndarray
+        Image with large white patches set to 0 (same dtype as input).
+    """
+    if img.dtype != np.uint8:
+        raise ValueError("img must be uint8")
+    if img.ndim != 3:
+        raise ValueError("img must be a 3D volume")
+
+    # Binary mask of white voxels
+    white_mask = img == 255
+
+    # Label connected components in 3D (26-connectivity via 3x3x3 ones)
+    structure = np.ones((3, 3, 3), dtype=bool)
+    labeled, num = ndi.label(white_mask, structure=structure)
+
+    if num == 0:
+        return img
+
+    # Component sizes (index 0 is background)
+    sizes = np.bincount(labeled.ravel())
+
+    # Labels that meet the size threshold (skip background index 0)
+    large_labels = np.where(sizes >= min_patch_size)[0]
+    large_labels = large_labels[large_labels != 0]
+
+    if large_labels.size == 0:
+        return img
+
+    # Mask of large components
+    large_mask = np.isin(labeled, large_labels)
+
+    # Apply mask
+    out = img.copy()
+    out[large_mask] = 0
+    return out
+
+
 def downsample_to_shape(arr: np.ndarray, target_shape: tuple) -> np.ndarray:
     """
     Downsample an array to the target shape by selecting voxels evenly (every ith voxel) along each axis.

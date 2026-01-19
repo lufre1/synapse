@@ -23,7 +23,7 @@ import synapse.util as util
 import synapse.label_utils as lutil
 import synapse.h5_util as h5_util
 # import data_classes
-SAVE_DIR = "/mnt/lustre-grete/usr/u12103/mitochondria/axons"
+SAVE_DIR = "/mnt/lustre-grete/usr/u15205/volume-em/models/"
 # from unet import UNet3D
 
 
@@ -47,6 +47,7 @@ def main():
     parser.add_argument("--with_batchrenorm", action="store_true", default=False, help="Create UNet with batchrenorm. xor with instancenorm")
     parser.add_argument("--with_instancenorm", action="store_true", default=False, help="Create UNet with instancenorm. xor with batchrenorm")
     parser.add_argument("--use_synapsenet_training", "-ust", action="store_true", default=False, help="Use synapse net supervised training.")
+    parser.add_argument("--save_dir", "-sd", default=None, help="directory to store checkpoits and logs to")
 
     # Parse arguments
     args = parser.parse_args()
@@ -56,17 +57,16 @@ def main():
     experiment_name = args.experiment_name
     batch_size = args.batch_size
     patch_shape = args.patch_shape
-
-    # n_workers = 12 if torch.cuda.is_available() else 1
-    # device = "cuda" if torch.cuda.is_available() else "cpu"
+    save_dir = SAVE_DIR if args.save_dir is None else args.save_dir
+    
     print(f"\n Experiment: {experiment_name}\n")
-    # print(f"Using {device} with {n_workers} workers.")
-    # label_transform = lutil.CombinedLabelTransform(add_binary_target=True, dilation_footprint=np.ones((3, 3)))
+
     label_transform = torch_em.transform.BoundaryTransform(add_binary_target=True)
 
-    if os.path.exists(os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")):
+
+    if os.path.exists(os.path.join(save_dir, "checkpoints", experiment_name, "best.pt")):
         # torch_em default is to load "best.pt" (do not include it in path)
-        checkpoint_path = os.path.join(SAVE_DIR, "checkpoints", experiment_name)
+        checkpoint_path = os.path.join(save_dir, "checkpoints", experiment_name)
         print("Checkpoint exists, loading model from checkpoint", checkpoint_path)
     elif args.checkpoint_path:
         checkpoint_path = args.checkpoint_path
@@ -96,15 +96,16 @@ def main():
     if args.data_dir3 is not None:
         data_paths3 = util.get_data_paths(args.data_dir3)
         data_paths.extend(data_paths3)
-
+    filtered = []
     for path in data_paths:
-        if "combined" in path or "labels/axons" not in h5_util.get_all_keys_from_h5(path):
-            data_paths.remove(path)
-            print("Found path with multiple channels as raw or no axons and removed:", path)
+        keys = h5_util.get_all_keys_from_h5(path)
+        if "labels/axons" in keys:
+            filtered.append(path)
+    data_paths = filtered
     random.seed(42)
     random.shuffle(data_paths)
     # data_paths.sort(reverse=True)
-    data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.85, val_ratio=0.15, test_ratio=0.0)
+    data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.75, val_ratio=0.25, test_ratio=0.0)
 
     end_time = time.time()
     # Calculate execution time in seconds
@@ -114,7 +115,7 @@ def main():
     print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
 
     sampler = MinInstanceSampler(p_reject=0.95)
-    print("Path for this model", os.path.join(SAVE_DIR, "checkpoints", experiment_name))
+    print("Path for this model", os.path.join(save_dir, "checkpoints", experiment_name))
     print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
     print("data['train']", data["train"])
     print("data['val']", data["val"])
@@ -128,7 +129,7 @@ def main():
             val_paths=data["val"],
             label_key=args.label_key,
             patch_shape=patch_shape,
-            save_root=SAVE_DIR,
+            save_root=save_dir,
             batch_size=batch_size,
             n_iterations=n_iterations,
             sampler=sampler,
@@ -199,7 +200,7 @@ def main():
             log_image_interval=50,
             device=device,
             compile_model=False,
-            save_root=SAVE_DIR,
+            save_root=save_dir,
             early_stopping=args.early_stopping,
         )
 
