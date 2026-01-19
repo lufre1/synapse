@@ -42,5 +42,5 @@ python /user/freckmann15/u12103/synapse/evaluation/segment_mitochondria.py \
   -bt 0.1 \
   --area_threshold 1000 \
   --use_custom_segment \
-  # --force_overwrite
+  --force_overwrite
   # -am  # add missing mitos

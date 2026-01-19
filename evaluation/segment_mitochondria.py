@@ -184,13 +184,13 @@ def main(visualize=False):
         "y": int(ts["y"] * 0.125),
         "x": int(ts["x"] * 0.125)
         }
-    if args.use_custom_segment:
-        # adjust for blocking in torch_em 
-        ts = {
-            "z": int(z - 2 * halo["z"]),
-            "y": int(y - 2 * halo["y"]),
-            "x": int(x - 2 * halo["x"])
-            }
+    # if args.use_custom_segment:
+    #     # adjust for blocking in torch_em 
+    #     ts = {
+    #         "z": int(z - 2 * halo["z"]),
+    #         "y": int(y - 2 * halo["y"]),
+    #         "x": int(x - 2 * halo["x"])
+    #         }
     # halo = {'z': 12, 'y': 128, 'x': 128}
     # ts = {'z': ts["z"]+2*halo["z"], 'y': ts["y"]+2*halo["y"], 'x': ts["x"]+2*halo["x"]}
     h5_paths = io.load_file_paths(args.base_path, args.file_extension)
