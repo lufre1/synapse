@@ -166,6 +166,7 @@ def main(visualize=False):
     parser.add_argument("--force_overwrite", "-fo", action="store_true", default=False, help="Force overwrite of existing files")
     parser.add_argument("--centered_crop", "-cc", action="store_true", default=False, help="Centered crop")
     parser.add_argument("--downscale_export", "-de", type=int, default=1, help="Downscale export to reduce size")
+    parser.add_argument("--preprocess_volem", "-pv", action="store_true", help="volem can have white borders")
 
     args = parser.parse_args()
     exp_scale = args.downscale_export
@@ -252,40 +253,10 @@ def main(visualize=False):
                     data[key] = arr[slices]
                     # data[key] = f[key][:128, :512*2, :512*2]
             orig_shape = None
-            # if args.resize:
-            #     orig_shape = data[args.key].shape
-            #     raw = data[args.key]
-            #     image = resize(
-            #         raw,
-            #         output_shape=(
-            #             int(raw.shape[0] * 1.67),
-            #             int(raw.shape[1] * 1.33),
-            #             int(raw.shape[2] * 1.33),
-            #         ),
-            #         order=1,
-            #         preserve_range=True,
-            #         anti_aliasing=True
-            #         )
-
-            # image = torch_em.transform.raw.standardize(image)
             if image is None:
-                # image = torch_em.transform.raw.normalize_percentile(data[args.key])
-                
                 image = data[args.key]
-                # test_loader = torch_em.default_segmentation_loader(
-                #     raw_paths=[path], raw_key="raw",
-                #     label_paths=[path], label_key="labels/mitochondria",
-                #     patch_shape=[128, 1600, 1600], ndim=3, batch_size=1,
-                #     raw_transform=torch_em.transform.raw.normalize_percentile,
-                #     label_transform=torch_em.transform.BoundaryTransform(add_binary_target=True),
-                #     num_workers=4,
-                #     with_channels=False, with_label_channels=False,
-                # )
-                # input, _ = next(iter(test_loader))
-                # image = input.squeeze().detach().cpu().numpy()
-            # else:
-            #     image = torch_em.transform.raw.normalize_percentile(image)
-
+            if args.preprocess_volem:
+                image = util.convert_white_patches_to_black(image)
         if not args.use_custom_segment:
             seg, pred = segment_mitochondria(
                 image,  # model=model,

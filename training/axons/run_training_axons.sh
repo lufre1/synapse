@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --partition=grete:shared
 #SBATCH -G A100:1
-#SBATCH --time=0-12:00:00
+#SBATCH --time=1-12:00:00
 #SBATCH --nodes=1
 #SBATCH -c 8
 #SBATCH --mem 64G
-#SBATCH --job-name=mito-net
+#SBATCH --job-name=axon-net
 #SBATCH --constraint 80gb
 
 
@@ -38,7 +38,8 @@ python /mnt/vast-nhr/home/freckmann15/u15205/synapse/training/axons/train_axons_
   --early_stopping ${EARLY_STOPPING} \
   --raw_key ${RAW_KEY} \
   --label_key ${LABEL_KEY} \
-  --second_data_dir ${SDD} \
+  --data_dir2 ${SDD} \
+  --save_dir ${SAVE_DIR} \
 #   --use_synapse_training \
   # --third_data_dir ${TDD} \
   # --checkpoint ${CHECKPOINT}

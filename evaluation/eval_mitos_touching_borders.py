@@ -1,5 +1,6 @@
 import argparse
 import os
+import re
 from typing import Dict, List, Set
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -14,6 +15,11 @@ from skimage.measure import regionprops
 from scipy import ndimage
 from typing import Tuple
 import napari
+
+
+def cut_after_halo(s: str) -> str:
+    # match: halo_z<number>_y<number>_x<number>_
+    return re.sub(r'^.*halo_z\d+_y\d+_x\d+_', '', s)
 
 
 def export(
@@ -202,11 +208,12 @@ def main(args):
                 v.add_labels(seg_orig, name="segmentations")
                 v.add_labels(labels, name="filtered labels")
                 v.add_labels(seg, name="filtered segmentations")
+                v.grid.enabled = True
                 napari.run()
             # continue
             scores = evaluate(labels, seg)
             all_scores.append(scores)
-            export(scores, output_path, os.path.basename(label_path.replace("0.", "0")).split(".")[0])
+            export(scores, output_path, cut_after_halo(os.path.basename(label_path.replace("0.", "0")).split(".")[0]))
         # Calculate and export average scores across all files
         if all_scores:
             # Separate numeric scores (first 4 columns: f1, precision, recall, sbd)
