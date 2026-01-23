@@ -1,0 +1,36 @@
+#!/bin/bash
+#SBATCH --partition=grete:interactive
+#SBATCH -G 1g.20gb:1
+#SBATCH --time=0-06:00:00
+#SBATCH --job-name=eval-empanada
+#SBATCH -c 6
+#SBATCH --mem 32G
+##SBATCH --partition=grete:shared
+##SBATCH -G A100:1
+
+
+source /user/freckmann15/u12103/.bashrc
+micromamba activate /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/empanada
+
+# ================ Define ALL parameters here ONCE ================
+# cellmaps on volume em data
+BLOCK_SHAPE="32 256 256"
+DD="/mnt/lustre-grete/usr/u12103/mitochondria/synapse-net-eval-data/eval_data_h5_s4/"
+# DD="/mnt/lustre-grete/usr/u12103/mitochondria/mito-tomo-all/wichmann/"
+RAW_KEY="raw"
+# DD="/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops"
+# RAW_KEY="raw_crop"
+# EXPORT_PATH="/scratch-grete/usr/nimlufre/synapse/mitotomo/wichmann_s4_segmentations"
+EXPORT_PATH="/mnt/lustre-grete/usr/u12103/mitochondria/synapse-net-eval-data/empanada_scaled-"
+FORCE_OVERRIDE=True
+# MODEL_PATH="/scratch-grete/usr/nimlufre/synapse/mito_segmentation/checkpoints/mitotomo-net32-lr1e-4-bs8-ps32x256x256-s4/"
+MODEL_PATH="/mnt/lustre-grete/usr/u12103/mitochondria/tomo/checkpoints/mitotomo-net32-lr1e-4-bs8-ps32x256x256-s4-refined-final"
+FILE_EXTENSION=".h5"
+SEED_DISTANCE=4
+
+
+python /user/freckmann15/u12103/synapse/evaluation/eval_empanada/segment_mitochondria_empanada_deprecated.py \
+  --path ${DD} \
+  --output_path ${EXPORT_PATH} \
+  --scaler 4
+

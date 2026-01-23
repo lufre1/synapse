@@ -92,7 +92,7 @@ def main():
                 data[key] = read_h5(path, key, args.scale_factor)
             else:
                 vol = read_h5(path, key)
-                if np.issubdtype(vol.dtype, np.floating):  # for raw em images
+                if "raw" in key:  # for raw em images
                     data[key] = rescale(vol, scale=float(1 / args.scale_factor), order=3, anti_aliasing=True,
                                         preserve_range=True,)
                 else:  # for segmentations
