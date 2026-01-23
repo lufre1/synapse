@@ -1,5 +1,6 @@
 import argparse
 import os
+import re
 from typing import Dict, List
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -10,6 +11,11 @@ from tqdm import tqdm
 from elf.io import open_file
 import pandas as pd
 from scipy import sparse
+
+
+def cut_after_halo(s: str) -> str:
+    # match: halo_z<number>_y<number>_x<number>_
+    return re.sub(r'^.*halo_z\d+_y\d+_x\d+_', '', s)
 
 
 def export(
@@ -71,6 +77,7 @@ def main(args):
     else:
         label_paths = io.get_file_paths(args.labels_path, ext=args.labels_ext)
         segmentation_paths = io.get_file_paths(args.segmentations_path, ext=args.segmentations_ext)
+        all_scores = []
         for label_path, segmentation_path in tqdm(zip(label_paths, segmentation_paths), desc="Evaluating mitos in files:"):
             print(f"label and segmentation paths: \n{label_path}\n{segmentation_path}\n")
             filename = "mito_eval_results"
@@ -88,7 +95,25 @@ def main(args):
             else:
                 seg = io.load_data_from_file(segmentation_path)
             scores = evaluate(labels, seg)
-            export(scores, output_path, os.path.basename(label_path.replace("0.", "0")).split(".")[0])
+            all_scores.append(scores)
+            export(scores, output_path, cut_after_halo(os.path.basename(label_path.replace("0.", "0")).split(".")[0]))
+        if all_scores:
+            # Separate numeric scores (first 4 columns: f1, precision, recall, sbd)
+            numeric_scores = []
+
+            for score_list in all_scores:
+                # Take only the first 4 numeric values (f1, precision, recall, sbd)
+                numeric_scores.append(score_list[:4])
+
+            # Convert numeric scores to numpy array and calculate mean
+            numeric_array = np.array(numeric_scores, dtype=float)
+            avg_scores_numeric = np.mean(numeric_array, axis=0).tolist()
+
+            # Create average scores list with blank string columns
+            # [f1, precision, recall, sbd, avg_score, ""]
+            avg_scores = avg_scores_numeric + [""]  # Blank string for avg_score column
+
+            export(avg_scores, output_path, "all-files-averaged")
 
 
 if __name__ == "__main__":

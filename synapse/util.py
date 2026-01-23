@@ -23,7 +23,7 @@ import random
 from skimage.measure import regionprops
 from scipy.ndimage import sum_labels
 from skimage.measure import label
-from skimage.transform import resize
+from skimage.transform import resize, rescale
 # from synapse_net.file_utils import read_ome_zarr
 from synapse.h5_util import read_data, read_voxel_size
 from torch_em.model import AnisotropicUNet
@@ -34,6 +34,59 @@ from numpy.typing import ArrayLike
 # Define the data path and filename
 # data_path = "/scratch-grete/projects/nim00007/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt/170_2_rec.h5"
 # data_format = "*.h5"
+
+
+def adjust_size(input_volume, scale=None, is_segmentation=False, orig_shape=None):
+    """
+    Rescale or resize a 2D/3D volume, using interpolation appropriate for images vs. label maps.
+
+    This function has two modes:
+
+    1) Rescaling (when ``orig_shape is None``):
+       - Uses ``skimage.transform.rescale`` with the provided ``scale``.
+
+    2) Resizing to a target shape (when ``orig_shape is not None``):
+       - Uses ``skimage.transform.resize`` to match ``orig_shape``.
+
+    For segmentation/label volumes (``is_segmentation=True``), nearest-neighbor interpolation
+    is used (``order=0`` and ``anti_aliasing=False``) to avoid creating non-integer labels.
+    For intensity images (``is_segmentation=False``), default interpolation is used.
+
+    Parameters
+    ----------
+    input_volume : np.ndarray
+        Input image/volume (2D or 3D). The output is cast back to ``input_volume.dtype``.
+    scale : float or sequence of float, optional
+        Scale factor(s) passed to ``rescale``. Required when ``orig_shape`` is None.
+        Examples: ``0.5`` to downsample by 2, or ``(1, 0.5, 0.5)`` for anisotropic scaling.
+    is_segmentation : bool, default=False
+        If True, treat ``input_volume`` as a label map and use nearest-neighbor interpolation.
+    orig_shape : tuple of int, optional
+        Target output shape passed to ``resize``. If provided, ``scale`` is ignored.
+
+    Returns
+    -------
+    np.ndarray
+        Rescaled/resized volume with the same dtype as the input.
+
+    Notes
+    -----
+    - ``preserve_range=True`` is used to avoid normalization to [0, 1] by scikit-image.
+    - For segmentation resizing, nearest-neighbor interpolation preserves label identities.
+    """
+    if orig_shape is None:
+        if is_segmentation:
+            input_volume = rescale(
+                input_volume, scale, preserve_range=True, order=0, anti_aliasing=False,
+            ).astype(input_volume.dtype)
+        else:
+            input_volume = rescale(input_volume, scale, preserve_range=True).astype(input_volume.dtype)
+    else:
+        if is_segmentation:
+            input_volume = resize(input_volume, orig_shape, preserve_range=True, order=0, anti_aliasing=False).astype(input_volume.dtype)
+        else:
+            input_volume = resize(input_volume, orig_shape, preserve_range=True).astype(input_volume.dtype)
+    return input_volume
 
 
 def read_voxel_size_h5(file_path, dataset_name="raw"):

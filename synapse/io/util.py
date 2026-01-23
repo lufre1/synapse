@@ -144,7 +144,7 @@ def load_file_paths(root_path: str, ext: str = None,
 
 
 def load_data_from_file(path: str, scale: int = 1, upsample: int = 0,
-                        label_paths: str = None
+                        label_paths: str = None, verbose: bool = False
                         ) -> Dict[str, Any]:
     if label_paths is not None:
         label_path = util.find_label_file(path, label_paths)
@@ -155,21 +155,25 @@ def load_data_from_file(path: str, scale: int = 1, upsample: int = 0,
     with open_file(path, mode="r") as f:
         data = {}
         if label_path is not None:
-            print("Loading label data from", label_path)
+            if verbose:
+                print("Loading label data from", label_path)
             ndim = f["data"].ndim
             slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
             data["label"] = imread(label_path)[slicing] if scale > 1 else imread(label_path)
         else:
-            print("No specific label path loaded.")
+            if verbose:
+                print("No specific label path loaded.")
         if ".mrc" in path or ".rec" in path:
             ndim = f["data"].ndim
             slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
             data["raw"] = f["data"][slicing] if scale > 1 else f["data"][:]
         else:
-            print(f.keys())
+            if verbose:
+                print(f.keys())
             for key in f.keys():
                 if isinstance(f[key], (zarr.Group, h5py.Group, z5py.Group)):
-                    print(f"Loading group: {key}")
+                    if verbose:
+                        print(f"Loading group: {key}")
                     extract_data(f[key], data, scale=scale, prefix=key)
                     continue
                 ndim = f[key].ndim
@@ -309,8 +313,8 @@ def upsample_data(data, factor):
     """Upsample a 3D dataset in chunks to avoid memory overload."""
     upsampled_data = np.zeros(tuple(dim * factor for dim in data.shape), dtype=data.dtype)
     for z in range(data.shape[0]):
-        upsampled_data[z * factor : (z + 1) * factor] = resize(
-            data[z], 
+        upsampled_data[z * factor: (z + 1) * factor] = resize(
+            data[z],
             (factor * data.shape[1], factor * data.shape[2]),
             order=0, preserve_range=True, anti_aliasing=False
         ).astype(data.dtype)
