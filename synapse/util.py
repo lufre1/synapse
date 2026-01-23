@@ -242,11 +242,9 @@ def convert_white_patches_to_black(img, min_patch_size=20):
     # Binary mask of white voxels
     white_mask = img == 255
 
-    # Label connected components in 3D (26-connectivity via 3x3x3 ones)
-    structure = np.ones((3, 3, 3), dtype=bool)
-    labeled, num = ndi.label(white_mask, structure=structure)
-
-    if num == 0:
+    # Label connected components
+    labeled = label(white_mask)
+    if labeled.max() == 0:
         return img
 
     # Component sizes (index 0 is background)
