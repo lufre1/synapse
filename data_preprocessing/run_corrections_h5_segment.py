@@ -389,7 +389,7 @@ def _parse_triplet(txt: str) -> tuple[int, int, int]:
         "max": 5000,
         "step": 100,
         "value": 200,
-    },
+    },  
     post_iter={
         "label": "Postprocess-Iterations (2D)",
         "widget_type": "Slider",
