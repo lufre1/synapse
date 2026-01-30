@@ -105,7 +105,11 @@ def main():
     random.seed(42)
     random.shuffle(data_paths)
     # data_paths.sort(reverse=True)
-    data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.75, val_ratio=0.25, test_ratio=0.0)
+    # data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.75, val_ratio=0.25, test_ratio=0.0)
+    data = util.split_data_paths_to_dict_with_ensure(
+        data_paths=data_paths,
+        ensure_strings=("4007", "4009")
+    )
 
     end_time = time.time()
     # Calculate execution time in seconds

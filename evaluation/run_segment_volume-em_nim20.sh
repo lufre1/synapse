@@ -19,9 +19,9 @@ DD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/test_split/"
 RAW_KEY="raw"
 # DD="/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops"
 # RAW_KEY="raw_crop"
-EXPORT_PATH="/mnt/lustre-grete/usr/u15205/volume-em/test_split_segmentations"
+EXPORT_PATH="/mnt/lustre-grete/usr/u15205/volume-em/test_split_segmentations_refined-preprocess-volem"
 # FORCE_OVERRIDE=True
-MODEL_PATH="/mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-mito-net32-lr1e-4-bs4-ps32x512x512-withWTandtestsplit"
+MODEL_PATH="/mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-mito-net32-lr1e-4-bs4-ps32x512x512-withWT-refined"
 # MODEL_PATH=" /scratch-grete/usr/nimlufre/synapse/mitochondria/checkpoints/volume-em-mito-net32-lr1e-4-bs4-ps32x256x256-thinboundary-cutout1and2/"
 FILE_EXTENSION=".h5"
 SEED_DISTANCE=2
@@ -40,7 +40,8 @@ python /mnt/vast-nhr/home/freckmann15/u15205/synapse/evaluation/segment_mitochon
   -bt 0.1 \
   -at 500 \
   -uc \
-  --post_iter3d 0
+  --post_iter3d 0 \
+  --pv
   # -cc \
   # -de 2 \
 #  --force_overwrite

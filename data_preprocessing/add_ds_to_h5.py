@@ -7,13 +7,105 @@ from skimage.transform import rescale, resize
 import argparse
 from synapse.util import get_data_metadata
 from elf.io import open_file
+import elf.parallel as parallel
 import tifffile
 import synapse.util as util
 import synapse.io.util as io
 import synapse.h5_util as h5_util
 from skimage.morphology import remove_small_holes
 from skimage.measure import label
+from typing import Tuple
+import time
+from skimage.morphology import ball, binary_erosion
+from scipy.ndimage import distance_transform_edt
 
+
+def grow_labels_to_mask(seed_labels, target_mask):
+    """Expand seed instance labels to cover target_mask without merging labels."""
+    # distance_transform_edt returns indices of nearest zero; use it on background of seeds
+    bg = seed_labels == 0
+    _, inds = distance_transform_edt(bg, return_indices=True)
+    nearest = seed_labels[tuple(inds)]  # nearest seed label for every voxel
+
+    out = np.zeros_like(seed_labels, dtype=seed_labels.dtype)
+    out[target_mask] = nearest[target_mask]  # only fill where original foreground is True
+    return out
+
+
+def remove_disconnected_islands_per_id(seg, connectivity=1, min_island_voxels=0, verbose=False):
+    """
+    For each nonzero instance id, keep only its largest connected component.
+    Optionally also remove kept components smaller than min_island_voxels.
+
+    Parameters
+    ----------
+    seg : np.ndarray (int)
+        Instance segmentation (0=background).
+    connectivity : int
+        1 -> 6-neighborhood in 3D (recommended).
+    min_island_voxels : int
+        If >0, instances whose largest component is smaller than this are removed entirely.
+    """
+    out = seg.copy()
+    ids = np.unique(out)
+    ids = ids[ids != 0]
+
+    for obj_id in ids:
+        m = (out == obj_id)
+        cc = label(m, connectivity=connectivity)
+        if cc.max() <= 1:
+            continue
+
+        sizes = np.bincount(cc.ravel())
+        sizes[0] = 0
+        keep_cc = sizes.argmax()
+        keep_size = sizes[keep_cc]
+
+        # remove all components except the largest
+        out[(cc != 0) & (cc != keep_cc)] = 0
+
+        # optionally drop tiny instances entirely
+        if min_island_voxels > 0 and keep_size < min_island_voxels:
+            out[out == obj_id] = 0
+
+        if verbose:
+            removed = int(sizes.sum() - keep_size)
+            if removed > 0:
+                print(f"ID {obj_id}: removed {removed} island voxels (kept {keep_size})")
+
+    return out
+
+
+def apply_size_filter(
+    segmentation: np.ndarray,
+    min_size: int,
+    verbose: bool = False,
+    block_shape: Tuple[int, int, int] = (128, 256, 256),
+) -> np.ndarray:
+    """Apply size filter to the segmentation to remove small objects.
+
+    Args:
+        segmentation: The segmentation.
+        min_size: The minimal object size in pixels.
+        verbose: Whether to print runtimes.
+        block_shape: Block shape for parallelizing the operations.
+
+    Returns:
+        The size filtered segmentation.
+    """
+    if min_size == 0:
+        return segmentation
+    t0 = time.time()
+    if segmentation.ndim == 2 and len(block_shape) == 3:
+        block_shape_ = block_shape[1:]
+    else:
+        block_shape_ = block_shape
+    ids, sizes = parallel.unique(segmentation, return_counts=True, block_shape=block_shape_, verbose=verbose)
+    filter_ids = ids[sizes < min_size]
+    segmentation[np.isin(segmentation, filter_ids)] = 0
+    if verbose:
+        print("Size filter in", time.time() - t0, "s")
+    return segmentation
 
 def remove_small_blobs_3d_instances(seg, min_voxels, connectivity=1):
     """
@@ -106,7 +198,11 @@ def main():
     paths_2 = io.load_file_paths(args.second_base_path, ext=ife2)
 
     for path in tqdm(paths, total=len(paths)):
-        path2 = util.find_label_file(path, paths_2)
+        if len(paths) == len(paths_2) == 1:
+            path2 = paths_2[0]
+        else:
+            path2 = util.find_label_file(path, paths_2)
+        
         if path2 is None:
             print("Could not find label file for", path)
             continue
@@ -121,15 +217,35 @@ def main():
             )
         raw_shape = util.read_data(path, scale=scale)["raw"].shape
         if ife2 == ".h5":
-            tmp = util.read_data(path2, scale=scale)
-            tmp = tmp.pop(dataset_name, None)
+            tmp = util.read_data(path2, scale=scale)[dataset_name]
         else:
             tmp = tifffile.imread(path2)
         # preprocess
         if args.preprocess:
-            tmp = remove_small_holes(tmp, area_threshold=200)
-            tmp = label(tmp)
-            tmp = remove_small_blobs_3d_instances(tmp, min_voxels=100)
+            print("Preprocessing Files:\n", path, "\n", path2)
+
+            mask = tmp.astype(bool)
+            mask = remove_small_holes(mask, max_size=200)
+            print("Finished removing holes")
+
+            # Erode to break thin connections between large axon segments
+            erode_radius = 1  # increase to 2 if connections are thicker (more risk of splitting)
+            eroded = binary_erosion(mask, footprint=ball(erode_radius))
+            print("Finished erosion")
+
+            tmp = label(eroded, connectivity=1)  # 6-connectivity to reduce merges
+            print("Finished labeling (on eroded mask)")
+            
+            tmp = remove_disconnected_islands_per_id(tmp, connectivity=1, min_island_voxels=0, verbose=True)
+            print("Finished removing disconnected islands")
+
+            tmp = apply_size_filter(tmp, min_size=5000, verbose=True)
+            print("Finished removing small instances")
+
+            # Grow labels back to the original (hole-filled) mask without merging
+            tmp = grow_labels_to_mask(tmp, mask)
+            print("Finished growing labels back")
+
         data2 = {}
         if not np.array_equal(tmp.shape, raw_shape):
             data2[dataset_name] = resize(tmp, raw_shape, preserve_range=True, order=0, anti_aliasing=False).astype(np.uint8)
@@ -144,7 +260,7 @@ def main():
                 shape=data2[dataset_name].shape,
             )
             ds[:] = data2[dataset_name]
-            print("mitochondria added to file", path)
+            print(f"{args.dataset_name} added to file", path)
 
 
 if __name__ == "__main__":

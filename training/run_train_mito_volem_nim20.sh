@@ -26,7 +26,7 @@ SDD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4009_hdf5/cutout
 # RAW_KEY="raw_crop"
 PATCH_SIZE=$(echo $PATCH_SHAPE | awk '{print $2}')
 read -r PZ PY PX <<< "$PATCH_SHAPE"
-EXPNAME="volume-em-mito-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-withWTandtestsplit"
+EXPNAME="volume-em-mito-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-withWT-refined"
 EARLY_STOPPING=10
 SAVE_DIR="/mnt/lustre-grete/usr/u15205/volume-em/models/"
 # use this to continue training from given checkpoint
