@@ -22,11 +22,11 @@ import numpy as np
 
 #     return df_stats
 
-def compute_statistics(files):
+def compute_statistics(files, dataset_name):
     file_stats = []
     for path in tqdm(files):
         data = io.load_data_from_file(path)
-        total_mito = len(np.unique(data["labels/mitochondria"])) - 1  # exclude background
+        total_mito = len(np.unique(data[dataset_name])) - 1  # exclude background
         file_stats.append({"file": path, "total_mito": int(total_mito)})
 
     df = pd.DataFrame(file_stats)
@@ -55,7 +55,7 @@ def main(args):
     os.makedirs(output_path, exist_ok=True)
     output_path = os.path.join(output_path, "mitos_stats.csv")
 
-    df_stats = compute_statistics(files)
+    df_stats = compute_statistics(files, args.dataset_name)
 
 
     # Save to CSV
@@ -69,5 +69,6 @@ if __name__ == "__main__":
     parser.add_argument("--path", "-p", type=str, required=True)
     parser.add_argument("--ext", "-e", type=str, default=None)
     parser.add_argument("--output_path", "-o", type=str, default=None)
+    parser.add_argument("--dataset_name", "-dn", type=str, default=None)
     args = parser.parse_args()
     main(args)
