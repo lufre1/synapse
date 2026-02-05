@@ -14,15 +14,30 @@ def main(args):
     rows = []
     for path in tqdm(paths, total=len(paths)):
         with open_file(path, "r") as f:
-            data = f[args.dataset_key][...]
-
-        mask = np.isin(data, args.ids)
+            data = f[args.dataset_key][...].astype(np.uint8)
+        shape = data.shape
+        # print(path, shape)
+        mask = np.isin(data, args.ids).astype(np.uint8)
+        del data
+        if mask.sum() == 0:
+            row = dict(
+                file_path=path,
+                amount_instances=0,
+                smallest=np.nan,
+                biggest=np.nan,
+                std=np.nan,
+                median=np.nan,
+            )
+            rows.append(row)
+            continue
 
         # connected components
-        cc = parallel.label(mask, block_shape=(128, 256, 256), verbose=False)
+        cc = parallel.label(mask, block_shape=(128, 256, 256), verbose=False).astype(np.uint8)
+        del mask
 
         # component sizes; exclude background (label 0)
         ids, counts = np.unique(cc, return_counts=True)
+        del cc
         counts = counts[ids != 0]
 
         if counts.size == 0:
@@ -58,7 +73,7 @@ def main(args):
 
 if __name__ == "__main__":
     argsparse = argparse.ArgumentParser()
-    argsparse.add_argument("--input", "-i", type=str, default="/mnt/lustre-grete/projects/nim00020/data/volume-em/cellmaps")
+    argsparse.add_argument("--input", "-i", type=str, default="/mnt/lustre-grete/projects/nim00020/data/volume-em/cellmap/resized_crops/")
     argsparse.add_argument("--file_extension", "-e", type=str, default=".h5")
     argsparse.add_argument("--dataset_key", "-k", type=str, default="label_crop/all")
     argsparse.add_argument("--output", "-o", type=str, default=None)

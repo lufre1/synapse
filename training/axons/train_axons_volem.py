@@ -66,8 +66,8 @@ def main():
     
     print(f"\n Experiment: {experiment_name}\n")
 
-    label_transform = torch_em.transform.BoundaryTransform(add_binary_target=True)
-
+    # label_transform = torch_em.transform.BoundaryTransform(add_binary_target=True)
+    label_transform = torch_em.transform.labels_to_binary
 
     if os.path.exists(os.path.join(save_dir, "checkpoints", experiment_name, "best.pt")):
         # torch_em default is to load "best.pt" (do not include it in path)
@@ -82,7 +82,7 @@ def main():
     #     print("synapse-net supervised training has no checkpoint loading!")
 
     loss_name = "dice"
-    in_channels, out_channels = 1, 2
+    in_channels, out_channels = 1, 1
 
     final_activation = None
     if final_activation is None and loss_name == "dice":

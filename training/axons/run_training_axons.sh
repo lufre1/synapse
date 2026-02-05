@@ -24,7 +24,7 @@ LABEL_KEY="labels/axons"
 
 PATCH_SIZE=$(echo $PATCH_SHAPE | awk '{print $2}')
 read -r PZ PY PX <<< "$PATCH_SHAPE"
-EXPNAME="volume-em-axons-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-more-refined"
+EXPNAME="volume-em-axons-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-more-refined-foreground"
 EARLY_STOPPING=20
 SAVE_DIR="/mnt/lustre-grete/usr/u15205/volume-em/models/"
 # export CUDA_LAUNCH_BLOCKING=1
