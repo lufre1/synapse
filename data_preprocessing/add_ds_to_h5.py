@@ -16,7 +16,7 @@ from skimage.morphology import remove_small_holes
 from skimage.measure import label
 from typing import Tuple
 import time
-from skimage.morphology import ball, binary_erosion
+from skimage.morphology import ball, binary_erosion, remove_small_objects 
 from scipy.ndimage import distance_transform_edt
 
 
@@ -223,9 +223,13 @@ def main():
         # preprocess
         if args.preprocess:
             print("Preprocessing Files:\n", path, "\n", path2)
+            min_size = 250
 
             mask = tmp.astype(bool)
-            mask = remove_small_holes(mask, max_size=200)
+            for z in tqdm(range(mask.shape[0]), desc="Removing holes in 2D"):
+                mask[z] = remove_small_holes(mask[z], max_size=min_size, connectivity=1)
+            # mask = remove_small_holes(mask, max_size=200)
+            mask = remove_small_objects(mask, max_size=min_size)
             print("Finished removing holes")
 
             # Erode to break thin connections between large axon segments
@@ -233,14 +237,19 @@ def main():
             eroded = binary_erosion(mask, footprint=ball(erode_radius))
             print("Finished erosion")
 
-            tmp = label(eroded, connectivity=1)  # 6-connectivity to reduce merges
+            # tmp = label(eroded, connectivity=1)  # 6-connectivity to reduce merges
+            tmp = parallel.label(
+                data=eroded,
+                block_shape=(128, 256, 256),
+                verbose=True
+            )
             print("Finished labeling (on eroded mask)")
             
-            tmp = remove_disconnected_islands_per_id(tmp, connectivity=1, min_island_voxels=0, verbose=True)
-            print("Finished removing disconnected islands")
+            tmp = remove_disconnected_islands_per_id(tmp, connectivity=1, min_island_voxels=min_size, verbose=True)
+            print("Finished removing disconnected islands with min_size of", min_size)
 
-            tmp = apply_size_filter(tmp, min_size=5000, verbose=True)
-            print("Finished removing small instances")
+            tmp = apply_size_filter(tmp, min_size=min_size, verbose=True)
+            print("Finished removing small instances with min_size of", min_size)
 
             # Grow labels back to the original (hole-filled) mask without merging
             tmp = grow_labels_to_mask(tmp, mask)

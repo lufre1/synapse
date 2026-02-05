@@ -78,10 +78,6 @@ def main():
     loss_name = "dice"
     in_channels, out_channels = 1, 2
 
-    final_activation = None
-    if final_activation is None and loss_name == "dice":
-        final_activation = "Sigmoid"
-
     # load data paths etc.
     start_time = time.time()
     print(f"Start time {time.ctime()}")
@@ -138,6 +134,10 @@ def main():
         )
     else:
         print("Training with torch_em trainer")
+        final_activation = None
+        if final_activation is None and loss_name == "dice":
+            final_activation = "Sigmoid"
+        print("Use final activation", final_activation)
         # create model
         with_channels = False
         with_label_channels = False
@@ -164,7 +164,8 @@ def main():
             in_channels=in_channels,
             scale_factors=scale_factors,
             initial_features=args.feature_size,
-            norm=norm
+            norm=norm,
+            final_activation=final_activation
         )
         if checkpoint_path is not None:
             # model.load_state_dict(torch.load(checkpoint_path))

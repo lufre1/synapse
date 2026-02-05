@@ -13,7 +13,7 @@ source /mnt/vast-nhr/home/freckmann15/u15205/.bashrc
 micromamba activate /mnt/vast-nhr/home/freckmann15/u15205/micromamba/envs/synapse
 
 # ================ Define ALL parameters here ONCE ================
-N_ITER=15000
+N_ITER=50000
 PATCH_SHAPE="32 512 512"
 BS=4
 LR=1e-4
@@ -24,7 +24,7 @@ LABEL_KEY="labels/axons"
 
 PATCH_SIZE=$(echo $PATCH_SHAPE | awk '{print $2}')
 read -r PZ PY PX <<< "$PATCH_SHAPE"
-EXPNAME="volume-em-axons-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-initial"
+EXPNAME="volume-em-axons-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-more-refined"
 EARLY_STOPPING=20
 SAVE_DIR="/mnt/lustre-grete/usr/u15205/volume-em/models/"
 # export CUDA_LAUNCH_BLOCKING=1

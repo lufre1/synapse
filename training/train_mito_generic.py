@@ -134,6 +134,7 @@ def main():
     metric_function = util.get_loss_function(metric_name)
 
     if label_paths is None and args.use_synapse_training:
+        final_activation = "Sigmoid"
         print(f"Data preprocessing execution time: {execution_time:.6f} seconds")
         print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
         print("Saving model to", save_dir)
@@ -141,8 +142,9 @@ def main():
         print("data['val']", data["val"])
         print("data['test']", data["test"])
         print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
+        print("Using final activation:", final_activation)
         model = util.get_3d_model(out_channels=out_channels, in_channels=in_channels, scale_factors=scale_factors,
-                                  initial_features=args.feature_size)
+                                  initial_features=args.feature_size, final_activation=final_activation)
         if checkpoint_path is not None:
             # model.load_state_dict(torch.load(checkpoint_path))
             model = torch_em.util.load_model(checkpoint=checkpoint_path, device=device)
