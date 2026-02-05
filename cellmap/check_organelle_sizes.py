@@ -46,6 +46,7 @@ def main(args):
                 amount_instances=0,
                 smallest=np.nan,
                 biggest=np.nan,
+                mean=np.nan,
                 std=np.nan,
                 median=np.nan,
             )
@@ -55,6 +56,7 @@ def main(args):
                 amount_instances=int(counts.size),
                 smallest=int(counts.min()),
                 biggest=int(counts.max()),
+                mean=float(counts.mean()),
                 std=float(counts.std(ddof=0)),
                 median=float(np.median(counts)),
             )
