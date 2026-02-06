@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=grete:interactive
 #SBATCH -G 1g.20gb:1
-#SBATCH --time=0-03:00:00
+#SBATCH --time=0-02:00:00
 #SBATCH --job-name=inference-volume-em
 #SBATCH -c 8
 #SBATCH --mem 64G
@@ -19,9 +19,9 @@ DD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/test_split/"
 RAW_KEY="raw"
 # DD="/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops"
 # RAW_KEY="raw_crop"
-EXPORT_PATH="/mnt/lustre-grete/usr/u15205/volume-em/test_split_segmentations_axons"
+EXPORT_PATH="/mnt/lustre-grete/usr/u15205/volume-em/test_split_segmentations_axons_only-foreground"
 # FORCE_OVERRIDE=True
-MODEL_PATH="/mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-axons-net32-lr1e-4-bs4-ps32x512x512-initial"
+MODEL_PATH="/mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-axons-net32-lr1e-4-bs4-ps32x512x512-more-refined-foreground"
 # MODEL_PATH=" /scratch-grete/usr/nimlufre/synapse/mitochondria/checkpoints/volume-em-mito-net32-lr1e-4-bs4-ps32x256x256-thinboundary-cutout1and2/"
 FILE_EXTENSION=".h5"
 SEED_DISTANCE=6
@@ -36,12 +36,13 @@ python /mnt/vast-nhr/home/freckmann15/u15205/synapse/evaluation/axons/segment_ax
   --model_path ${MODEL_PATH} \
   -ak \
   --seed_distance ${SEED_DISTANCE} \
-  -ft 0.6 \
+  -ft 0.4 \
   -bt 0.1 \
   -at 500 \
   -uc \
   --post_iter3d 4 \
-  --preprocess_volem
+  --only_foreground \
+  --preprocess_volem \
   # -cc \
   # -de 2 \
 #  --force_overwrite

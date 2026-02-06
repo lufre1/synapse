@@ -22,14 +22,8 @@ from synapse_net.training.supervised_training import supervised_training, get_su
 import synapse.util as util
 import synapse.label_utils as lutil
 import synapse.h5_util as h5_util
-# import data_classes
-SAVE_DIR = "/mnt/lustre-grete/usr/u15205/volume-em/models/"
-# from unet import UNet3D
 
-def _get_raw_transform(x):
-    x = util.convert_white_patches_to_black(x, min_patch_size=100)
-    x = torch_em.transform.raw.normalize_percentile(x)
-    return x
+SAVE_DIR = "/mnt/lustre-grete/usr/u15205/volume-em/models/"
 
 
 def main():
@@ -156,7 +150,7 @@ def main():
         metric_name = "dice"
         ndim = 3
         scale_factors = [[1, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2]]
-        raw_transform = _get_raw_transform
+        raw_transform = torch_em.transform.raw.normalize_percentile
         n_workers = 8
         device = "cuda" if torch.cuda.is_available() else "cpu"
 

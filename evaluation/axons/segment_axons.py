@@ -49,6 +49,11 @@ def _read_h5(path, key, scale_factor, z_offset=None):
 
         return image
 
+def _get_raw_transform(x):
+    x = util.convert_white_patches_to_black(x, min_patch_size=100)
+    x = torch_em.transform.raw.normalize_percentile(x)
+    return x
+
 
 def get_all_keys_from_h5(file_path):
     keys = []
@@ -116,6 +121,7 @@ def main(visualize=False):
     parser.add_argument("--centered_crop", "-cc", action="store_true", default=False, help="Centered crop")
     parser.add_argument("--downscale_export", "-de", type=int, default=1, help="Downscale export to reduce size")
     parser.add_argument("--preprocess_volem", "-pv", action="store_true", help="volem can have white borders")
+    parser.add_argument("--only_foreground", "-of", action="store_true", default=False, help="No boundary predictions")
 
     args = parser.parse_args()
     exp_scale = args.downscale_export
@@ -204,7 +210,7 @@ def main(visualize=False):
             if image is None:
                 image = data[args.key]
             if args.preprocess_volem:
-                image = util.convert_white_patches_to_black(image)
+                image = util.convert_white_patches_to_black(image, min_patch_size=100)
         if not args.use_custom_segment:
             seg, pred = segment_mitochondria(
                 image,  # model=model,
@@ -226,17 +232,28 @@ def main(visualize=False):
                 model_path=args.model_path,
                 tiling=tiling,
                 preprocess=torch_em.transform.raw.normalize_percentile
+                # preprocess=_get_raw_transform
             )
-            seg = util.segment_mitos(
-                foreground=pred[0],
-                boundary=pred[1],
-                foreground_threshold=args.foreground_threshold,
-                boundary_threshold=args.boundary_threshold,
-                seed_distance=args.seed_distance,
-                min_size=args.min_size,
-                area_threshold=args.area_threshold,
-                post_iter3d=args.post_iter3d
-            )["segmentation"]
+            if not args.only_foreground:
+                seg = util.segment_mitos(
+                    foreground=pred[0],
+                    boundary=pred[1],
+                    foreground_threshold=args.foreground_threshold,
+                    boundary_threshold=args.boundary_threshold,
+                    seed_distance=args.seed_distance,
+                    min_size=args.min_size,
+                    area_threshold=args.area_threshold,
+                    post_iter3d=args.post_iter3d
+                )["segmentation"]
+            else:
+                print("prediciton shape", pred.shape)
+                seg = util.segment_axons(
+                    foreground=np.squeeze(pred) if pred.ndim > 3 and pred.shape[0] == 1 else pred,
+                    foreground_threshold=args.foreground_threshold,
+                    seed_distance=args.seed_distance,
+                    min_size=args.min_size,
+                    area_threshold=args.area_threshold
+                )
         with open_file(output_path, "w", ".h5") as f1:
             print("output_path", output_path)
             ndim = seg.ndim
@@ -250,8 +267,11 @@ def main(visualize=False):
                     f1.create_dataset(key, data=(data[key][exp_slicing] if exp_scale != 1 else data[key]), compression="gzip")
 
             f1.create_dataset("seg", data=(seg[exp_slicing] if exp_scale != 1 else seg), compression="gzip", dtype=seg.dtype)
-            f1.create_dataset("pred/foreground", data=(pred[0][exp_slicing] if exp_scale != 1 else pred[0]), compression="gzip", dtype=pred[0].dtype)
-            f1.create_dataset("pred/boundary", data=(pred[1][exp_slicing] if exp_scale != 1 else pred[1]), compression="gzip", dtype=pred[0].dtype)
+            if not args.only_foreground:
+                f1.create_dataset("pred/foreground", data=(pred[0][exp_slicing] if exp_scale != 1 else pred[0]), compression="gzip", dtype=pred[0].dtype)
+                f1.create_dataset("pred/boundary", data=(pred[1][exp_slicing] if exp_scale != 1 else pred[1]), compression="gzip", dtype=pred[0].dtype)
+            else:
+                f1.create_dataset("pred/foreground", data=(pred[exp_slicing] if exp_scale != 1 else pred), compression="gzip", dtype=pred.dtype)
 
             # Optionally include additional label datasets
             if args.label_path is not None:

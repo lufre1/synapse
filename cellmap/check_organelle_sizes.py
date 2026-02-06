@@ -25,6 +25,7 @@ def main(args):
                 amount_instances=0,
                 smallest=np.nan,
                 biggest=np.nan,
+                mean=np.nan,
                 std=np.nan,
                 median=np.nan,
             )

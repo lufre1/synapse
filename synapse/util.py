@@ -215,6 +215,54 @@ def get_prediction_torch_em(
     return prediction
 
 
+def segment_axons(
+    foreground: np.ndarray,
+    boundary: np.ndarray=None,
+    block_shape=(128, 256, 256),
+    halo=(32, 48, 48),
+    seed_distance=4,
+    boundary_threshold=0.15,
+    foreground_threshold=0.5,
+    min_size=2000,
+    area_threshold=500,
+    dist=None,
+    post_iter=4,
+    post_iter3d=8,
+    verbose=False,
+    return_binary=False
+):
+    if verbose:
+        print("Run axon segmentation.")
+        print("foreground shape:", foreground.shape)
+    if boundary is not None:
+        return segment_mitos(
+            foreground=foreground,
+            boundary=boundary,
+            foreground_threshold=foreground_threshold,
+            boundary_threshold=boundary_threshold,
+            seed_distance=seed_distance,
+            min_size=min_size,
+            area_threshold=area_threshold,
+            post_iter3d=post_iter3d
+        )["segmentation"]
+    # get the segmentation via seeded watershed
+    t0 = time.time()
+    seg = parallel.label(foreground > foreground_threshold, block_shape=block_shape, verbose=verbose)
+    if verbose:
+        print("Compute connected components in", time.time() - t0, "s")
+
+    # size filter
+    t0 = time.time()
+    ids, sizes = parallel.unique(seg, return_counts=True, block_shape=block_shape, verbose=verbose)
+    filter_ids = ids[sizes < min_size]
+    seg[np.isin(seg, filter_ids)] = 0
+    if verbose:
+        print("Size filter in", time.time() - t0, "s")
+    if return_binary:
+        seg = np.where(seg > 0, 1, 0)
+    return seg
+
+
 def segment_mitos(
     foreground: np.ndarray,
     boundary: np.ndarray,
@@ -288,7 +336,8 @@ def convert_white_patches_to_black(img, min_patch_size=20):
         Image with large white patches set to 0 (same dtype as input).
     """
     if img.dtype != np.uint8:
-        raise ValueError("img must be uint8")
+        warnings.warn("img must be uint8, converting to uint8 from " + str(img.dtype))
+        img = img.astype(np.uint8)
     if img.ndim != 3:
         raise ValueError("img must be a 3D volume")
 

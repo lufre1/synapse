@@ -126,7 +126,7 @@ def _remove_instances_with_touching_borders(
             return set()
 
         # Build a dense label image required by ndimage.find_objects.
-        dense_map = np.zeros(mask.max() + 1, dtype=np.int32)
+        dense_map = np.zeros(int(mask.max() + 1), dtype=np.int32)
         dense_map[uniq] = np.arange(1, len(uniq) + 1)
 
         dense_mask = dense_map[mask]               # 0/1/2/…
@@ -151,12 +151,12 @@ def _remove_instances_with_touching_borders(
     # ------------------------------------------------------------------ #
     if ids_remove_labels:
         # Fast boolean indexing via a lookup table
-        lookup = np.zeros(filtered_labels.max() + 1, dtype=bool)
+        lookup = np.zeros(int(filtered_labels.max()) + 1, dtype=bool)
         lookup[list(ids_remove_labels)] = True
         filtered_labels[lookup[filtered_labels]] = 0
 
     if ids_remove_seg:
-        lookup = np.zeros(filtered_seg.max() + 1, dtype=bool)
+        lookup = np.zeros(int(filtered_seg.max()) + 1, dtype=bool)
         lookup[list(ids_remove_seg)] = True
         filtered_seg[lookup[filtered_seg]] = 0
 
