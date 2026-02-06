@@ -197,7 +197,12 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
                     slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
                     # Apply downsampling while preserving batch/channel dimensions
                     data[key] = f[key][slicing] if scale > 1 else f[key][:]
-
+        if "label" in data.keys() and data["label"] is not None and "raw" in data.keys():  # check if label exists in data["label"]
+            if not np.array_equal(data["label"].shape, data["raw"].shape):
+                print("Resizing label data to match raw data shape")
+                data["label"] = resize(
+                    data["label"], data["raw"].shape, preserve_range=True, order=0,
+                    anti_aliasing=False).astype(np.uint8)
         if upsample:
             del data["pred"]
             del data["raw"]
