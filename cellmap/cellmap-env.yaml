@@ -1,0 +1,23 @@
+name: cellmap
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - git
+
+  - pytorch>=2.2
+  - torchvision
+  - torch_em
+  - numpy
+  - scipy
+  - scikit-image
+  - h5py
+  - zarr
+  - tifffile
+  - pandas
+  - tqdm
+  - python-elf
+
+  - pip:
+      - git+https://github.com/janelia-cellmap/cellmap-segmentation-challenge.git

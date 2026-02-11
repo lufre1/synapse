@@ -1,0 +1,22 @@
+base_path: /mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/test_split/
+file_extension: .h5
+key: raw
+export_path: /mnt/lustre-grete/usr/u15205/volume-em/test_split_segmentations_final
+model_path: /mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-mito-net32-lr1e-4-bs4-ps32x512x512-final
+
+tile_shape: [32, 512, 512]
+seed_distance: 2
+foreground_threshold: 0.6
+boundary_threshold: 0.1
+area_threshold: 200
+min_size: 1000
+use_custom_segment: true
+post_iter3d: 0
+preprocess_volem: true
+all_keys: true
+force_overwrite: true
+add_missing_mitos: false
+downscale_export: 1
+centered_crop: false
+label_path: null
+label_key: null

@@ -14,7 +14,8 @@ def main(args):
         if args.crop_id is None:
             get_cellmap_paths(path=path, padding=0, download=True)
         else:
-            paths = get_cellmap_paths(path=path, crops=[args.crop_id], padding=0, download=True)
+            for crop_id in args.crop_id:
+                get_cellmap_paths(path=path, crops=[crop_id], padding=0, download=True)
             # for p in paths:
             #     if f"{args.crop_id}" in p:
             #         get_cellmap_paths(path=path, padding=0, download=True) 
@@ -33,6 +34,6 @@ if __name__ == "__main__":
     argsparse = argparse.ArgumentParser()
     argsparse.add_argument("--path", "-p", type=str, default="/scratch-grete/projects/nim00007/data/cellmap/")
     argsparse.add_argument("--resolution", "-r", type=str, default="s0")
-    argsparse.add_argument("--crop_id", "-c", type=int, default=None, help="Crop id, if given only download the crop")
+    argsparse.add_argument("--crop_id", "-c", type=int, nargs="+",default=None, help="Crop id(s), if given only download the crop(s)")
     args = argsparse.parse_args()
     main(args)
