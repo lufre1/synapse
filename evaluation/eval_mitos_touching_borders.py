@@ -192,7 +192,7 @@ def main(args):
             if args.output_path is not None:
                 out_dir = os.path.dirname(args.output_path) if os.path.isfile(args.output_path) else os.path.dirname(label_path) if not args.output_path else args.output_path
             else:
-                out_dir = os.path.dirname(label_path)
+                out_dir = os.path.dirname(segmentation_path)
             output_path = os.path.join(out_dir, f"{filename}.csv")
             labels_orig, seg_orig = _load_data(label_path, segmentation_path, args.key, args.segmentations_key)
             labels, seg = _remove_instances_with_touching_borders(
