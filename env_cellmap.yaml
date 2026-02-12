@@ -13,6 +13,7 @@ dependencies:
     - pip
     # - pooch
     - pyqt
+    - numpy<2
     # - python-xxhash
     - python-elf
     - pytorch
@@ -23,7 +24,7 @@ dependencies:
     - zarr < 3
     - ome-zarr
     - xxhash
-    - pip:
+    # - pip:
         # - git+https://github.com/ChaoningZhang/MobileSAM.git
-        - napari-skimage-regionprops
+        # - napari-skimage-regionprops
         # - PyQt5==5.15.11

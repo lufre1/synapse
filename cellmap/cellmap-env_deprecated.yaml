@@ -5,11 +5,10 @@ dependencies:
   - python=3.11
   - pip
   - git
-
   - pytorch>=2.2
   - torchvision
   - torch_em
-  - numpy
+  - numpy<2
   - scipy
   - scikit-image
   - h5py
