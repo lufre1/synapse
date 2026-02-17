@@ -57,6 +57,7 @@ def main():
                 process_file = True
                 break
         if not process_file:
+            print(f"Skipping {path} because no cristae dataset found.")
             continue
         output_path = os.path.join(export_path, os.path.basename(path).replace(".h5", "_combined.h5"))
         if os.path.exists(output_path):
