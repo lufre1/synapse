@@ -400,11 +400,17 @@ def downsample_to_shape(arr: np.ndarray, target_shape: tuple) -> np.ndarray:
 
 
 def get_file_paths(path, ext=".h5", reverse=False):
-    if ext in path:
-        return [path]
-    else:
-        paths = sorted(glob(os.path.join(path, "**", f"*{ext}"), recursive=True), reverse=reverse)
-        return paths
+    ext = ext if ext.startswith(".") else f".{ext}"
+    ext_l = ext.lower()
+
+    # If `path` is a file, just check its extension (case-insensitive)
+    if os.path.isfile(path):
+        return [path] if path.lower().endswith(ext_l) else []
+
+    # Otherwise search recursively and filter case-insensitively
+    candidates = glob(os.path.join(path, "**", "*"), recursive=True)
+    paths = [p for p in candidates if os.path.isfile(p) and p.lower().endswith(ext_l)]
+    return sorted(paths, reverse=reverse)
 
 
 def upsample_data(data, factor, is_segmentation=True, target_size=None):
