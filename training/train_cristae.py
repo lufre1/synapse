@@ -26,14 +26,17 @@ def main():
     parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
     parser.add_argument("--data_dir", type=str, default=None, help="Path to the data directory")
     parser.add_argument("--data_dir2", type=str, default=None, help="Path to the second data directory")
-    parser.add_argument("--patch_shape", type=int, nargs=3, default=(64, 512, 512), help="Patch shape for data loading (3D tuple)")
+    parser.add_argument("--data_dir3", type=str, default=None, help="Path to the third data directory")
+    parser.add_argument("--patch_shape", type=int, nargs=3, default=(32, 256, 256), help="Patch shape for data loading (3D tuple)")
     parser.add_argument("--n_iterations", type=int, default=10000, help="Number of training iterations")
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate")
-    parser.add_argument("--checkpoint_path", type=str, default="", help="Path to checkpoint used to load model's state_dict")
-    parser.add_argument("--experiment_name", type=str, default="default-mito-net", help="Name that is used for the experiment and store the model's weights")
-    parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
+    parser.add_argument("--checkpoint_path", type=str, default=None, help="Path to checkpoint used to load model's state_dict")
+    parser.add_argument("--experiment_name", type=str, default="default-cristae-net", help="Name that is used for the experiment and store the model's weights")
+    parser.add_argument("--batch_size", type=int, default=8, help="Batch size to be used")
     parser.add_argument("--feature_size", type=int, default=32, help="Initial feature size of the 3D UNet")
     parser.add_argument("--with_rois", action="store_true", default=False, help="Train without Regions Of Interest (ROI)")
+    parser.add_argument("--early_stopping", type=int, default=10, help="Number of epochs without improvement before stopping training")
+    parser.add_argument("--save_dir", "-sd", default=None, help="Savedir to store logs and checkpoints to.")
 
     # Parse arguments
     args = parser.parse_args()
@@ -87,12 +90,18 @@ def main():
         data_paths = util.get_data_paths(data_dir)
         if args.data_dir2 is not None:
             data_paths.extend(util.get_data_paths(args.data_dir2))
+        if args.data_dir3 is not None:
+            data_paths.extend(util.get_data_paths(args.data_dir3))
         substring = "_combined.h5"
         data_paths = [s for s in data_paths if substring in s]
         print("len data paths", len(data_paths))
         random.seed(42)
         random.shuffle(data_paths)
-        data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.75, val_ratio=0.25, test_ratio=0)
+        ensure_strs = ["wichmann", "cooper"]
+        data = util.split_data_paths_to_dict_with_ensure(
+            data_paths, train_ratio=.8, val_ratio=0.1, test_ratio=0.1,
+            ensure_strings=ensure_strs
+            )
 
     end_time = time.time()
     # Calculate execution time in seconds
@@ -105,7 +114,19 @@ def main():
         in_channels=in_channels, out_channels=out_channels, initial_features=initial_features,
         final_activation=final_activation, gain=gain, scale_factors=scale_factors
     )
-    # print(model)
+    if args.save_dir is not None:
+        save_dir = args.save_dir
+    else:
+        save_dir = SAVE_DIR
+    # load model from checkpoint if exists
+    if os.path.exists(os.path.join(save_dir, "checkpoints", experiment_name, "best.pt")):
+        checkpoint_path = os.path.join(save_dir, "checkpoints", experiment_name)
+        print("Checkpoint exists, loading model from checkpoint", checkpoint_path)
+    elif args.checkpoint_path is not None:
+        checkpoint_path = args.checkpoint_path
+        print("Loading model from given checkpoint", checkpoint_path)
+    else:
+        checkpoint_path = None
     if checkpoint_path:
         model = torch_em.util.load_model(checkpoint=checkpoint_path, device=device)
         # state_dict = torch.load(checkpoint_path, map_location=torch.device("cpu"))["model_state"]
@@ -170,6 +191,7 @@ def main():
         device=device,
         compile_model=False,
         save_root=SAVE_DIR,
+        early_stopping=args.early_stopping
         # logger=None
     )
     # check_loader(train_loader, n_samples=10)
