@@ -11,10 +11,11 @@ BS=8
 LR=1e-4
 ITER=50000
 read -r PZ PY PX <<< "$PATCH_SHAPE"
-EXPNAME="cristae-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-with-wichmann"
+EXPNAME="cristae-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-with-ignore"
 DD1="/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2"
 DD2="/mnt/lustre-grete/usr/u12103/mitochondria/cooper/fidi_2025/raw_mitos_combined_s2"
-DD3="/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/"
+# DD3="/scratch-grete/projects/nim00007/data/mitochondria/wichmann/raw_mito_combined/"
+DD3="/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/"
 
 source /user/freckmann15/u12103/.bashrc
 micromamba activate /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
@@ -27,4 +28,5 @@ python /user/freckmann15/u12103/synapse/training/train_cristae.py \
   --learning_rate ${LR} \
   --data_dir ${DD1} \
   --data_dir2 ${DD2} \
-  --data_dir3 ${DD3}
+  --data_dir3 ${DD3} \
+  --ignore_label 2

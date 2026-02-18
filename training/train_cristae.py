@@ -18,7 +18,8 @@ from torch_em.util.debug import check_loader, check_trainer
 # Import your util.py for data loading
 import synapse.util as util
 # import data_classes
-SAVE_DIR = "/scratch-grete/usr/nimlufre/synapse/mito_segmentation"
+# SAVE_DIR = "/scratch-grete/usr/nimlufre/synapse/mito_segmentation"
+SAVE_DIR = "/mnt/lustre-grete/usr/u12103/cristae/"
 # from unet import UNet3D
 
 
@@ -37,6 +38,7 @@ def main():
     parser.add_argument("--with_rois", action="store_true", default=False, help="Train without Regions Of Interest (ROI)")
     parser.add_argument("--early_stopping", type=int, default=10, help="Number of epochs without improvement before stopping training")
     parser.add_argument("--save_dir", "-sd", default=None, help="Savedir to store logs and checkpoints to.")
+    parser.add_argument("--ignore_label", type=int, default=None, help="Label to ignore during training")
 
     # Parse arguments
     args = parser.parse_args()
@@ -62,8 +64,8 @@ def main():
     metric_name = "dice"
     ndim = 3
 
-    loss_function = util.get_loss_function(loss_name)
-    metric_function = util.get_loss_function(metric_name)
+    loss_function = util.get_loss_function(loss_name, ingore_label=args.ignore_label)
+    metric_function = util.get_loss_function(metric_name, ingore_label=args.ignore_label)
     in_channels, out_channels = 2, 2
     gain = 2
 

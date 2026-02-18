@@ -1425,12 +1425,12 @@ def get_label_transform(label_data):
     return np.where(label_data != 0, 1, label_data)
 
 
-def get_loss_function(loss_name, affinities=False):
+def get_loss_function(loss_name, affinities=False, ignore_label=None):
     loss_names = ["bce", "ce", "dice"]
     if isinstance(loss_name, str):
         assert loss_name in loss_names, f"{loss_name}, {loss_names}"
         if loss_name == "dice":
-            loss_function = torch_em.loss.DiceLoss()
+            loss_function = torch_em.loss.DiceLoss(ignore_label=ignore_label)
         elif loss_name == "ce":
             loss_function = nn.CrossEntropyLoss()
         elif loss_name == "bce":
