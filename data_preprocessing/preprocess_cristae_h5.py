@@ -28,6 +28,9 @@ def process_mitos_and_cristae(data):
         if np.any(cristae[mito_mask]):
             # Mark entire mito instance as having cristae
             mitos_with_cristae[mito_mask] = 1
+        else:
+            # Mark entire mito instance as not having cristae
+            mitos_with_cristae[mito_mask] = 2
 
     # combine mitos and cristae
     combined = np.stack([raw, mitos_with_cristae], axis=0)
@@ -52,16 +55,16 @@ def main():
 
     for path in tqdm(paths, desc="Processing files..."):
         process_file = False
+        output_path = os.path.join(export_path, os.path.basename(path).replace(".h5", "_combined.h5"))
+        if os.path.exists(output_path):
+            print("output path already exists:", output_path)
+            continue
         for k in util.get_all_datasets(path):
             if "cristae" in k:
                 process_file = True
                 break
         if not process_file:
             print(f"Skipping {path} because no cristae dataset found.")
-            continue
-        output_path = os.path.join(export_path, os.path.basename(path).replace(".h5", "_combined.h5"))
-        if os.path.exists(output_path):
-            print("output path already exists:", output_path)
             continue
         data = {}
         data = util.read_data(path)
