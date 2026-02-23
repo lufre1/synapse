@@ -39,6 +39,8 @@ def main():
     parser.add_argument("--early_stopping", type=int, default=10, help="Number of epochs without improvement before stopping training")
     parser.add_argument("--save_dir", "-sd", default=None, help="Savedir to store logs and checkpoints to.")
     parser.add_argument("--ignore_label", type=int, default=None, help="Label to ignore during training")
+    parser.add_argument("--ignore_state_value", type=int, default=None, help="During loss computation ignore this state value")
+    parser.add_argument("--state_channel", type=int, default=None, help="Use this channel as state channel")
 
     # Parse arguments
     args = parser.parse_args()
@@ -64,11 +66,18 @@ def main():
     metric_name = "dice"
     ndim = 3
 
-    loss_function = util.get_loss_function(loss_name, ingore_label=args.ignore_label)
-    metric_function = util.get_loss_function(metric_name, ingore_label=args.ignore_label)
-    in_channels, out_channels = 2, 2
+    loss_function = util.get_loss_function(loss_name, **{
+        "ignore_label": args.ignore_label,
+        "ignore_state_value": args.ignore_state_value,
+        "state_channel": args.state_channel
+    })
+    metric_function = util.get_loss_function(metric_name, **{
+        "ignore_label": args.ignore_label,
+        "ignore_state_value": args.ignore_state_value,
+        "state_channel": args.state_channel
+    })
     gain = 2
-
+    in_channels, out_channels = 2, 2
     scale_factors = [
         [1, 2, 2],
         [2, 2, 2],

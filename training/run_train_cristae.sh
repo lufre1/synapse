@@ -29,4 +29,5 @@ python /user/freckmann15/u12103/synapse/training/train_cristae.py \
   --data_dir ${DD1} \
   --data_dir2 ${DD2} \
   --data_dir3 ${DD3} \
-  --ignore_label 2
+  --ignore_state_value 2 \
+  --state_channel 1
