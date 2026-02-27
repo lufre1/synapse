@@ -108,6 +108,5 @@ def main():
         util.export_data(export_file_path, data, voxel_size=new_voxel_size)
 
 
-
 if __name__ == "__main__":
     main()

@@ -227,9 +227,9 @@ def main():
 
             mask = tmp.astype(bool)
             for z in tqdm(range(mask.shape[0]), desc="Removing holes in 2D"):
-                mask[z] = remove_small_holes(mask[z], max_size=min_size, connectivity=1)
+                mask[z] = remove_small_holes(mask[z], area_threshold=min_size, connectivity=1)
             # mask = remove_small_holes(mask, max_size=200)
-            mask = remove_small_objects(mask, max_size=min_size)
+            mask = remove_small_objects(mask, min_size=min_size)
             print("Finished removing holes")
 
             # Erode to break thin connections between large axon segments
