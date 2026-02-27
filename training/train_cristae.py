@@ -36,7 +36,7 @@ def main():
     parser.add_argument("--batch_size", type=int, default=8, help="Batch size to be used")
     parser.add_argument("--feature_size", type=int, default=32, help="Initial feature size of the 3D UNet")
     parser.add_argument("--with_rois", action="store_true", default=False, help="Train without Regions Of Interest (ROI)")
-    parser.add_argument("--early_stopping", type=int, default=10, help="Number of epochs without improvement before stopping training")
+    parser.add_argument("--early_stopping", type=int, default=15, help="Number of epochs without improvement before stopping training")
     parser.add_argument("--save_dir", "-sd", default=None, help="Savedir to store logs and checkpoints to.")
     parser.add_argument("--ignore_label", type=int, default=None, help="Label to ignore during training")
     parser.add_argument("--ignore_state_value", type=int, default=None, help="During loss computation ignore this state value")

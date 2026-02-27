@@ -16,9 +16,9 @@ micromamba activate /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synaps
 # cellmaps on volume em data
 BLOCK_SHAPE="32 256 256"
 DD="/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/"
-EXPORT_PATH="/mnt/lustre-grete/usr/u12103/cristae_data/segmentations_cristae/wichmann/"
+EXPORT_PATH="/mnt/lustre-grete/usr/u12103/cristae_data/segmentations_cristae/test_split"
 FORCE_OVERRIDE=True
-MODEL_PATH="/mnt/lustre-grete/usr/u12103/cristae/checkpoints/cristae-net32-lr1e-4-bs4-ps32x256x256-new_transform/"
+MODEL_PATH="/mnt/lustre-grete/usr/u12103/cristae/checkpoints/cristae-net32-lr1e-4-bs8-ps32x256x256-with-ignore-new"
 
 
 

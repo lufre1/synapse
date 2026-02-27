@@ -13,6 +13,28 @@ from elf.evaluation.matching import label_overlap, intersection_over_union
 from skimage.segmentation import relabel_sequential
 from skimage.measure import label
 import synapse.util as util
+import numpy as np
+from skimage.morphology import binary_erosion, disk
+
+
+def binarize_and_erode_xy(mito_labels, radius_xy: int):
+    """
+    mito_labels: array [Z, Y, X] (or [Y,X] if 2D), instance ids (0=background)
+    radius_xy: erosion radius in pixels in XY
+    """
+    mito_bin = (mito_labels > 0)
+
+    if radius_xy <= 0:
+        return mito_bin.astype(mito_labels.dtype)
+
+    fp = disk(radius_xy)  # 2D footprint => no erosion in Z if applied per slice
+
+    if mito_bin.ndim == 3:
+        eroded = np.stack([binary_erosion(mito_bin[z], footprint=fp) for z in range(mito_bin.shape[0])], axis=0)
+    else:
+        eroded = binary_erosion(mito_bin, footprint=fp)
+
+    return eroded.astype(mito_labels.dtype)  # or keep as bool
 
 
 def find_additional_objects(
@@ -112,6 +134,7 @@ def main(visualize=False):
     parser.add_argument("--model_path", "-m", type=str, default="/scratch-grete/usr/nimlufre/synapse/mito_segmentation/checkpoints/cristae-net32-bs2-ps48512-cooper-wichmann-new-transform")
     parser.add_argument("--add_missing", "-am", default=False, action='store_true', help="If to add missing objects to segmentation and keep original labels")
     parser.add_argument("--tile_shape", "-ts", type=int, nargs=3, default=(32, 512, 512), help="Tile shape")
+    parser.add_argument("--erode_mitos", "-em", action="store_true", default=False, help="Use to erode mitos before prediction to avoid segmenting mito membranes.")
     args = parser.parse_args()
     add_missing = args.add_missing
     print(args.base_path)
@@ -130,8 +153,8 @@ def main(visualize=False):
         }
     # halo = {'z': 12, 'y': 128, 'x': 128}
     # ts = {'z': ts["z"]+2*halo["z"], 'y': ts["y"]+2*halo["y"], 'x': ts["x"]+2*halo["x"]}
-    # h5_paths = ['/mnt/lustre-grete/usr/u12103/mitochondria/cooper/fidi_2025/raw_mitos_combined_s2/37371_O5_66K_TS_SP_34-01_rec_2Kb1dawbp_cropF_s2_combined.h5']
-    h5_paths = util.get_file_paths(args.base_path, ".h5")
+    h5_paths = ['/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/WT13_eb3_model2_combined.h5', '/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/WT21_eb3_model2_combined.h5', '/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/WT22_eb10_model2_combined.h5', '/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/WT11_syn3_model2_combined.h5', '/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/WT22_eb8_model_combined.h5', '/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/WT20_syn3_model2_combined.h5', '/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/WT20_eb5_model2_combined.h5', '/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/WT13_syn7_model2_combined.h5', '/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/M6_eb2_model_combined.h5', '/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2/36859_J2_66K_TS_R04_MF04_rec_2Kb1dawbp_crop3_combined.h5', '/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/M8_eb8_model_combined.h5', '/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/WT20_syn2_model2_combined.h5']
+    # h5_paths = util.get_file_paths(args.base_path, ".h5")
     test_file_paths = h5_paths
     print("len(h5_paths)", len(h5_paths))
     tiling = {"tile": ts, "halo": halo}  # prediction function automatically subtracts the 2*halo from tile
@@ -168,8 +191,10 @@ def main(visualize=False):
             print("image shape", image.shape)
             # raw = torch_em.transform.raw.normalize_percentile(data["raw_mitos_combined"][0])
             # image = np.stack([raw, data["raw_mitos_combined"][1]], axis=0)
+        mito = image[1]
+        mito_proc = (mito > 0) if not args.erode_mitos else binarize_and_erode_xy(mito, radius_xy=5)
         kwargs = {
-            "extra_segmentation": image[1],
+            "extra_segmentation": mito_proc,
             "channels_to_standardize": [0],
             "with_channels": True,
             }
