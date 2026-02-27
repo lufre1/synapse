@@ -17,7 +17,7 @@ def main():
     ap.add_argument("--n", type=int, default=10, help="Number of images to include.")
     ap.add_argument("--rows", type=int, default=2, help="Number of rows in the grid.")
     ap.add_argument("--cols", type=int, default=5, help="Number of columns in the grid.")
-    ap.add_argument("--figsize", type=float, nargs=2, default=(15, 6),
+    ap.add_argument("--figsize", type=float, nargs=2, default=None,
                     metavar=("W", "H"), help="Figure size in inches.")
     ap.add_argument("--dpi", type=int, default=300, help="DPI for raster outputs.")
     ap.add_argument("--title", action="store_true", help="Add each filename as a small title.")
@@ -45,7 +45,17 @@ def main():
     paths = paths[:args.n]
     if len(paths) == 0:
         raise SystemExit("No PNG files found.")
+    # after parsing args, before plt.subplots
+    if args.figsize is None:
+        # good starting heuristic: ~3 inches per column, ~3 inches per row
+        w = 3.0 * args.cols
+        h = 3.0 * args.rows
 
+        # optional: clamp to avoid absurdly huge figures
+        w = min(w, 30.0)
+        h = min(h, 20.0)
+
+        args.figsize = (w, h)
     fig, axes = plt.subplots(args.rows, args.cols, figsize=tuple(args.figsize), constrained_layout=True)
 
     # axes can be a single Axes if rows=cols=1

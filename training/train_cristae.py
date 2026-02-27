@@ -108,7 +108,7 @@ def main():
         print("len data paths", len(data_paths))
         random.seed(42)
         random.shuffle(data_paths)
-        ensure_strs = None # ["wichmann", "cooper"]
+        ensure_strs = None  # ["wichmann", "cooper"]
         data = util.split_data_paths_to_dict_with_ensure(
             data_paths, train_ratio=.8, val_ratio=0.1, test_ratio=0.1,
             ensure_strings=ensure_strs
