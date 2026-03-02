@@ -38,7 +38,7 @@ def get_filename_and_inter_dirs(file_path, base_path):
 def create_directories_if_not_exists(base_path, inter_dirs):
     # Construct the full path from base_path and inter_dirs
     full_path = os.path.join(base_path, inter_dirs)
-    
+
     # Check if the path exists
     if not os.path.exists(full_path):
         # If it doesn't exist, create the directories
@@ -52,9 +52,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base_path", "-b",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/cooper/fidi", help="Path to the root data directory")
     parser.add_argument("--export_path", "-e", type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/cooper/s2/", help="Path to the export directory")
-    parser.add_argument("--scale_factor", "-s", type=int, default=2, help="Scale factor for the image")
+    parser.add_argument("--scale_factor", "-s", type=int, nargs='+', default=[2, 2, 2], help="Scale factor for the image. If multiple values are provided, they will be applied to z, y and x dimensions respectively.")
     parser.add_argument("--downsample", "-d", action='store_true', default=False, help="Downsample the data - quicker, but loss of information")
     parser.add_argument("--original_voxel_size", "-ovs", nargs=3, type=float, default=None, help="Order: z y x")
+    parser.add_argument("--new_voxel_size", "-nvs", nargs=3, type=float, default=None, help="Order: z y x - Overwrites original voxel size")
     args = parser.parse_args()
     orig_voxel_size = None
     if args.original_voxel_size is not None:
@@ -89,17 +90,22 @@ def main():
             if "raw" in key:
                 voxel_size = read_voxel_size(h5_path=path, h5_key=key, default=orig_voxel_size)
             if args.downsample:
+                if len(set(args.scale_factor)) != 1:
+                    raise ValueError("All values in args.scale_factor must be the same for downsampling.")
+                scale = int(args.scale_factor[0])
                 data[key] = read_h5(path, key, args.scale_factor)
             else:
                 vol = read_h5(path, key)
+                scale = tuple(float(1 / sf) for sf in args.scale_factor)
                 if "raw" in key:  # for raw em images
-                    data[key] = rescale(vol, scale=float(1 / args.scale_factor), order=3, anti_aliasing=True,
+                    data[key] = rescale(vol, scale=scale, order=3, anti_aliasing=True,
                                         preserve_range=True,)
                 else:  # for segmentations
-                    data[key] = rescale(vol, scale=float(1 / args.scale_factor), order=0, anti_aliasing=False)
-        new_voxel_size = np.asarray(voxel_size, dtype=np.float64) * args.scale_factor
+                    data[key] = rescale(vol, scale=scale, order=0, anti_aliasing=False)
+        new_voxel_size = np.asarray(voxel_size, dtype=np.float64) * np.asarray(args.scale_factor)
+        if args.new_voxel_size is not None:
+            new_voxel_size = np.array(args.new_voxel_size, dtype=np.float32)
         util.export_data(export_file_path, data, voxel_size=new_voxel_size)
-        # export_to_h5(data, export_file_path)
 
 
 if __name__ == "__main__":

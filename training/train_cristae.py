@@ -18,7 +18,8 @@ from torch_em.util.debug import check_loader, check_trainer
 # Import your util.py for data loading
 import synapse.util as util
 # import data_classes
-SAVE_DIR = "/scratch-grete/usr/nimlufre/synapse/mito_segmentation"
+# SAVE_DIR = "/scratch-grete/usr/nimlufre/synapse/mito_segmentation"
+SAVE_DIR = "/mnt/lustre-grete/usr/u12103/cristae/"
 # from unet import UNet3D
 
 
@@ -26,14 +27,20 @@ def main():
     parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
     parser.add_argument("--data_dir", type=str, default=None, help="Path to the data directory")
     parser.add_argument("--data_dir2", type=str, default=None, help="Path to the second data directory")
-    parser.add_argument("--patch_shape", type=int, nargs=3, default=(64, 512, 512), help="Patch shape for data loading (3D tuple)")
+    parser.add_argument("--data_dir3", type=str, default=None, help="Path to the third data directory")
+    parser.add_argument("--patch_shape", type=int, nargs=3, default=(32, 256, 256), help="Patch shape for data loading (3D tuple)")
     parser.add_argument("--n_iterations", type=int, default=10000, help="Number of training iterations")
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate")
-    parser.add_argument("--checkpoint_path", type=str, default="", help="Path to checkpoint used to load model's state_dict")
-    parser.add_argument("--experiment_name", type=str, default="default-mito-net", help="Name that is used for the experiment and store the model's weights")
-    parser.add_argument("--batch_size", type=int, default=1, help="Batch size to be used")
+    parser.add_argument("--checkpoint_path", type=str, default=None, help="Path to checkpoint used to load model's state_dict")
+    parser.add_argument("--experiment_name", type=str, default="default-cristae-net", help="Name that is used for the experiment and store the model's weights")
+    parser.add_argument("--batch_size", type=int, default=8, help="Batch size to be used")
     parser.add_argument("--feature_size", type=int, default=32, help="Initial feature size of the 3D UNet")
     parser.add_argument("--with_rois", action="store_true", default=False, help="Train without Regions Of Interest (ROI)")
+    parser.add_argument("--early_stopping", type=int, default=10, help="Number of epochs without improvement before stopping training")
+    parser.add_argument("--save_dir", "-sd", default=None, help="Savedir to store logs and checkpoints to.")
+    parser.add_argument("--ignore_label", type=int, default=None, help="Label to ignore during training")
+    parser.add_argument("--ignore_state_value", type=int, default=None, help="During loss computation ignore this state value")
+    parser.add_argument("--state_channel", type=int, default=None, help="Use this channel as state channel")
 
     # Parse arguments
     args = parser.parse_args()
@@ -59,11 +66,18 @@ def main():
     metric_name = "dice"
     ndim = 3
 
-    loss_function = util.get_loss_function(loss_name)
-    metric_function = util.get_loss_function(metric_name)
-    in_channels, out_channels = 2, 2
+    loss_function = util.get_loss_function(loss_name, **{
+        "ignore_label": args.ignore_label,
+        "ignore_state_value": args.ignore_state_value,
+        "state_channel": args.state_channel
+    })
+    metric_function = util.get_loss_function(metric_name, **{
+        "ignore_label": args.ignore_label,
+        "ignore_state_value": args.ignore_state_value,
+        "state_channel": args.state_channel
+    })
     gain = 2
-
+    in_channels, out_channels = 2, 2
     scale_factors = [
         [1, 2, 2],
         [2, 2, 2],
@@ -87,12 +101,18 @@ def main():
         data_paths = util.get_data_paths(data_dir)
         if args.data_dir2 is not None:
             data_paths.extend(util.get_data_paths(args.data_dir2))
+        if args.data_dir3 is not None:
+            data_paths.extend(util.get_data_paths(args.data_dir3))
         substring = "_combined.h5"
         data_paths = [s for s in data_paths if substring in s]
         print("len data paths", len(data_paths))
         random.seed(42)
         random.shuffle(data_paths)
-        data = util.split_data_paths_to_dict(data_paths, rois_list=None, train_ratio=.75, val_ratio=0.25, test_ratio=0)
+        ensure_strs = None  # ["wichmann", "cooper"]
+        data = util.split_data_paths_to_dict_with_ensure(
+            data_paths, train_ratio=.8, val_ratio=0.1, test_ratio=0.1,
+            ensure_strings=ensure_strs
+            )
 
     end_time = time.time()
     # Calculate execution time in seconds
@@ -105,7 +125,19 @@ def main():
         in_channels=in_channels, out_channels=out_channels, initial_features=initial_features,
         final_activation=final_activation, gain=gain, scale_factors=scale_factors
     )
-    # print(model)
+    if args.save_dir is not None:
+        save_dir = args.save_dir
+    else:
+        save_dir = SAVE_DIR
+    # load model from checkpoint if exists
+    if os.path.exists(os.path.join(save_dir, "checkpoints", experiment_name, "best.pt")):
+        checkpoint_path = os.path.join(save_dir, "checkpoints", experiment_name)
+        print("Checkpoint exists, loading model from checkpoint", checkpoint_path)
+    elif args.checkpoint_path is not None:
+        checkpoint_path = args.checkpoint_path
+        print("Loading model from given checkpoint", checkpoint_path)
+    else:
+        checkpoint_path = None
     if checkpoint_path:
         model = torch_em.util.load_model(checkpoint=checkpoint_path, device=device)
         # state_dict = torch.load(checkpoint_path, map_location=torch.device("cpu"))["model_state"]
@@ -170,11 +202,73 @@ def main():
         device=device,
         compile_model=False,
         save_root=SAVE_DIR,
+        early_stopping=args.early_stopping
         # logger=None
     )
-    # check_loader(train_loader, n_samples=10)
-    #check_trainer(trainer, n_samples=1)
-    trainer.fit(n_iterations)
+    if not torch.cuda.is_available():
+        import napari
+        print("CUDA is not available, debugging instead.")
+        # check_loader(train_loader, n_samples=5)
+        # check_trainer(trainer, n_samples=5)
+        samples = []
+        it = iter(trainer.train_loader)
+        
+
+        for i in range(100):
+            image, label = next(it)  # don't recreate iter(...) each time
+
+            # pick one sample from batch for visualization
+            x = image[0].detach().cpu()   # [C_in,D,H,W]
+            y = label[0].detach().cpu()   # [C_out,D,H,W]
+            
+            if 2 not in np.unique(x[1].numpy().astype(int)):
+                print("No mito-state channel id=2 in sample", i)
+                continue
+
+            # create a sane dummy prediction in [0,1] with correct shape
+            pred = torch.rand_like(label)  # [B,C_out,...]
+            p = pred[0].detach().cpu()
+
+            # compute loss (state should be the input that contains mito-state channel)
+            loss_value = loss_function(pred, label, image)
+
+            # reconstruct ignore/valid mask the same way DiceLoss does (for inspection)
+            state_channel = loss_function.state_channel
+            ignore_value = loss_function.ignore_state_value
+            state_ch = image[:, state_channel:state_channel + 1]  # [B,1,...]
+            ignore_mask = (state_ch == ignore_value)[0, 0].detach().cpu()  # [D,H,W] bool
+            valid_mask = (~ignore_mask).to(torch.uint8)
+            viewer = napari.Viewer()
+            # visualize: input channels
+            viewer.add_image(x[0].numpy(), name=f"{i}/raw_em", contrast_limits=(x[0].min().item(), x[0].max().item()))
+            viewer.add_labels(x[1].numpy().astype(int), name=f"{i}/mito_state")
+
+            # visualize: targets and preds (per output channel)
+            viewer.add_image(y[0].numpy(), name=f"{i}/target_cristae")
+            viewer.add_image(y[1].numpy(), name=f"{i}/target_boundary")
+            viewer.add_image(p[0].numpy(), name=f"{i}/pred_cristae")
+            viewer.add_image(p[1].numpy(), name=f"{i}/pred_boundary")
+
+            # visualize mask + print sanity checks
+            viewer.add_labels(valid_mask.numpy(), name=f"{i}/valid_mask (1=used)")
+            print(
+                f"sample {i}: loss={loss_value.item():.4f}, "
+                f"valid_frac={(valid_mask.float().mean().item()):.3f}, "
+                f"ignore_value={ignore_value}, state_channel={state_channel}"
+            )
+
+            # optional: compare to loss without masking to verify masking effect
+            if hasattr(loss_function, "ignore_state_value"):
+                # temporarily disable masking
+                old = loss_function.ignore_state_value
+                loss_function.ignore_state_value = None
+                loss_nomask = loss_function(pred, label, image).item()
+                loss_function.ignore_state_value = old
+                print(f"           loss_no_mask={loss_nomask:.4f}")
+                viewer.grid.enabled = True
+            napari.run()
+    else:
+        trainer.fit(n_iterations)
 
 
 if __name__ == "__main__":

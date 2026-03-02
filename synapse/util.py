@@ -400,11 +400,17 @@ def downsample_to_shape(arr: np.ndarray, target_shape: tuple) -> np.ndarray:
 
 
 def get_file_paths(path, ext=".h5", reverse=False):
-    if ext in path:
-        return [path]
-    else:
-        paths = sorted(glob(os.path.join(path, "**", f"*{ext}"), recursive=True), reverse=reverse)
-        return paths
+    ext = ext if ext.startswith(".") else f".{ext}"
+    ext_l = ext.lower()
+
+    # If `path` is a file, just check its extension (case-insensitive)
+    if os.path.isfile(path):
+        return [path] if path.lower().endswith(ext_l) else []
+
+    # Otherwise search recursively and filter case-insensitively
+    candidates = glob(os.path.join(path, "**", "*"), recursive=True)
+    paths = [p for p in candidates if os.path.isfile(p) and p.lower().endswith(ext_l)]
+    return sorted(paths, reverse=reverse)
 
 
 def upsample_data(data, factor, is_segmentation=True, target_size=None):
@@ -1419,12 +1425,12 @@ def get_label_transform(label_data):
     return np.where(label_data != 0, 1, label_data)
 
 
-def get_loss_function(loss_name, affinities=False):
+def get_loss_function(loss_name, affinities=False, **kwargs):
     loss_names = ["bce", "ce", "dice"]
     if isinstance(loss_name, str):
         assert loss_name in loss_names, f"{loss_name}, {loss_names}"
         if loss_name == "dice":
-            loss_function = torch_em.loss.DiceLoss()
+            loss_function = torch_em.loss.DiceLoss(**kwargs)
         elif loss_name == "ce":
             loss_function = nn.CrossEntropyLoss()
         elif loss_name == "bce":

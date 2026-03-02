@@ -204,7 +204,7 @@ def segment_mitochondria(path, visualize=False, scale=1, z_slice=None, args=None
             # adjust mito shape
             mitos = adjust_size(
                 mitos.astype(np.uint8),
-                scaler=1,
+                scale=1,
                 is_segmentation=True,
                 orig_shape=data.shape
                 )
@@ -234,13 +234,12 @@ def main(args):
                                     z_slice=args.z_slice, scale=args.scale,
                                     args=args)
         filename = os.path.basename(path).split(".")[0]
-        filename = filename + f"_scale{args.scale}"
         if args.tile_size > 0 or args.z_slice:  # 2d
             export_path = os.path.join(args.output_path, f"{filename}_ts{args.tile_size}_z{args.z_slice}_ds{args.downsample}.h5")
         elif args.z_range is not None:  # 3d with z_range (stacked 2d)
             export_path = os.path.join(args.output_path, f"{filename}_z{args.z_range[0]}-{args.z_range[1]}_ds{args.downsample}.h5")
         else:  # 3d with full volume (panoptic from empanada)
-            export_path = os.path.join(args.output_path, f"{filename}_ds{args.downsample}.h5")
+            export_path = os.path.join(args.output_path, f"{filename}_empanada.h5")
         if not os.path.exists(args.output_path):
             os.makedirs(args.output_path)
             print("Created output folder:", args.output_path)
@@ -252,10 +251,10 @@ if __name__ == "__main__":
     argsparse.add_argument("--path", "-p", type=str, default="/mnt/lustre-grete/usr/u12103/mitochondria/synapse-net-eval-data/eval_data_h5_s4")
     argsparse.add_argument("--output_path", "-o", type=str, default="/mnt/lustre-grete/usr/u12103/mitochondria/synapse-net-eval-data/out_empanada_vs6nm")
     argsparse.add_argument("--visualize", "-v", action="store_true", default=False)
-    argsparse.add_argument("--z_slice", "-z", type=int, default=None)
-    argsparse.add_argument("--z_range", "-r", type=int, nargs=2, default=None)
-    argsparse.add_argument("--scale", "-s", type=int, default=1)
-    argsparse.add_argument("--scaler", "-sr", type=int, default=None)
+    argsparse.add_argument("--z_slice", "-z", type=int, default=None, help="Segment 2d slice: z")
+    argsparse.add_argument("--z_range", "-r", type=int, nargs=2, default=None, help="Use stacked 2d slices for 3d")
+    argsparse.add_argument("--scale", "-s", type=int, default=1, help="Downsample data while reading")
+    argsparse.add_argument("--scaler", "-sr", type=int, default=None, help="Use empanada scaler during inference")
     argsparse.add_argument("--tile_size", "-t", type=int, default=0)
     argsparse.add_argument("--downsample", "-d", type=int, default=1)
     argsparse.add_argument("--lucchi", "-l", action="store_true", default=False)

@@ -209,7 +209,14 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
 
             for key in data.keys():
                 data[key] = upsample_data(data[key], upsample)
-
+        # breakpoint()
+        if "raw_mitos_combined" in data.keys() and data["raw_mitos_combined"].ndim == 4:
+            for dim in range(data["raw_mitos_combined"].shape[0]):
+                if dim == 0:
+                    data[f"raw_{dim}"] = data["raw_mitos_combined"][dim]
+                if dim == 1:
+                    data[f"mitos_{dim}"] = data["raw_mitos_combined"][dim]
+            del data["raw_mitos_combined"]
         if segment:
             # get foreground and boundary
             new_seg = _segment(data["pred/foreground"], data["pred/boundary"])
