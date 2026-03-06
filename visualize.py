@@ -132,7 +132,7 @@ def upsample_data(data, factor):
 
 def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False,
          root_label_path: str = None, segment: bool = False,
-         offset_z: int = None):
+         offset_z: int = None, args=None):
     if ext is None:
         if os.path.isfile(root_path):
             ext = os.path.splitext(root_path)[1]
@@ -151,7 +151,14 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
     else:
         label_paths = None
     print("Found files:", len(paths))
+    proceed = False
     for path in tqdm(paths):
+        if args is not None and not proceed:
+            if args.start_pattern is not None:
+                if args.start_pattern not in path:
+                    continue
+                else:
+                    proceed = True
         print("\n", path)
         if label_paths is not None and len(label_paths) > 1:
             label_path = util.find_label_file(path, label_paths)
@@ -233,6 +240,7 @@ if __name__ == "__main__":
     parser.add_argument("--label_path", "-lp", type=str, default=None)
     parser.add_argument("--segment", "-seg", default=False, action="store_true")
     parser.add_argument("--offset_z", "-o", type=int, default=None, help="Offset in z direction")
+    parser.add_argument("--start_pattern", "-sp", type=str, default=None, help="Pattern to start from")
     
     args = parser.parse_args()
     path = args.path
@@ -240,4 +248,4 @@ if __name__ == "__main__":
     scale = args.scale
     upsample = args.upsample
     label_path = args.label_path
-    main(path, ext, scale, upsample, label_path, segment=args.segment, offset_z=args.offset_z)
+    main(path, ext, scale, upsample, label_path, segment=args.segment, offset_z=args.offset_z , args=args)
