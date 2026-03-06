@@ -202,7 +202,7 @@ def main():
             path2 = paths_2[0]
         else:
             path2 = util.find_label_file(path, paths_2)
-        
+
         if path2 is None:
             print("Could not find label file for", path)
             continue
