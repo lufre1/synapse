@@ -14,7 +14,7 @@ micromamba activate /mnt/vast-nhr/home/freckmann15/u15205/micromamba/envs/synaps
 # ================ Define ALL parameters here ONCE ================
 BLOCK_SHAPE="32 512 512"
 # DD="/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-volume-em/MitoEM/raw_volume.h5"
-DD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/test_split/"
+DD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/test_split_s1/"
 # DD="/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-mitopaper/4007_split/final_h5/4007_block_z001024_001152_y001936_003872_x003312_004968.h5"
 RAW_KEY="raw"
 # DD="/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops"
