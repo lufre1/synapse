@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH -c 8
 #SBATCH --mem 64G
-#SBATCH --job-name=axon-net
+#SBATCH --job-name=axon-net-training
 #SBATCH --constraint 80gb
 
 
@@ -17,14 +17,14 @@ N_ITER=50000
 PATCH_SHAPE="32 512 512"
 BS=4
 LR=1e-4
-DD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_hdf5/"
-SDD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4009_hdf5/cutouts_segmented/"
+DD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_hdf5/all_cutouts_s1"
+SDD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4009_hdf5/cutouts_segmented_s1/"
 RAW_KEY="raw"
 LABEL_KEY="labels/axons"
 
 PATCH_SIZE=$(echo $PATCH_SHAPE | awk '{print $2}')
 read -r PZ PY PX <<< "$PATCH_SHAPE"
-EXPNAME="volume-em-axons-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-more-refined-foreground"
+EXPNAME="volume-em-axons-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-s1"
 EARLY_STOPPING=20
 SAVE_DIR="/mnt/lustre-grete/usr/u15205/volume-em/models/"
 # export CUDA_LAUNCH_BLOCKING=1

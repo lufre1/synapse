@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import tqdm
 from skimage.transform import rescale, resize
 import argparse
-from synapse.util import get_data_metadata
+# from synapse.util import get_data_metadata
 from elf.io import open_file
 import elf.parallel as parallel
 import tifffile
