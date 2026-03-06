@@ -19,15 +19,15 @@ DD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/test_split/"
 RAW_KEY="raw"
 # DD="/mnt/lustre-emmy-ssd/projects/nim00007/data/cellmap/data_crops"
 # RAW_KEY="raw_crop"
-EXPORT_PATH="/mnt/lustre-grete/usr/u15205/volume-em/test_split_segmentations_axons_only-foreground"
+EXPORT_PATH="/mnt/lustre-grete/usr/u15205/volume-em/test_split_segmentations_axons_only-foreground-s1"
 # FORCE_OVERRIDE=True
-MODEL_PATH="/mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-axons-net32-lr1e-4-bs4-ps32x512x512-more-refined-foreground"
+MODEL_PATH="/mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-axons-net32-lr1e-4-bs4-ps32x512x512-s1"
 # MODEL_PATH=" /scratch-grete/usr/nimlufre/synapse/mitochondria/checkpoints/volume-em-mito-net32-lr1e-4-bs4-ps32x256x256-thinboundary-cutout1and2/"
 FILE_EXTENSION=".h5"
 SEED_DISTANCE=6
 
 
-python /mnt/vast-nhr/home/freckmann15/u15205/synapse/evaluation/axons/segment_axons.py \
+python /mnt/vast-nhr/home/freckmann15/u15205/synapse/inference/axons/segment_axons.py \
   --base_path ${DD} \
   --key ${RAW_KEY} \
   --export_path ${EXPORT_PATH} \
@@ -43,6 +43,7 @@ python /mnt/vast-nhr/home/freckmann15/u15205/synapse/evaluation/axons/segment_ax
   --post_iter3d 4 \
   --only_foreground \
   --preprocess_volem \
+  --force_overwrite
   # -cc \
   # -de 2 \
-#  --force_overwrite
+

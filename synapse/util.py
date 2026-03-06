@@ -24,16 +24,118 @@ from skimage.measure import regionprops
 from scipy.ndimage import sum_labels
 from skimage.measure import label
 from skimage.transform import resize, rescale
+from skimage.morphology import remove_small_holes, binary_closing
+from scipy.ndimage import binary_closing as scipy_binary_closing
 # from synapse_net.file_utils import read_ome_zarr
 from synapse.h5_util import read_data, read_voxel_size
 from torch_em.model import AnisotropicUNet
 # used for combined_datasets
 from typing import Dict, List, Union, Tuple, Optional, Any
 from numpy.typing import ArrayLike
+import nifty.tools as _nt
 
 # Define the data path and filename
 # data_path = "/scratch-grete/projects/nim00007/data/mitochondria/moebius/em_tomograms_v1/170-PLP-wt/170_2_rec.h5"
 # data_format = "*.h5"
+
+
+def compute_bboxes_ooc(seg, block_shape, verbose=True):
+    """
+    Compute bounding boxes for each label in `seg` out-of-core.
+    Returns: bmin (N,3), bmax (N,3) with N=max_id+1, where label 0 is background.
+    bmin[l] = (zmin,ymin,xmin), bmax[l] = (zmax+1,ymax+1,xmax+1)
+    """
+    shape = seg.shape
+    bz, by, bx = block_shape
+
+    # max label (blockwise)
+    max_id = 0
+    for zz in range(0, shape[0], bz):
+        z1 = min(zz + bz, shape[0])
+        blk = np.asarray(seg[zz:z1, :, :], dtype=np.uint64)
+        max_id = max(max_id, int(blk.max(initial=0)))
+
+    n = max_id + 1
+    bmin = np.full((n, 3), np.iinfo(np.int32).max, dtype=np.int32)
+    bmax = np.zeros((n, 3), dtype=np.int32)
+    seen = np.zeros(n, dtype=bool)
+
+    # accumulate per block
+    for zz in tqdm(range(0, shape[0], bz), disable=not verbose, desc="BBox pass"):
+        z1 = min(zz + bz, shape[0])
+        for yy in range(0, shape[1], by):
+            y1 = min(yy + by, shape[1])
+            for xx in range(0, shape[2], bx):
+                x1 = min(xx + bx, shape[2])
+
+                blk = np.asarray(seg[zz:z1, yy:y1, xx:x1], dtype=np.uint64)
+                labels = np.unique(blk)
+                labels = labels[labels != 0]
+                if labels.size == 0:
+                    continue
+
+                # For each label present in this block, update bbox using local coords
+                for lab in labels:
+                    m = (blk == lab)
+                    if not m.any():
+                        continue
+                    coords = np.argwhere(m)  # local coords (dz,dy,dx)
+                    zmin, ymin, xmin = coords.min(axis=0)
+                    zmax, ymax, xmax = coords.max(axis=0)
+
+                    # convert to global coords; note +1 for stop
+                    gmin = np.array([zz + zmin, yy + ymin, xx + xmin], dtype=np.int32)
+                    gmax = np.array([zz + zmax + 1, yy + ymax + 1, xx + xmax + 1], dtype=np.int32)
+
+                    lab = int(lab)
+                    seen[lab] = True
+                    bmin[lab] = np.minimum(bmin[lab], gmin)
+                    bmax[lab] = np.maximum(bmax[lab], gmax)
+
+    return bmin, bmax, seen
+
+
+def postprocess_seg_3d_ooc(seg, block_shape, area_threshold=1000, iterations=4, iterations_3d=8,
+                           verbose=True, overwrite_in_place=True):
+    """
+    seg: zarr.Array (uint64 labels), modified in-place by default.
+    """
+    # structure elements as in your code
+    structure_element = np.ones((3, 3), dtype=bool)
+    structure_3d = np.zeros((1, 3, 3), dtype=bool)
+    structure_3d[0] = structure_element
+
+    bmin, bmax, seen = compute_bboxes_ooc(seg, block_shape=block_shape, verbose=verbose)
+
+    # iterate labels (skip 0)
+    labels = np.flatnonzero(seen)
+    labels = labels[labels != 0]
+
+    for lab in tqdm(labels, disable=not verbose, desc="Postprocess objects"):
+        z0, y0, x0 = bmin[lab]
+        z1, y1, x1 = bmax[lab]
+        if z0 >= z1 or y0 >= y1 or x0 >= x1:
+            continue
+
+        bb = (slice(int(z0), int(z1)), slice(int(y0), int(y1)), slice(int(x0), int(x1)))
+
+        # read ROI into memory (must fit RAM!)
+        roi = np.asarray(seg[bb], dtype=np.uint64)
+
+        mask = (roi == lab)
+        if not mask.any():
+            continue
+
+        # same operations as your original
+        mask = remove_small_holes(mask, area_threshold=area_threshold)
+        mask = np.logical_or(scipy_binary_closing(mask, iterations=iterations), mask)
+        mask = np.logical_or(scipy_binary_closing(mask, iterations=iterations_3d, structure=structure_3d), mask)
+
+        # write back only where mask is true
+        roi[mask] = lab
+        seg[bb] = roi
+
+    return seg
 
 
 def adjust_size(input_volume, scale=None, is_segmentation=False, orig_shape=None):
@@ -318,6 +420,269 @@ def segment_mitos(
         "hmap": hmap.astype(np.float32),
         "mask": mask.astype(np.uint8),
     }
+
+def segment_mitos_cc_ooc(foreground, boundary, out_path=None, out_key="seg2",
+                         block_shape=(64, 128, 128),
+                         foreground_threshold=0.5, boundary_threshold=0.25,
+                         min_size=2000, connectivity=1,
+                         compressor=None, verbose=True, **kwargs):
+
+    # limit zarr caching (important)
+    zarr.storage.default_cache_size = 0
+
+    fg, bd = foreground, boundary
+    out_path = kwargs.get("occ_path", "")
+    shape = fg.shape
+    if boundary_threshold is not None:
+        assert shape == bd.shape
+
+    root = zarr.open(out_path, mode="a")
+
+    # store mask as uint8 in the same dataset we later label from (cheaper than bool in practice)
+    mask_key = kwargs.get("mask_key", "mask_u8")
+    mask = root.require_dataset(mask_key, shape=shape, chunks=block_shape, dtype="uint8",
+                                overwrite=True, compressor=compressor)
+    seg  = root.require_dataset(out_key,  shape=shape, chunks=block_shape, dtype="uint64",
+                                overwrite=True, compressor=compressor)
+
+    bz, by, bx = block_shape
+    Z, Y, X = shape
+
+    for z0 in tqdm(range(0, Z, bz), disable=not verbose, desc="Mask"):
+        z1 = min(z0 + bz, Z)
+        for y0 in range(0, Y, by):
+            y1 = min(y0 + by, Y)
+            for x0 in range(0, X, bx):
+                x1 = min(x0 + bx, X)
+
+                fg_blk = fg[z0:z1, y0:y1, x0:x1].astype(np.float32, copy=False)
+
+                if boundary_threshold is None:
+                    m = fg_blk > foreground_threshold
+                else:
+                    bd_blk = bd[z0:z1, y0:y1, x0:x1].astype(np.float32, copy=False)
+                    m = (fg_blk > foreground_threshold) & (bd_blk < boundary_threshold)
+
+                mask[z0:z1, y0:y1, x0:x1] = m.astype(np.uint8)
+
+    # If this still OOMs, the labeling implementation is not truly OOC.
+    parallel.label(mask, block_shape=block_shape, connectivity=connectivity, out=seg, verbose=verbose)
+
+    if min_size:
+        apply_size_filter_ooc(seg, min_size=min_size, block_shape=block_shape, out=seg, verbose=verbose)
+
+    return {"segmentation": seg}
+
+
+
+def segment_mitos_ooc(
+    foreground: np.ndarray,
+    boundary: np.ndarray,
+    block_shape=(128, 256, 256),
+    halo=(32, 48, 48),
+    seed_distance=4,
+    boundary_threshold=0.15,
+    foreground_threshold=0.85,
+    min_size=2000,
+    area_threshold=500,
+    dist=None,
+    post_iter=4,
+    post_iter3d=8,
+    return_all=False,
+    ooc_path=None
+):
+    """Return a dict with segmentation, seeds, distance map and h‑map."""
+    shape = foreground.shape
+    if ooc_path is not None:
+        print("Using out-of-core path", ooc_path)
+        root = zarr.open(ooc_path, mode="a")
+
+        dist = root.require_dataset(
+            "dist", shape=shape, chunks=block_shape, dtype="float32", overwrite=False
+        )
+        hmap = root.require_dataset(
+            "hmap", shape=shape, chunks=block_shape, dtype="float32", overwrite=False
+        )
+        bd_mask = root.require_dataset(
+            "bd_mask", shape=shape, chunks=block_shape, dtype="bool", overwrite=True
+        )
+        seed_mask = root.require_dataset(
+            "seed_mask", shape=shape, chunks=block_shape, dtype="bool", overwrite=True
+        )
+        mask = root.require_dataset(
+            "mask", shape=shape, chunks=block_shape, dtype="bool", overwrite=True
+        )
+        seg = root.require_dataset(
+            "seg", shape=shape, chunks=block_shape, dtype="uint64", overwrite=True
+        )
+    else:
+        mask = None
+        seg = None
+        dist = None
+        hmap = None
+        bd_mask = None
+        seed_mask = None
+
+    from synapse_net.inference.util import apply_size_filter, _postprocess_seg_3d
+    boundaries = boundary
+    if dist is None:
+        dist = parallel.distance_transform(
+            boundaries < boundary_threshold, halo=halo, verbose=True, block_shape=block_shape,
+            distances=dist
+        )
+    else:
+        blocking = _nt.blocking([0, 0, 0], list(shape), list(block_shape))
+        for bid in range(blocking.numberOfBlocks):
+            b = blocking.getBlock(bid)
+            bb = tuple(slice(be, en) for be, en in zip(b.begin, b.end))
+            bd = np.asarray(boundaries[bb], dtype=np.float32)
+            bd_mask[bb] = bd < boundary_threshold
+        parallel.distance_transform(
+            bd_mask, halo=halo, verbose=True, block_shape=block_shape,
+            distances=dist
+        )
+    if ooc_path is not None:
+        print("reading scalar: float(dist[:].max())")
+        dmax = float(dist[:].max())  # may still read all; but only scalar result. (Better if parallel has a reduction.)
+        # block-wise fill
+        blocking = _nt.blocking([0, 0, 0], list(shape), list(block_shape))
+        for bid in tqdm(range(blocking.numberOfBlocks), desc="Computing heat map"):
+            b = blocking.getBlock(bid)
+            bb = tuple(slice(be, en) for be, en in zip(b.begin, b.end))
+
+            d = np.asarray(dist[bb], dtype=np.float32)
+            bd = np.asarray(boundaries[bb], dtype=np.float32)
+            fg = np.asarray(foreground[bb], dtype=np.float32)
+
+            hm = (dmax - d) / (dmax + 1e-6)
+            hm[(bd > boundary_threshold) & (fg < boundary_threshold)] = (hm + bd).max()
+            hmap[bb] = hm
+    else:
+        dmax = float(dist.max())
+        hmap = (dmax - dist) / (dmax + 1e-6)
+        hmap[np.logical_and(boundaries > boundary_threshold, foreground < boundary_threshold)] = (hmap + boundaries).max()
+
+    if ooc_path is not None:
+        blocking = _nt.blocking([0, 0, 0], list(shape), list(block_shape))
+        for bid in tqdm(range(blocking.numberOfBlocks), desc="Computing seed mask"):
+            b = blocking.getBlock(bid)
+            bb = tuple(slice(be, en) for be, en in zip(b.begin, b.end))
+
+            fg = np.asarray(foreground[bb], dtype=np.float32)
+            d  = np.asarray(dist[bb], dtype=np.float32)
+
+            seed_mask[bb] = (fg > foreground_threshold) & (d > seed_distance)
+
+        seeds = parallel.label(seed_mask, block_shape=block_shape, verbose=True, connectivity=1)
+        seeds = apply_size_filter_ooc(seeds, min_size, verbose=True, block_shape=block_shape, out=seeds)
+    else:
+        seeds = np.logical_and(foreground > foreground_threshold, dist > seed_distance)
+        seeds = parallel.label(seeds, block_shape=block_shape, verbose=True, connectivity=1)
+        seeds = apply_size_filter(seeds, min_size, verbose=True, block_shape=block_shape)
+    # seeds = label(seeds, connectivity=2)
+    # seeds = apply_size_filter(seeds, min_size, verbose=True, block_shape=block_shape)
+
+    # mask = (foreground + boundaries) > 0.5
+    
+    if ooc_path is not None:
+        blocking = _nt.blocking([0, 0, 0], list(shape), list(block_shape))
+        for bid in tqdm(range(blocking.numberOfBlocks), desc="Computing mask"):
+            b = blocking.getBlock(bid)
+            bb = tuple(slice(be, en) for be, en in zip(b.begin, b.end))
+            fg = np.asarray(foreground[bb], dtype=np.float32)
+            bd = np.asarray(boundaries[bb], dtype=np.float32)
+            mask[bb] = (fg > 0.5) | (bd < boundary_threshold)
+    else: 
+        mask = (foreground + np.where(boundaries < boundary_threshold, boundaries, 0)) > 0.5  # take overlap
+        
+    # mask = (foreground > 0.5) | (boundaries < boundary_threshold)
+    # mask = foreground > foreground_threshold
+    # mask = np.logical_or((foreground > foreground_threshold), (boundary > boundary_threshold))  # (boundaries > (1-boundary_threshold)))
+    if ooc_path is None:
+        seg = np.zeros_like(seeds)
+    seg = parallel.seeded_watershed(
+        hmap, seeds, block_shape=block_shape, out=seg, verbose=True, halo=halo, mask=mask
+    )
+    if ooc_path is not None:
+        seg = apply_size_filter_ooc(seg, min_size, block_shape=block_shape, verbose=True, out=seg)
+    else:
+        seg = apply_size_filter(seg, min_size, verbose=True, block_shape=block_shape)
+    # seg = apply_size_filter(seg, min_size, verbose=True, block_shape=block_shape)
+    if ooc_path is not None:
+        seg = postprocess_seg_3d_ooc(
+            seg, block_shape=block_shape,
+            area_threshold=area_threshold,
+            iterations=post_iter, iterations_3d=post_iter3d,
+            verbose=True
+        )
+    else:
+        seg = _postprocess_seg_3d(seg, area_threshold=area_threshold, iterations=post_iter, iterations_3d=post_iter3d)
+    if return_all:
+        return {
+            "segmentation": seg.astype(np.uint8),
+            "seeds": seeds.astype(np.uint8),
+            "dist": dist.astype(np.float32),
+            "hmap": hmap.astype(np.float32),
+            "mask": mask.astype(np.uint8),
+        }
+    return {
+        "segmentation": seg.astype(np.uint8)  
+    }
+
+
+def apply_size_filter_ooc(seg, min_size, block_shape, verbose=True, out=None):
+    if out is None:
+        out = seg  # in-place
+
+    shape = seg.shape
+    bz, by, bx = block_shape
+
+    # Pass 0: max label
+    max_id = 0
+    for zz in range(0, shape[0], bz):
+        z1 = min(zz + bz, shape[0])
+        blk = np.asarray(seg[zz:z1, :, :], dtype=np.uint64)
+        max_id = max(max_id, int(blk.max(initial=0)))
+    if verbose:
+        print("max label id:", max_id)
+
+    if max_id > np.iinfo(np.int64).max:
+        raise ValueError(f"max_id too large for bincount/int64: {max_id}")
+
+    # Pass 1: sizes
+    counts = np.zeros(max_id + 1, dtype=np.uint64)
+    for zz in tqdm(range(0, shape[0], bz), disable=not verbose, desc="SizeFilter pass1 (count)"):
+        z1 = min(zz + bz, shape[0])
+        for yy in range(0, shape[1], by):
+            y1 = min(yy + by, shape[1])
+            for xx in range(0, shape[2], bx):
+                x1 = min(xx + bx, shape[2])
+
+                blk_u = np.asarray(seg[zz:z1, yy:y1, xx:x1], dtype=np.uint64)
+                blk = blk_u.astype(np.int64, copy=False)  # for bincount
+                bc = np.bincount(blk.ravel(), minlength=max_id + 1)
+
+                counts[:bc.shape[0]] += bc.astype(np.uint64, copy=False)
+
+    remove = np.where((counts > 0) & (counts < min_size))[0].astype(np.uint64)
+    if verbose:
+        print("labels to remove:", len(remove))
+
+    # Pass 2: apply
+    for zz in tqdm(range(0, shape[0], bz), disable=not verbose, desc="SizeFilter pass2 (apply)"):
+        z1 = min(zz + bz, shape[0])
+        for yy in range(0, shape[1], by):
+            y1 = min(yy + by, shape[1])
+            for xx in range(0, shape[2], bx):
+                x1 = min(xx + bx, shape[2])
+
+                blk = np.asarray(out[zz:z1, yy:y1, xx:x1], dtype=np.uint64)
+                m = np.isin(blk, remove)
+                if m.any():
+                    blk[m] = 0
+                    out[zz:z1, yy:y1, xx:x1] = blk
+
+    return out
 
 
 def convert_white_patches_to_black(img, min_patch_size=20):

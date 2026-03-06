@@ -46,6 +46,7 @@ def build_parser():
     p.add_argument("--centered_crop", "-cc", action="store_true")
     p.add_argument("--downscale_export", "-de", type=int)
     p.add_argument("--preprocess_volem", "-pv", action="store_true")
+    p.add_argument("--disk_based_prediction", "-dbp", action="store_true")
     return p
 
 def parse_args():
@@ -251,11 +252,11 @@ def main(visualize=False):
         else:
             keys = get_all_dataset_keys(path)
         data = {}
-        scale_factor = 1
+
         with open_file(path, "r") as f:
             centered_crop = args.centered_crop
             if args.key is not None and not args.all_keys:
-                image = f[args.key][::scale_factor, ::scale_factor, ::scale_factor]
+                image = f[args.key]
             else:
                 image = None
                 max_shape = (200, 2000, 2000)  # to not crash
@@ -299,22 +300,71 @@ def main(visualize=False):
                 preprocess=torch_em.transform.raw.normalize_percentile
             )
         if args.use_custom_segment:
-            pred = get_prediction(
-                input_volume=image,
-                model_path=args.model_path,
-                tiling=tiling,
-                preprocess=torch_em.transform.raw.normalize_percentile
-            )
-            seg = util.segment_mitos(
-                foreground=pred[0],
-                boundary=pred[1],
-                foreground_threshold=args.foreground_threshold,
-                boundary_threshold=args.boundary_threshold,
-                seed_distance=args.seed_distance,
-                min_size=args.min_size,
-                area_threshold=args.area_threshold,
-                post_iter3d=args.post_iter3d
-            )["segmentation"]
+            pred = None
+            pred_ready = False
+            if args.disk_based_prediction:
+                n_out = 2  # foreground + boundary
+                pred_name = os.path.basename(path) + "_pred.zarr"
+                pred_path = os.path.join(os.path.dirname(path), pred_name)
+
+                spatial_shape = image.shape  
+                expected_shape = (n_out,) + tuple(spatial_shape)
+                # chunk by the *inner* block shape used for writing
+                inner_ts = {k: ts[k] - 2 * halo[k] for k in ("z", "y", "x")}
+                chunks = (n_out, inner_ts["z"], inner_ts["y"], inner_ts["x"])
+                root = zarr.open(pred_path, mode="a")
+                pred = root.get("pred", None)
+                pred_ready = (pred is not None and pred.shape == expected_shape)
+                if not pred_ready:
+                    pred = root.create_dataset(
+                        "pred",
+                        shape=expected_shape,
+                        chunks=chunks,
+                        dtype="float32",
+                        compressor=zarr.Blosc(cname="zstd", clevel=3, shuffle=2),
+                        overwrite=False,
+                    )
+                print("Disk based prediction", args.disk_based_prediction)
+                print("prediction path", pred_path)
+                print("prediction shape", expected_shape)
+                print("Prediction already computed", pred_ready)
+                
+            if not pred_ready:
+                pred = get_prediction(
+                    input_volume=image,
+                    model_path=args.model_path,
+                    tiling=tiling,
+                    preprocess=torch_em.transform.raw.normalize_percentile,
+                    prediction=pred,
+                )
+            if args.disk_based_prediction:
+                occ_filename = os.path.basename(path) + "_tmp.zarr"
+                occ_path = os.path.join(os.path.dirname(path), occ_filename)
+                seg = util.segment_mitos_cc_ooc(
+                    foreground=pred[0],
+                    boundary=pred[1],
+                    foreground_threshold=args.foreground_threshold,
+                    boundary_threshold=args.boundary_threshold,
+                    seed_distance=args.seed_distance,
+                    min_size=args.min_size,
+                    area_threshold=args.area_threshold,
+                    post_iter3d=args.post_iter3d,
+                    return_all=False,
+                    occ_path=occ_path
+                )["segmentation"]
+            else:
+                occ_path = None
+                seg = util.segment_mitos(
+                    foreground=pred[0],
+                    boundary=pred[1],
+                    foreground_threshold=args.foreground_threshold,
+                    boundary_threshold=args.boundary_threshold,
+                    seed_distance=args.seed_distance,
+                    min_size=args.min_size,
+                    area_threshold=args.area_threshold,
+                    post_iter3d=args.post_iter3d,
+                )["segmentation"]
+
         with open_file(output_path, "w", ".h5") as f1:
             print("output_path", output_path)
             ndim = seg.ndim
@@ -331,9 +381,9 @@ def main(visualize=False):
                     else:
                         f1.create_dataset(key, data=(data[key][exp_slicing] if exp_scale != 1 else data[key]), compression="gzip")
 
+                f1.create_dataset("pred/foreground", data=(pred[0][exp_slicing] if exp_scale != 1 else pred[0]), compression="gzip", dtype=pred[0].dtype)
+                f1.create_dataset("pred/boundary", data=(pred[1][exp_slicing] if exp_scale != 1 else pred[1]), compression="gzip", dtype=pred[0].dtype)
             f1.create_dataset("seg", data=(seg[exp_slicing] if exp_scale != 1 else seg), compression="gzip", dtype=seg.dtype)
-            f1.create_dataset("pred/foreground", data=(pred[0][exp_slicing] if exp_scale != 1 else pred[0]), compression="gzip", dtype=pred[0].dtype)
-            f1.create_dataset("pred/boundary", data=(pred[1][exp_slicing] if exp_scale != 1 else pred[1]), compression="gzip", dtype=pred[0].dtype)
 
             # Optionally include additional label datasets
             if args.label_path is not None:
