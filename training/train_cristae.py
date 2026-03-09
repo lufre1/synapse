@@ -23,6 +23,10 @@ SAVE_DIR = "/mnt/lustre-grete/usr/u12103/cristae/"
 # from unet import UNet3D
 
 
+def explude_string(list_of_strings, string_to_exlude):
+    return [s for s in list_of_strings if string_to_exlude not in s]
+
+
 def main():
     parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
     parser.add_argument("--data_dir", type=str, default=None, help="Path to the data directory")
@@ -105,6 +109,13 @@ def main():
             data_paths.extend(util.get_data_paths(args.data_dir3))
         substring = "_combined.h5"
         data_paths = [s for s in data_paths if substring in s]
+        exclude_strings = [
+            "Otof_AVCN03_429C_WT_M.Stim_G3_1_model_combined",  # raw data strange
+            "WT20_eb8_AZ1_model_combined",  # poor crisate annotations
+            "WT22_eb8_model_combined",  # poor crisate annotations
+        ]
+        for s in exclude_strings:
+            data_paths = explude_string(data_paths, s)
         print("len data paths", len(data_paths))
         random.seed(42)
         random.shuffle(data_paths)
