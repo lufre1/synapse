@@ -9,7 +9,7 @@ from elf.io import open_file
 from tqdm import tqdm
 
 
-ROOT = "/mnt/lustre-grete/projects/nim00020/moebius/"
+ROOT = "/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/orig_files/"
 SAMPLES = {
     "4007": {"raw": "2019-06-07_Steyer_Plp-4007 CLAHE", "labels": "4007 Imod-export"},
     "4010": {"raw": "2019-05-10_Steyer_Plp-4010-wt CLAHE", "labels": "4010 Imod-export"},
@@ -49,7 +49,7 @@ def convert_tifs(f, tif_folder, name, n_threads=8):
         ))
 
 
-def convert_data(sample):
+def convert_data(sample, ext="n5"):
     raw_folder = os.path.join(ROOT, SAMPLES[sample]["raw"])
     assert os.path.exists(raw_folder)
     # label_folder = os.path.join(ROOT, SAMPLES[sample]["labels"])
@@ -57,7 +57,7 @@ def convert_data(sample):
 
     out_folder = os.path.join(ROOT, sample, "raw")
     os.makedirs(out_folder, exist_ok=True)
-    out_path = os.path.join(out_folder, f"{sample}.n5")
+    out_path = os.path.join(out_folder, f"{sample}.{ext}")
     print("Saving to", out_path)
     with open_file(out_path, "a") as f:
         convert_tifs(f, raw_folder, "raw")
@@ -70,7 +70,7 @@ def main():
     args = parser.parse_args()
     sample = args.sample
     assert sample in SAMPLES
-    convert_data(sample)
+    convert_data(sample, ext="zarr")
 
 
 if __name__ == "__main__":

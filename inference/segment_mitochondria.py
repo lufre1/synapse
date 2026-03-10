@@ -338,19 +338,21 @@ def main(visualize=False):
                     prediction=pred,
                 )
             if args.disk_based_prediction:
-                occ_filename = os.path.basename(path) + "_tmp.zarr"
+                occ_filename = os.path.basename(path) + "_tmp_optim.zarr"
                 occ_path = os.path.join(os.path.dirname(path), occ_filename)
-                seg = util.segment_mitos_cc_ooc(
-                    foreground=pred[0],
-                    boundary=pred[1],
-                    foreground_threshold=args.foreground_threshold,
+                seg = util.segment_mitos_ooc_optimized(  #segment_mitos_cc_ooc(
+                    # foreground=pred[0],
+                    # boundary=pred[1],
+                    pred=pred,
+                    # foreground_threshold=args.foreground_threshold,
                     boundary_threshold=args.boundary_threshold,
                     seed_distance=args.seed_distance,
                     min_size=args.min_size,
                     area_threshold=args.area_threshold,
-                    post_iter3d=args.post_iter3d,
-                    return_all=False,
-                    occ_path=occ_path
+                    # post_iter3d=args.post_iter3d,
+                    # return_all=False,
+                    # occ_path=occ_path
+                    out_dir=occ_path
                 )["segmentation"]
             else:
                 occ_path = None
@@ -364,37 +366,46 @@ def main(visualize=False):
                     area_threshold=args.area_threshold,
                     post_iter3d=args.post_iter3d,
                 )["segmentation"]
+        # skip export if using desk based predictions / segmentations
+        if args.disk_based_prediction:
+            print("Using disk based computations:")
+            print("Segmentation is stored at:\n", occ_path)
+            print("Predictions used are stored at: \n", pred_path)
+            return
+        else:        
+            with open_file(output_path, "w", ".h5") as f1:
+                print("output_path", output_path)
+                ndim = seg.ndim
+                exp_slicing = tuple(slice(None, None, exp_scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+                print("")
 
-        with open_file(output_path, "w", ".h5") as f1:
-            print("output_path", output_path)
-            ndim = seg.ndim
-            exp_slicing = tuple(slice(None, None, exp_scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-            print("")
+                # Save all relevant keys if requested, else save raw
+                if args.key is not None and args.all_keys:
+                    print("keys", keys)
+                    for key in keys:
+                        if "mito" in key and add_missing_mitos:
+                            added = label(data[key] + find_additional_objects(data[key], seg, matching_threshold=0.1))
+                            f1.create_dataset(key, data=(added[exp_slicing] if exp_scale != 1 else added), compression="gzip")
+                        else:
+                            f1.create_dataset(key, data=(data[key][exp_slicing] if exp_scale != 1 else data[key]), compression="gzip")
 
-            # Save all relevant keys if requested, else save raw
-            if args.key is not None and args.all_keys:
-                print("keys", keys)
-                for key in keys:
-                    if "mito" in key and add_missing_mitos:
-                        added = label(data[key] + find_additional_objects(data[key], seg, matching_threshold=0.1))
-                        f1.create_dataset(key, data=(added[exp_slicing] if exp_scale != 1 else added), compression="gzip")
-                    else:
-                        f1.create_dataset(key, data=(data[key][exp_slicing] if exp_scale != 1 else data[key]), compression="gzip")
+                    f1.create_dataset("pred/foreground", data=(pred[0][exp_slicing] if exp_scale != 1 else pred[0]), compression="gzip", dtype=pred[0].dtype)
+                    f1.create_dataset("pred/boundary", data=(pred[1][exp_slicing] if exp_scale != 1 else pred[1]), compression="gzip", dtype=pred[0].dtype)
+                if args.disk_based_prediction:
+                    util.export_ooc_to_h5(seg, f1, "seg", exp_scale=exp_scale, chunk_shape=(128, 256, 256))
+                else:
+                    f1.create_dataset("seg", data=(seg[exp_slicing] if exp_scale != 1 else seg), compression="gzip", dtype=seg.dtype)
 
-                f1.create_dataset("pred/foreground", data=(pred[0][exp_slicing] if exp_scale != 1 else pred[0]), compression="gzip", dtype=pred[0].dtype)
-                f1.create_dataset("pred/boundary", data=(pred[1][exp_slicing] if exp_scale != 1 else pred[1]), compression="gzip", dtype=pred[0].dtype)
-            f1.create_dataset("seg", data=(seg[exp_slicing] if exp_scale != 1 else seg), compression="gzip", dtype=seg.dtype)
-
-            # Optionally include additional label datasets
-            if args.label_path is not None:
-                with open_file(args.label_path, "r") as f2:
-                    if args.label_key is not None:
-                        f1.create_dataset(f"labels/{args.label_key}", data=f2[args.label_key], compression="gzip", dtype=f2[args.label_key].dtype)
-                    else:
-                        for key2 in f2.keys():
-                            f1.create_dataset(f"labels/{key2}", data=f2[key2], compression="gzip", dtype=f2[key2].dtype)
-                print("Saved original segmentation from", args.label_path, "to", output_path)
-            print("Saved to", output_path)
+                # Optionally include additional label datasets
+                if args.label_path is not None:
+                    with open_file(args.label_path, "r") as f2:
+                        if args.label_key is not None:
+                            f1.create_dataset(f"labels/{args.label_key}", data=f2[args.label_key], compression="gzip", dtype=f2[args.label_key].dtype)
+                        else:
+                            for key2 in f2.keys():
+                                f1.create_dataset(f"labels/{key2}", data=f2[key2], compression="gzip", dtype=f2[key2].dtype)
+                    print("Saved original segmentation from", args.label_path, "to", output_path)
+                print("Saved to", output_path)
 
 
 if __name__ == "__main__":
