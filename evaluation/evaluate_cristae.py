@@ -117,7 +117,7 @@ def hd95_binary(labels, seg, spacing=None):
     return float(np.percentile(all_d, 95))
 
 
-def evaluate_binary(labels, seg, spacing=None, ignore_mask=None, eps=1e-8):
+def evaluate_binary(labels, seg, spacing=None, ignore_mask=None, eps=1e-8, compute_hd95=False):
     labels = labels.astype(bool)
     seg = seg.astype(bool)
 
@@ -140,7 +140,9 @@ def evaluate_binary(labels, seg, spacing=None, ignore_mask=None, eps=1e-8):
     dice = (2 * tp) / (2 * tp + fp + fn + eps)
 
     # For HD95, restrict geometry to evaluated region by zeroing outside
-    hd95 = hd95_binary(labels_eval, seg_eval, spacing=spacing)
+    hd95 = np.nan
+    if compute_hd95:
+        hd95 = hd95_binary(labels_eval, seg_eval, spacing=spacing)
 
     return {
         "dice": float(dice),
@@ -226,6 +228,7 @@ def main(args):
             else:
                 seg = io.load_data_from_file(segmentation_path)
             if mito_states is not None:
+                print("Using mito states")
                 valid_mask = mito_states == 1
                 # labels = labels[valid_mask]
                 # seg = seg[valid_mask]
@@ -261,5 +264,6 @@ if __name__ == "__main__":
     parser.add_argument("-sk", "--segmentations_key", default=None)
     parser.add_argument("-d", "--dataset_name", default=None)
     parser.add_argument("-o", "--output_path", default=None)
+    parser.add_argument("-hd", "--compute_hd95", default=False, action="store_true")
     args = parser.parse_args()
     main(args)
