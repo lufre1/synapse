@@ -1,10 +1,13 @@
 import argparse
+import math
 import os
 from concurrent import futures
 from glob import glob
+import synapse.util as util
 
-import imageio
+import imageio.v3 as iio # Using v3 is recommended for newer imageio
 import numpy as np
+import zarr
 from elf.io import open_file
 from tqdm import tqdm
 
@@ -17,19 +20,23 @@ SAMPLES = {
 }
 
 
-def convert_tifs(f, tif_folder, name, n_threads=8):
+def convert_tifs(f, tif_folder, name, n_threads=4): # Lowered threads to play nice with Lustre
     tifs = glob(os.path.join(tif_folder, "*.tif"))
-    tifs.sort()
+    tifs.sort() # Ensure files are zero-padded! e.g., 0001.tif
+    
+    if not tifs:
+        raise ValueError(f"No .tif files found in {tif_folder}. Are they .tiff?")
 
-    im0 = imageio.imread(tifs[0])
+    im0 = iio.imread(tifs[0])
     im_shape = im0.shape
     vol_shape = (len(tifs),) + im_shape
 
-    print("Converting volume of shape", vol_shape)
+    print(f"Converting volume of shape {vol_shape}")
     ndim = len(vol_shape)
     chunks = (8, 512, 512)
     if ndim == 4:
-        chunks = chunks + (1,)
+        chunks = (1,) + chunks
+        
     ds = f.require_dataset(name, shape=vol_shape, compression="gzip", chunks=chunks, dtype=im0.dtype)
 
     def _convert_range(z0):
@@ -37,39 +44,38 @@ def convert_tifs(f, tif_folder, name, n_threads=8):
         sub_shape = (z1 - z0,) + im_shape
         data = np.zeros(sub_shape, dtype=im0.dtype)
         for i, z in enumerate(range(z0, z1)):
-            im = imageio.imread(tifs[z])
-            assert im.shape == im_shape
+            im = iio.imread(tifs[z])
+            im = util.convert_white_patches_to_black(im)
+            assert im.shape == im_shape, f"Shape mismatch at slice {z}"
             data[i] = im
         ds[z0:z1] = data
 
-    nz = len(tifs) // chunks[0] + 1
+    # Fixed true division (/) so tqdm total is accurate
+    nz = math.ceil(len(tifs) / chunks[0])
     with futures.ThreadPoolExecutor(n_threads) as tp:
         list(tqdm(
             tp.map(_convert_range, range(0, len(tifs), chunks[0])), desc=f"Convert {name}", total=nz
         ))
 
 
-def convert_data(sample, ext="n5"):
+def convert_data(sample, ext="zarr"):
     raw_folder = os.path.join(ROOT, SAMPLES[sample]["raw"])
-    assert os.path.exists(raw_folder)
-    # label_folder = os.path.join(ROOT, SAMPLES[sample]["labels"])
-    # assert os.path.exists(label_folder)
+    assert os.path.exists(raw_folder), f"Input folder {raw_folder} does not exist"
 
-    out_folder = os.path.join(ROOT, sample, "raw")
+    out_folder = os.path.join(ROOT, sample)
     os.makedirs(out_folder, exist_ok=True)
     out_path = os.path.join(out_folder, f"{sample}.{ext}")
-    print("Saving to", out_path)
+    print(f"Saving to {out_path} under dataset 's0'")
+    
     with open_file(out_path, "a") as f:
-        convert_tifs(f, raw_folder, "raw")
-        # convert_tifs(f, label_folder, "labels/imod")
-
+        convert_tifs(f, raw_folder, "s0")
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--sample", "-s", default="4009")
     args = parser.parse_args()
     sample = args.sample
-    assert sample in SAMPLES
+    assert sample in SAMPLES, "Sample not found in SAMPLES dictionary"
     convert_data(sample, ext="zarr")
 
 

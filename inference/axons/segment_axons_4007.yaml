@@ -1,17 +1,17 @@
 base_path: /mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_zarr/4007/images/ome-zarr/raw.ome.zarr
 file_extension: .zarr
-key: 0
-export_path: /mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_zarr/4007/images/ome-zarr/mitochondria.zarr
-model_path: /mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-mito-net32-lr1e-4-bs4-ps32x512x512-final
+key: 1
+export_path: /mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_zarr/4007/images/ome-zarr/axons.zarr
+model_path: /mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-axons-net32-lr1e-4-bs4-ps32x512x512-s1
 
 tile_shape: [32, 512, 512]
 seed_distance: 2
-foreground_threshold: 0.6
+foreground_threshold: 0.5
 boundary_threshold: 0.1
-area_threshold: 200
+area_threshold: 500
 min_size: 1000
 use_custom_segment: true
-post_iter3d: 0
+post_iter3d: 4
 preprocess_volem: false
 all_keys: false
 force_overwrite: true
@@ -21,3 +21,5 @@ centered_crop: false
 label_path: null
 label_key: null
 disk_based_prediction: true
+file_extension: ".zarr"
+only_foreground: true

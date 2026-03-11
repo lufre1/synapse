@@ -1,6 +1,6 @@
 base_path: /mnt/lustre-grete/usr/u15205/volume-em/4009_mobie/4009/images/ome-zarr/raw.ome.zarr
 file_extension: .zarr
-key: "s0"
+key: s0
 export_path: /mnt/lustre-grete/usr/u15205/volume-em/4009_mobie/4009/images/ome-zarr/mitochondria.zarr
 model_path: /mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-mito-net32-lr1e-4-bs4-ps32x512x512-final
 
