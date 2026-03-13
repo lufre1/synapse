@@ -360,7 +360,7 @@ def main(visualize=False):
                     # return_all=False,
                     # occ_path=occ_path
                     out_dir=occ_path,
-                    reuse_computed=True
+                    reuse_computed=False
                 )["segmentation"]
             else:
                 occ_path = None

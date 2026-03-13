@@ -989,6 +989,7 @@ def export_data(export_path: str, data, voxel_size=None):
     Args:
         data (np.ndarray | dict): The data to save. For HDF5/Zarr, a dict of named datasets is required.
         export_path (str): The file path where the data should be saved.
+        voxel_size (tuple | list | np.ndarray, optional): The voxel dimensions.
     
     Raises:
         ValueError: If the file format is unsupported or if data format does not match the expected type.
@@ -1004,7 +1005,6 @@ def export_data(export_path: str, data, voxel_size=None):
                 tifffile.imwrite(out_name, value, dtype=value.dtype, compression="zlib")
         elif not isinstance(data, np.ndarray):
             raise ValueError("For .tif format, data must be a NumPy array or a dict of named NumPy arrays.")
-        # iio.imwrite(export_path, data, compression="zlib")
 
     elif ext in {"mrc", "rec"}:
         if not isinstance(data, np.ndarray):
@@ -1022,14 +1022,21 @@ def export_data(export_path: str, data, voxel_size=None):
     elif ext in {"h5", "hdf5"}:
         if not isinstance(data, dict):
             raise ValueError("For .h5 and .hdf5 formats, data must be a dictionary with dataset names as keys.")
+        
         with h5py.File(export_path, "w") as f:
+            if voxel_size is not None:
+                voxel_size_array = voxel_size if isinstance(voxel_size, np.ndarray) else np.array(voxel_size, dtype=np.float32)
+                f.attrs.create(name='voxel_size', data=voxel_size_array)
+                # Add explicit indication of the dimension order
+                f.attrs.create(name='voxel_size_order', data='z, y, x')
+            
             for key, value in data.items():
                 ds = f.create_dataset(name=key, data=value, dtype=value.dtype, compression="gzip")
+                
                 if "raw" in key and voxel_size is not None:
-                    # voxel_dtype = np.dtype([('x', np.float32), ('y', np.float32), ('z', np.float32)])
-                    # voxel_size_attr = np.array(voxel_size, dtype=voxel_dtype)
-                    voxel_size_array = voxel_size if isinstance(voxel_size, np.ndarray) else np.array(voxel_size, dtype=np.float32)
                     ds.attrs.create(name='voxel_size', data=voxel_size_array)
+                    # Add it to the dataset attributes as well
+                    ds.attrs.create(name='voxel_size_order', data='z, y, x')
     
     else:
         raise ValueError(f"Unsupported file format: {ext}")

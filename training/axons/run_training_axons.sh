@@ -13,18 +13,18 @@ source /mnt/vast-nhr/home/freckmann15/u15205/.bashrc
 micromamba activate /mnt/vast-nhr/home/freckmann15/u15205/micromamba/envs/synapse
 
 # ================ Define ALL parameters here ONCE ================
-N_ITER=50000
+N_ITER=70000
 PATCH_SHAPE="32 512 512"
 BS=4
 LR=1e-4
-DD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_hdf5/all_cutouts_s1"
-SDD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4009_hdf5/cutouts_segmented_s1/"
+DD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_hdf5/all_cutouts_s2_new"
+SDD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4009_hdf5/cutouts_segmented_s2_new/"
 RAW_KEY="raw"
 LABEL_KEY="labels/axons"
 
 PATCH_SIZE=$(echo $PATCH_SHAPE | awk '{print $2}')
 read -r PZ PY PX <<< "$PATCH_SHAPE"
-EXPNAME="volume-em-axons-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-s1"
+EXPNAME="volume-em-axons-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-s2-new"
 EARLY_STOPPING=20
 SAVE_DIR="/mnt/lustre-grete/usr/u15205/volume-em/models/"
 # export CUDA_LAUNCH_BLOCKING=1

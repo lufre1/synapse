@@ -1,8 +1,8 @@
-base_path: /mnt/lustre-grete/usr/u15205/volume-em/4009_mobie/4009/images/ome-zarr/raw.ome.zarr
+base_path: /mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4009_zarr/4009.zarr
 file_extension: .zarr
-key: "s1"
-export_path: /mnt/lustre-grete/usr/u15205/volume-em/4009_mobie/4009/images/ome-zarr/axons.zarr
-model_path: /mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-axons-net32-lr1e-4-bs4-ps32x512x512-s1
+key: s2
+export_path: /mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4009_zarr/axons.zarr
+model_path: /mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-axons-net32-lr1e-4-bs4-ps32x512x512-s2-new
 
 tile_shape: [32, 512, 512]
 seed_distance: 2

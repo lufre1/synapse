@@ -217,7 +217,12 @@ def main():
             )
         raw_shape = util.read_data(path, scale=scale)["raw"].shape
         if ife2 == ".h5":
-            tmp = util.read_data(path2, scale=scale)[dataset_name]
+            if dataset_name in h5_util.get_all_keys_from_h5(path):
+                tmp = util.read_data(path2, scale=scale)[dataset_name]
+            else:
+                print(f"could not find dataset {dataset_name} in path\n{path2}")
+                print("skipping", path)
+                continue
         else:
             tmp = tifffile.imread(path2)
         # preprocess
@@ -257,9 +262,28 @@ def main():
 
         data2 = {}
         if not np.array_equal(tmp.shape, raw_shape):
-            data2[dataset_name] = resize(tmp, raw_shape, preserve_range=True, order=0, anti_aliasing=False).astype(np.uint8)
+            print("Resizing from", tmp.shape, "to", raw_shape)
+            if "label" in dataset_name.lower() or "segmentation" in dataset_name.lower():
+                # Label logic: Nearest-neighbor, no anti-aliasing to preserve discrete classes
+                data2[dataset_name] = resize(
+                    tmp, 
+                    raw_shape, 
+                    preserve_range=True, 
+                    order=0, 
+                    anti_aliasing=False
+                ).astype(np.uint8) # Ensure this is uint8, or tmp.dtype if you have >255 labels
+            else:
+                # Raw logic: Bi-linear interpolation, with anti-aliasing for smooth continuous intensities
+                data2[dataset_name] = resize(
+                    tmp, 
+                    raw_shape, 
+                    preserve_range=True, 
+                    order=1,            # order=1 is bi-linear, order=3 is bi-cubic
+                    anti_aliasing=True  # Important when downsampling raw data
+                ).astype(tmp.dtype)     # Keep the original raw dtype (e.g., float32 or uint16)
         else:
-            data2[dataset_name] = tmp.astype(np.uint8)
+            # Shapes already match, no resizing needed
+            data2[dataset_name] = tmp
         with open_file(path, "a") as f:
             ds = f.require_dataset(
                 dataset_name,
