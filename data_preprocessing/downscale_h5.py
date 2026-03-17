@@ -86,6 +86,7 @@ def main():
             continue
         keys = get_all_keys_from_h5(path)
         data = {}
+        new_shape = None
         for key in keys:
             if "raw" in key:
                 voxel_size = read_voxel_size(h5_path=path, h5_key=key, default=orig_voxel_size)
@@ -100,8 +101,10 @@ def main():
                 if "raw" in key:  # for raw em images
                     data[key] = rescale(vol, scale=scale, order=3, anti_aliasing=True,
                                         preserve_range=True,)
+                    new_shape = data[key].shape
                 else:  # for segmentations
                     data[key] = rescale(vol, scale=scale, order=0, anti_aliasing=False)
+        print("new shape:", new_shape)
         new_voxel_size = np.asarray(voxel_size, dtype=np.float64) * np.asarray(args.scale_factor)
         if args.new_voxel_size is not None:
             new_voxel_size = np.array(args.new_voxel_size, dtype=np.float32)

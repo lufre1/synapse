@@ -335,7 +335,7 @@ def main(visualize=False):
                     out_path = os.path.join(os.path.dirname(path), out_name)
                     if ".zarr" in output_path:
                         out_path = output_path
-                    out_key = "s1"
+                    out_key = args.key if "s" in str(args.key) else "s" + str(args.key)
                     if ".zarr" in args.export_path:
                         out_path = args.export_path
                     seg = util.segment_axons_ooc(
