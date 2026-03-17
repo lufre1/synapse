@@ -15,6 +15,7 @@ def main():
     parser = argparse.ArgumentParser(description="View a Zarr dataset and optional label TIFF in napari")
     parser.add_argument("--zarr_path", "-p", default="/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-volume-em/cutout_1/images/ome-zarr/raw.ome.zarr", help="Path to the Zarr file")
     parser.add_argument("--dataset_key", "-k", default=0, help="Key to the Zarr /group/dataset")
+    parser.add_argument("--is_segmentation", "-seg", "--seg", default=False, action="store_true")
     parser.add_argument("--label_path", "-lp", default=None, help="Path to the labels TIFF file")
     parser.add_argument("--scale", "-s", type=int, default=1, help="Scale factor for the image")
     parser.add_argument("--second_zarr_path", "-sp", default=None, help="Path to the second Zarr file")
@@ -31,7 +32,16 @@ def main():
         a1 = a1[slicing]
 
     viewer = napari.Viewer()
-    viewer.add_image(a1, name=f"zarr1:{args.dataset_key}")
+    if not args.is_segmentation:
+        viewer.add_image(a1, name=f"zarr1:{args.dataset_key}")
+    else:
+        shape = a1.shape
+        center = tuple(s // 2 for s in shape)
+        quarter_shape = tuple(s // 4 for s in shape)
+        start = tuple(max(0, c - q) for c, q in zip(center, quarter_shape))
+        stop = tuple(min(s, c + q) for s, c, q in zip(shape, center, quarter_shape))
+        slicing = tuple(slice(s, e) for s, e in zip(start, stop))
+        viewer.add_labels(a1[slicing], name=f"zarr1:{args.dataset_key}")
 
     if args.second_zarr_path is not None:
         print("second_zarr_path", args.second_zarr_path)
