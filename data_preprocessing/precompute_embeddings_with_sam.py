@@ -8,13 +8,14 @@ from micro_sam.util import precompute_image_embeddings, get_sam_model, get_devic
 # from synapse_net.file_utils import read_ome_zarr
 
 
-def compute_embeddings(path, output_path, model_type=None):
+def compute_embeddings(path, output_path, model_type=None, cp=None,
+                       tile_shape=None, halo=None):
     
     device = get_device("cuda" if torch.cuda.is_available() else "cpu")
     # all_models = get_model_names()
     if model_type is None:
         model_type = "vit_b_em_organelles"
-    predictor = get_sam_model(model_type=model_type, device=device)
+    predictor = get_sam_model(model_type=model_type, device=device, checkpoint_path=cp)
     try:
         if ".zarr" in path:
             # data, voxel_size = read_ome_zarr(path)
@@ -39,6 +40,8 @@ def compute_embeddings(path, output_path, model_type=None):
     precompute_image_embeddings(
             predictor, input_=data,
             save_path=output_path,
+            tile_shape=tile_shape,
+            halo=halo,
         )
 
 
@@ -47,6 +50,9 @@ if __name__ == "__main__":
     parser.add_argument("--base_path", "-b",  type=str, default="/scratch-grete/projects/nim00007/cryo-et-luca", help="Path to the root data directory")
     parser.add_argument("--output_path", "-o",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/wichmann/tiled_embeddings_em", help="Path to the output data directory")
     parser.add_argument("--model_type", "-mt", default="vit_b_em_organelles", help="choose model type from (vit_b_em_organelles | vit_b | ...)")
+    parser.add_argument("--tile_shape", "-ts", nargs=3, type=int, default=[1, 512, 512], help="Tile shape for embedding computation (3D)")
+    parser.add_argument("--halo", "-h", nargs=3, type=int, default=[1, 128, 128], help="Halo size for embedding computation (3D)")
+    
     args = parser.parse_args()
     base_path = args.base_path
     output_path = args.output_path
