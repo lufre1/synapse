@@ -77,7 +77,7 @@ def finetune_sam_v2(name, train_images, raw_key, label_key,
                     label_transform=None, sampler=None,
                     n_samples=None,
                     min_size=None,
-                    train_instance_segmentation_only=True
+                    train_instance_segmentation_only=False
                     ):
     from micro_sam.training import train_sam_for_configuration, default_sam_loader
 
