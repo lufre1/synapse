@@ -44,6 +44,9 @@ def export_one(rp, mp, cp, output_file, z_chunk=16, compression="gzip", compress
         if mito_src.shape != shape or cristae_src.shape != shape:
             raise ValueError(f"Shape mismatch: raw {shape}, mito {mito_src.shape}, cristae {cristae_src.shape}")
 
+        # Flip raw data along axis 1
+        raw_src = np.flip(raw_src, axis=1)
+
         os.makedirs(os.path.dirname(output_file), exist_ok=True)
         with h5py.File(output_file, "w") as f:
             f.attrs["axes"] = np.array(["z", "y", "x"], dtype=h5py.string_dtype(encoding="utf-8"))

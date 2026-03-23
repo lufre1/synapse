@@ -36,27 +36,25 @@ def get_file_paths(path, ext=".h5", reverse=False):
         return paths
 
 
-def visualize_data(data, name=None, offset_z=None, args=None):
-    voxel_size = None
+def visualize_data(data, name=None, offset_z=None, args=None, voxel_size=None):
+    viewer = napari.Viewer()
+    viewer.title = name or ""
     if args is not None and args.voxel_size is not None:
         voxel_size = args.voxel_size
-    viewer = napari.Viewer()
-    if name is not None:
-        viewer.title = name
-    print("vis data keys", data.keys())
+    if voxel_size is not None:
+        viewer.dims.axis_labels = ("z", "y", "x")
+
     for key, value in data.items():
         if "raw" in key or key == "0":
-            # if data[key].ndim == 4:
-            #     data[key] = util.normalize_percentile_with_channel(data[key], lower=1, upper=99, channel=0)
-            # else:
-            #     value = torch_em.transform.raw.normalize_percentile(value, lower=1, upper=99)
             viewer.add_image(value, name=key, scale=voxel_size)
         elif key == "prediction" or "pred" in key or "dist" in key or "fore" in key or "bound" in key:
             viewer.add_image(value, name=key, blending="additive", scale=voxel_size)
         else:
+            # avoid value.astype(...) here if value is lazy (it will compute)
             if offset_z is not None:
-                viewer.add_labels(value.astype(np.uint8), name=key, translate=(0, 0, offset_z), scale=voxel_size)
-            viewer.add_labels(value.astype(np.uint8), name=key, scale=voxel_size)
+                viewer.add_labels(value, name=key, translate=(0, 0, offset_z), scale=voxel_size)
+            else:
+                viewer.add_labels(value, name=key, scale=voxel_size)
     # Get the "raw" layer
     raw_layer = next((layer for layer in viewer.layers if "raw" in layer.name), None)
     if raw_layer:
@@ -170,6 +168,12 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
         else:
             label_path = None
         with open_file(path, mode="r") as f:
+            if "voxel_size" in f.attrs:
+                voxel_size = tuple(float(x) for x in f.attrs["voxel_size"])
+            elif "raw" in f and "voxel_size" in f["raw"].attrs:
+                voxel_size = tuple(float(x) for x in f["raw"].attrs["voxel_size"])
+            else:
+                voxel_size = None
             data = {}
             if label_path is not None:
                 print("Loading label data from", label_path)
@@ -231,7 +235,7 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
             # get foreground and boundary
             new_seg = _segment(data["pred/foreground"], data["pred/boundary"])
             data["new_seg"] = new_seg
-        visualize_data(data, name=os.path.basename(path), args=args)
+        visualize_data(data, name=os.path.basename(path), args=args, voxel_size=voxel_size)
 
 
 if __name__ == "__main__":
