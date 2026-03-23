@@ -264,6 +264,24 @@ def get_true_labels(label_dict):
 
 
 def crop_data(raw, labels_dict):
+    """
+    Crop the raw data and all label datasets in labels_dict to a subset containing only slices with label data.
+
+    Parameters
+    ----------
+    raw : numpy.ndarray
+        The raw data to crop.
+    labels_dict : dict
+        A dictionary with label names as keys and the corresponding label datasets as values.
+
+    Returns
+    -------
+    raw_cropped : numpy.ndarray
+        The cropped raw data.
+    cropped_labels_dict : dict
+        A dictionary with the same keys as labels_dict, but with the cropped label datasets as values.
+
+    """
     combined_labels = np.zeros_like(next(iter(labels_dict.values())))
     for labels in labels_dict.values():
         combined_labels |= labels
@@ -291,14 +309,14 @@ def main():
     parser.add_argument("--visualize", "-v", default=False, action='store_true', help="If to visualize or not")
     parser.add_argument("--print_labels", "-pl", default=False, action='store_true', help="If to print labels from mod file or not")
     parser.add_argument("--force_overwrite", "-f", default=False, action='store_true', help="If to over-write already present segmentation results.")
-    #parser.add_argument("--save_dir", type=str, default="", help="Path to save the data to")
+    # parser.add_argument("--save_dir", type=str, default="", help="Path to save the data to")
     args = parser.parse_args()
     print(args.base_path)
     visualize = args.visualize
     print_labels = args.print_labels
 
-    mod_paths = sorted(glob(os.path.join(args.base_path, "**", "*.mod"), recursive=True))#, reverse=True)
-    mrc_paths = sorted(glob(os.path.join(args.base_path, "**", "*.mrc"), recursive=True))#, reverse=True)
+    mod_paths = sorted(glob(os.path.join(args.base_path, "**", "*.mod"), recursive=True))
+    mrc_paths = sorted(glob(os.path.join(args.base_path, "**", "*.mrc"), recursive=True))
     rec_paths = sorted(glob(os.path.join(args.base_path, "**", "*.rec"), recursive=True))
     mrc_paths.extend(rec_paths)
     # use this for 06
