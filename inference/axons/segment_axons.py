@@ -150,31 +150,7 @@ def get_all_dataset_keys(file_path):
     return keys
 
 
-def main(visualize=False):
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("--base_path", "-b",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/embl/cutout_2/images/ome-zarr/raw.ome.zarr", help="Path to the root data directory")
-    # parser.add_argument("--file_extension", "-fe",  type=str, default=".zarr", help="Path to the root data directory")
-    # parser.add_argument("--key", "-k",  type=str, default="0", help="Path to the root data directory")
-    # parser.add_argument("--label_path", "-lp",  type=str, default=None, help="Path to a specific label file")
-    # parser.add_argument("--label_key", "-lk",  type=str, default=None, help="Key to label data within the label file")
-    # parser.add_argument("--export_path", "-e",  type=str, default="/scratch-grete/usr/nimlufre/synapse/mitotomo/test_segmentations", help="Path to the root data directory")
-    # parser.add_argument("--model_path", "-m", type=str, required=True, help="Path to directory where the model 'best.pt' resides.")
-    # # parser.add_argument("--resize", "-r", default=False, action='store_true', help="Resize to some shape")
-    # parser.add_argument("--seed_distance", "-sd", type=int, default=6, help="Seed distance")
-    # parser.add_argument("--boundary_threshold", "-bt", type=float, default=0.15, help="Boundary threshold")
-    # parser.add_argument("--foreground_threshold", "-ft", type=float, default=0.8, help="Foreground threshold")
-    # parser.add_argument("--area_threshold", "-at", type=int, default=1000, help="Area to binary close segmentation in pixels")
-    # parser.add_argument("--min_size", "-ms", type=int, default=5000, help="Minimum size of mitos")
-    # parser.add_argument("--post_iter3d", "-p3d", type=int, default=8, help="How many postprocess iterations 3d to apply. (Use 0 for close neighbouring instances)")
-    # parser.add_argument("--use_custom_segment", "-uc", default=False, action='store_true', help="Use custom segmentation")
-    # parser.add_argument("--tile_shape", "-ts", type=int, nargs=3, default=(32, 512, 512), help="Tile shape")
-    # parser.add_argument("--all_keys", "-ak", default=False, action='store_true', help="If to add all keys from raw file to export file")
-    # parser.add_argument("--force_overwrite", "-fo", action="store_true", default=False, help="Force overwrite of existing files")
-    # parser.add_argument("--centered_crop", "-cc", action="store_true", default=False, help="Centered crop")
-    # parser.add_argument("--downscale_export", "-de", type=int, default=1, help="Downscale export to reduce size")
-    # parser.add_argument("--preprocess_volem", "-pv", action="store_true", help="volem can have white borders")
-    # parser.add_argument("--only_foreground", "-of", action="store_true", default=False, help="No boundary predictions")
-
+def main():
     args = parse_args()
     exp_scale = args.downscale_export
     print(args.base_path)
@@ -220,7 +196,7 @@ def main(visualize=False):
         else:
             os.makedirs(args.export_path, exist_ok=True)
             output_path = os.path.join(args.export_path, (os.path.basename(args.model_path)).replace(".pt", "") +
-                                    f"_sd{args.seed_distance}_bt{bt_string}_ft{ft_string}_with_pred_ts_z{ts['z']}_y{ts['y']}_x{ts['x']}_halo_z{halo['z']}_y{halo['y']}_x{halo['x']}_" +
+                                    f"_sd{args.seed_distance}_bt{bt_string}_ft{ft_string}_with_pred_ts_z{ts['z']}_y{ts['y']}_x{ts['x']}_halo_z{halo['z']}_y{halo['y']}_x{halo['x']}_",
                                     os.path.basename(path))
             output_path = output_path.replace(".zarr", ".h5")
         if os.path.exists(output_path) and not args.force_overwrite:

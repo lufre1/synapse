@@ -8,7 +8,7 @@ from micro_sam.util import precompute_image_embeddings, get_sam_model, get_devic
 # from synapse_net.file_utils import read_ome_zarr
 
 
-def compute_embeddings(path, output_path, model_type=None, cp=None,
+def compute_embeddings(path, output_path, key="raw", model_type=None, cp=None,
                        tile_shape=None, halo=None):
     
     device = get_device("cuda" if torch.cuda.is_available() else "cpu")
@@ -19,12 +19,9 @@ def compute_embeddings(path, output_path, model_type=None, cp=None,
     try:
         if ".zarr" in path:
             # data, voxel_size = read_ome_zarr(path)
-            raise NotImplementedError(
-                f"Unsupported file type for '{path}'. "
-                f"Expected a .ome.zarr/.zarr/.n5 directory or a .h5/.hdf5 file."
-            )
+            data = open_file(path)[key]
         elif ".h5" in path:
-            data = open_file(path)["raw"]
+            data = open_file(path)[key]
         else:
             raise NotImplementedError(
                 f"Unsupported file type for '{path}'. "
@@ -50,8 +47,10 @@ if __name__ == "__main__":
     parser.add_argument("--base_path", "-b",  type=str, default="/scratch-grete/projects/nim00007/cryo-et-luca", help="Path to the root data directory")
     parser.add_argument("--output_path", "-o",  type=str, default="/scratch-grete/projects/nim00007/data/mitochondria/wichmann/tiled_embeddings_em", help="Path to the output data directory")
     parser.add_argument("--model_type", "-mt", default="vit_b_em_organelles", help="choose model type from (vit_b_em_organelles | vit_b | ...)")
+    parser.add_argument("--checkpoint_path", "-cp", type=str, default=None, help="Path to the SAM model checkpoint")
+    parser.add_argument("--key", "-k", type=str, default="raw", help="Key to select dataset from zarr or hdf5 file")
     parser.add_argument("--tile_shape", "-ts", nargs=3, type=int, default=[1, 512, 512], help="Tile shape for embedding computation (3D)")
-    parser.add_argument("--halo", "-h", nargs=3, type=int, default=[1, 128, 128], help="Halo size for embedding computation (3D)")
+    parser.add_argument("--halo", "-ha", nargs=3, type=int, default=[1, 128, 128], help="Halo size for embedding computation (3D)")
     
     args = parser.parse_args()
     base_path = args.base_path
@@ -74,5 +73,6 @@ if __name__ == "__main__":
         if os.path.exists(out_filepath):
             print("Embeddings already precomputed for:", out_filepath)
             continue
-        compute_embeddings(path, out_filepath, model_type=args.model_type)
+        compute_embeddings(path, out_filepath, model_type=args.model_type, key=args.key, cp=args.checkpoint_path,
+                           tile_shape=args.tile_shape, halo=args.halo)
         print("Precomuted embeddings and saved to:", output_path)

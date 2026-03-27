@@ -15,16 +15,19 @@ micromamba activate /mnt/vast-nhr/home/freckmann15/u15205/micromamba/envs/micro-
 # ================ Define ALL parameters here ONCE ================
 
 DD="/mnt/lustre-grete/usr/u15205/mobie/project_4009/4009/images/ome-zarr/raw.ome.zarr"
-EXPORT_PATH="/mnt/lustre-grete/usr/u15205/mobie/4009_embeddings"
+SP="/mnt/lustre-grete/usr/u15205/mobie/project_4009/4009/images/ome-zarr/axons.ome.zarr"
+EXPORT_PATH="/mnt/lustre-grete/usr/u15205/mobie/4009_microsam_segmentation"
 # MODEL_TYPE="vit_b_em_organelles"
 MODEL_TYPE="vit_b"
 CHECKPOINT_PATH="/mnt/lustre-grete/usr/u15205/volume-em/microsam/checkpoints/vit_b-axons-vit_b-bs1-ps256/best.pt"
+EMBEDDING_PATH="/mnt/lustre-grete/usr/u15205/mobie/4009_embeddings_tiled"
 
-python /mnt/vast-nhr/home/freckmann15/u15205/synapse/data_preprocessing/precompute_embeddings_with_sam.py \
-  -b ${DD} \
-  -o ${EXPORT_PATH} \
-  -mt ${MODEL_TYPE} \
-  --key s2 \
+python /mnt/vast-nhr/home/freckmann15/u15205/synapse/inference/microsam/microsam_segment.py \
+  -i ${DD} \
+  -s ${SP} \
+  -e ${EXPORT_PATH} \
+  -m ${MODEL_TYPE} \
+  -ep ${EMBEDDING_PATH} \
   -cp ${CHECKPOINT_PATH} \
-  # --tile_shape 1 512 512 \
-  # --halo 1 64 64 \
+  --key s2 \
+  -segk s2 \
