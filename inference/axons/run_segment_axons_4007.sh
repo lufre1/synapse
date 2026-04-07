@@ -3,7 +3,7 @@
 #SBATCH -G 1g.20gb:1
 #SBATCH --time=0-02:00:00
 #SBATCH --qos 2h
-#SBATCH --job-name=inference-volume-em
+#SBATCH --job-name=inference-volume-em-4007
 #SBATCH -c 8
 #SBATCH --mem 64G
 ##SBATCH --partition=grete:shared

@@ -1,8 +1,8 @@
 base_path: /mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_zarr/4007/images/ome-zarr/raw.ome.zarr
 file_extension: .zarr
 key: 2
-export_path: /mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_zarr/4007/images/ome-zarr/axons.zarr
-model_path: /mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-axons-net32-lr1e-4-bs4-ps32x512x512-s2-new
+export_path: /mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_zarr/4007/images/ome-zarr/axons_new.zarr
+model_path: /mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-axons-net32-lr5e-4-bs4-ps32x512x512-s2-4007
 
 tile_shape: [32, 512, 512]
 seed_distance: 2
@@ -23,3 +23,4 @@ label_key: null
 disk_based_prediction: true
 file_extension: ".zarr"
 only_foreground: true
+tmp_folder: /mnt/lustre-grete/tmp/u15205/

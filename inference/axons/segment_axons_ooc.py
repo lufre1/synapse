@@ -1,6 +1,7 @@
 import argparse
 import os
 from glob import glob
+import shutil
 
 import yaml
 import h5py
@@ -50,6 +51,7 @@ def build_parser():
     p.add_argument("--disk_based_prediction", "-dbp", action="store_true")
     p.add_argument("--only_foreground", "-of", action="store_true", default=False, help="No boundary predictions")
     p.add_argument("--tmp_folder", "-tmp", type=str, default=None)
+    p.add_argument("--keep_predictions", "-kp", action="store_true", default=False)
     return p
 
 def parse_args():
@@ -338,7 +340,13 @@ def main():
         if args.disk_based_prediction:
             print("Using disk based computations:")
             print(f"Segmentation is stored with key {out_key} at:\n", out_path)
-            print("Predictions used are stored at: \n", pred_path)
+            if args.keep_predictions:
+                print("Predictions used are stored at: \n", pred_path)
+            else:
+                if os.path.isfile(pred_path):
+                    os.remove(pred_path)
+                elif os.path.isdir(pred_path):
+                    shutil.rmtree(pred_path)
             return
         with open_file(output_path, "w", ".h5") as f1:
             print("output_path", output_path)
