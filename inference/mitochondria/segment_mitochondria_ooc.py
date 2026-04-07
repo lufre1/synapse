@@ -1,8 +1,6 @@
 import argparse
 import os
 from glob import glob
-
-import yaml
 import h5py
 import zarr
 import torch
@@ -20,7 +18,8 @@ from elf.evaluation.matching import label_overlap, intersection_over_union
 from skimage.segmentation import relabel_sequential
 from skimage.measure import label
 from skimage.transform import resize
-
+import argparse
+import yaml
 
 def build_parser():
     p = argparse.ArgumentParser()
@@ -48,7 +47,6 @@ def build_parser():
     p.add_argument("--downscale_export", "-de", type=int)
     p.add_argument("--preprocess_volem", "-pv", action="store_true")
     p.add_argument("--disk_based_prediction", "-dbp", action="store_true")
-    p.add_argument("--only_foreground", "-of", action="store_true", default=False, help="No boundary predictions")
     return p
 
 def parse_args():
@@ -71,6 +69,56 @@ def parse_args():
         parser.error("--model_path/-m is required (either in config or CLI).")
 
     return args
+
+def find_additional_objects(
+    ground_truth: np.ndarray,
+    segmentation: np.ndarray,
+    matching_threshold: float = 0.5
+) -> np.ndarray:
+    """
+    Identify additional objects in the segmentation that are not sufficiently covered
+    by the ground truth based on a matching threshold.
+
+    Args:
+        ground_truth (np.ndarray): Ground truth labeled segmentation.
+        segmentation (np.ndarray): Predicted labeled segmentation.
+        matching_threshold (float): IoU threshold to identify matched objects. 
+                                    Objects with IoU > threshold are considered covered.
+
+    Returns:
+        np.ndarray: A labeled segmentation containing only the additional objects.
+    """
+
+    # Relabel both ground truth and segmentation sequentially for consistent IDs
+    ground_truth = relabel_sequential(ground_truth)[0]
+    segmentation = relabel_sequential(segmentation)[0]
+
+    # Compute overlap and IoU between segmentation and ground truth
+    overlap, _ = label_overlap(segmentation, ground_truth)
+    iou = intersection_over_union(overlap)
+
+    # Get all segmentation IDs
+    seg_ids = np.unique(segmentation)
+
+    # Identify IDs of segmentation objects that overlap with ground truth objects above the threshold
+    matched_ids = set()
+    for seg_id in seg_ids:
+        if seg_id == 0:  # Skip background
+            continue
+        max_overlap = iou[seg_id, :].max()
+        if max_overlap > matching_threshold:
+            matched_ids.add(seg_id)
+
+    # Create a mask for additional objects (segmentation IDs not matched)
+    additional_objects = segmentation.copy()
+    for matched_id in matched_ids:
+        additional_objects[additional_objects == matched_id] = 0
+
+    # Relabel the additional objects to keep them contiguous
+    additional_objects = relabel_sequential(additional_objects)[0]
+
+    return additional_objects
+
 
 def export_to_h5(data, export_path):
     with h5py.File(export_path, 'x') as h5f:
@@ -100,11 +148,6 @@ def _read_h5(path, key, scale_factor, z_offset=None):
             return None  # Indicate error
 
         return image
-
-def _get_raw_transform(x):
-    x = util.convert_white_patches_to_black(x, min_patch_size=100)
-    x = torch_em.transform.raw.normalize_percentile(x)
-    return x
 
 
 def get_all_keys_from_h5(file_path):
@@ -150,9 +193,11 @@ def get_all_dataset_keys(file_path):
     return keys
 
 
-def main():
-    args = parse_args()
+def main(visualize=False):
+
+    args = parse_args() 
     exp_scale = args.downscale_export
+    add_missing_mitos = args.add_missing_mitos
     print(args.base_path)
     print("\nUsing model", args.model_path)
     # tile_shape
@@ -191,30 +236,30 @@ def main():
     for path in tqdm(h5_paths):
 
         print("\nopening file", path)
-        if ".zarr" in args.export_path:
-            output_path = args.export_path
-        else:
+        if ".zarr" not in args.export_path:
             os.makedirs(args.export_path, exist_ok=True)
             output_path = os.path.join(args.export_path, (os.path.basename(args.model_path)).replace(".pt", "") +
-                                    f"_sd{args.seed_distance}_bt{bt_string}_ft{ft_string}_with_pred_ts_z{ts['z']}_y{ts['y']}_x{ts['x']}_halo_z{halo['z']}_y{halo['y']}_x{halo['x']}_",
+                                    f"_sd{args.seed_distance}_bt{bt_string}_ft{ft_string}_with_pred_ts_z{ts['z']}_y{ts['y']}_x{ts['x']}_halo_z{halo['z']}_y{halo['y']}_x{halo['x']}_" +
                                     os.path.basename(path))
             output_path = output_path.replace(".zarr", ".h5")
-        if os.path.exists(output_path) and not args.force_overwrite:
-            print("Skipping... output path exists", output_path)
-            continue
-        elif os.path.exists(output_path) and args.force_overwrite:
-            print("Overwriting... output path exists", output_path)
-            os.remove(output_path)
+            if os.path.exists(output_path) and not args.force_overwrite:
+                print("Skipping... output path exists", output_path)
+                continue
+            elif os.path.exists(output_path) and args.force_overwrite:
+                print("Overwriting... output path exists", output_path)
+                os.remove(output_path)
+        else:
+            output_path = args.export_path
         if path.endswith(".h5"):
             keys = get_all_keys_from_h5(path)
         else:
             keys = get_all_dataset_keys(path)
         data = {}
-        scale_factor = 1
+
         with open_file(path, "r") as f:
             centered_crop = args.centered_crop
             if args.key is not None and not args.all_keys:
-                image = f[args.key]  # [::scale_factor, ::scale_factor, ::scale_factor]
+                image = f[args.key]
             else:
                 image = None
                 max_shape = (200, 2000, 2000)  # to not crash
@@ -241,7 +286,7 @@ def main():
             if image is None:
                 image = data[args.key]
             if args.preprocess_volem:
-                image = util.convert_white_patches_to_black(image, min_patch_size=100)
+                image = util.convert_white_patches_to_black(image)
         if not args.use_custom_segment:
             seg, pred = segment_mitochondria(
                 image,  # model=model,
@@ -258,17 +303,23 @@ def main():
                 preprocess=torch_em.transform.raw.normalize_percentile
             )
         if args.use_custom_segment:
+            pred = None
+            pred_ready = False
             if args.disk_based_prediction:
-                pred_name = os.path.basename(path) + "_axons_pred.zarr"
+                n_out = 2  # foreground + boundary
+                pred_name = os.path.basename(path) + "_pred.zarr"
                 pred_path = os.path.join(os.path.dirname(path), pred_name)
+
                 spatial_shape = image.shape  
-                expected_shape = tuple(spatial_shape)
+                print("image shape", image.shape)
+                expected_shape = (n_out,) + tuple(spatial_shape)
                 # chunk by the *inner* block shape used for writing
                 inner_ts = {k: ts[k] - 2 * halo[k] for k in ("z", "y", "x")}
-                chunks = (inner_ts["z"], inner_ts["y"], inner_ts["x"])
+                chunks = (n_out, inner_ts["z"], inner_ts["y"], inner_ts["x"])
                 root = zarr.open(pred_path, mode="a")
                 pred = root.get("pred", None)
                 pred_ready = (pred is not None and pred.shape == expected_shape)
+                print("Prediction needs to be recomputed:", not pred_ready)
                 if not pred_ready:
                     pred = root.create_dataset(
                         "pred",
@@ -278,15 +329,41 @@ def main():
                         compressor=zarr.Blosc(cname="zstd", clevel=3, shuffle=2),
                         overwrite=False,
                     )
-            else:
+                print("Disk based prediction:", args.disk_based_prediction)
+                print("prediction path", pred_path)
+                print("prediction shape", expected_shape)
+                print("Prediction already computed", pred_ready)
+                
+            if not pred_ready:
                 pred = get_prediction(
                     input_volume=image,
                     model_path=args.model_path,
                     tiling=tiling,
-                    preprocess=torch_em.transform.raw.normalize_percentile
-                    # preprocess=_get_raw_transform
+                    preprocess=torch_em.transform.raw.normalize_percentile,
+                    prediction=pred,
                 )
-            if not args.only_foreground:
+            if args.disk_based_prediction:
+                occ_filename = os.path.basename(path) + "_wrapper_tmp.zarr"
+                occ_path = os.path.join(os.path.dirname(path), occ_filename)
+                if ".zarr" in output_path:
+                    occ_path = output_path
+                seg = util.segment_mitos_ooc_wrapped(  #segment_mitos_cc_ooc(
+                    # foreground=pred[0],
+                    # boundary=pred[1],
+                    pred=pred,
+                    foreground_threshold=args.foreground_threshold,
+                    boundary_threshold=args.boundary_threshold,
+                    seed_distance=args.seed_distance,
+                    min_size=args.min_size,
+                    area_threshold=args.area_threshold,
+                    # post_iter3d=args.post_iter3d,
+                    # return_all=False,
+                    # occ_path=occ_path
+                    out_dir=occ_path,
+                    reuse_computed=False
+                )["segmentation"]
+            else:
+                occ_path = None
                 seg = util.segment_mitos(
                     foreground=pred[0],
                     boundary=pred[1],
@@ -295,66 +372,48 @@ def main():
                     seed_distance=args.seed_distance,
                     min_size=args.min_size,
                     area_threshold=args.area_threshold,
-                    post_iter3d=args.post_iter3d
+                    post_iter3d=args.post_iter3d,
                 )["segmentation"]
-            else:
-                print("prediciton shape", pred.shape)
-                if args.disk_based_prediction:
-                    out_name = os.path.basename(path) + "_tmp.zarr"
-                    out_path = os.path.join(os.path.dirname(path), out_name)
-                    out_key = "s1"
-                    if ".zarr" in args.export_path:
-                        out_path = args.export_path
-                    seg = util.segment_axons_ooc(
-                        foreground=pred,
-                        out_path=out_path,
-                        foreground_threshold=args.foreground_threshold,
-                        min_size=args.min_size,
-                        out_key=out_key
-                    )
-                else:
-                    #  in memory
-                    seg = util.segment_axons(
-                        foreground=np.squeeze(pred) if pred.ndim > 3 and pred.shape[0] == 1 else pred,
-                        foreground_threshold=args.foreground_threshold,
-                        seed_distance=args.seed_distance,
-                        min_size=args.min_size,
-                        area_threshold=args.area_threshold
-                    )
+        # skip export if using desk based predictions / segmentations
         if args.disk_based_prediction:
             print("Using disk based computations:")
-            print(f"Segmentation is stored with key {out_key} at:\n", out_path)
+            print("Segmentation is stored at:\n", occ_path)
             print("Predictions used are stored at: \n", pred_path)
             return
-        with open_file(output_path, "w", ".h5") as f1:
-            print("output_path", output_path)
-            ndim = seg.ndim
-            exp_slicing = tuple(slice(None, None, exp_scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-            print("")
+        else:        
+            with open_file(output_path, "w", ".h5") as f1:
+                print("output_path", output_path)
+                ndim = seg.ndim
+                exp_slicing = tuple(slice(None, None, exp_scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+                print("")
 
-            # Save all relevant keys if requested, else save raw
-            if args.key is not None and args.all_keys:
-                print("keys", keys)
-                for key in keys:
-                    f1.create_dataset(key, data=(data[key][exp_slicing] if exp_scale != 1 else data[key]), compression="gzip")
+                # Save all relevant keys if requested, else save raw
+                if args.key is not None and args.all_keys:
+                    print("keys", keys)
+                    for key in keys:
+                        if "mito" in key and add_missing_mitos:
+                            added = label(data[key] + find_additional_objects(data[key], seg, matching_threshold=0.1))
+                            f1.create_dataset(key, data=(added[exp_slicing] if exp_scale != 1 else added), compression="gzip")
+                        else:
+                            f1.create_dataset(key, data=(data[key][exp_slicing] if exp_scale != 1 else data[key]), compression="gzip")
 
-            f1.create_dataset("seg", data=(seg[exp_slicing] if exp_scale != 1 else seg), compression="gzip", dtype=seg.dtype)
-            if not args.only_foreground:
-                f1.create_dataset("pred/foreground", data=(pred[0][exp_slicing] if exp_scale != 1 else pred[0]), compression="gzip", dtype=pred[0].dtype)
-                f1.create_dataset("pred/boundary", data=(pred[1][exp_slicing] if exp_scale != 1 else pred[1]), compression="gzip", dtype=pred[0].dtype)
-            else:
-                f1.create_dataset("pred/foreground", data=(pred[exp_slicing] if exp_scale != 1 else pred), compression="gzip", dtype=pred.dtype)
+                    f1.create_dataset("pred/foreground", data=(pred[0][exp_slicing] if exp_scale != 1 else pred[0]), compression="gzip", dtype=pred[0].dtype)
+                    f1.create_dataset("pred/boundary", data=(pred[1][exp_slicing] if exp_scale != 1 else pred[1]), compression="gzip", dtype=pred[0].dtype)
+                if args.disk_based_prediction:
+                    util.export_ooc_to_h5(seg, f1, "seg", exp_scale=exp_scale, chunk_shape=(128, 256, 256))
+                else:
+                    f1.create_dataset("seg", data=(seg[exp_slicing] if exp_scale != 1 else seg), compression="gzip", dtype=seg.dtype)
 
-            # Optionally include additional label datasets
-            if args.label_path is not None:
-                with open_file(args.label_path, "r") as f2:
-                    if args.label_key is not None:
-                        f1.create_dataset(f"labels/{args.label_key}", data=f2[args.label_key], compression="gzip", dtype=f2[args.label_key].dtype)
-                    else:
-                        for key2 in f2.keys():
-                            f1.create_dataset(f"labels/{key2}", data=f2[key2], compression="gzip", dtype=f2[key2].dtype)
-                print("Saved original segmentation from", args.label_path, "to", output_path)
-            print("Saved to", output_path)
+                # Optionally include additional label datasets
+                if args.label_path is not None:
+                    with open_file(args.label_path, "r") as f2:
+                        if args.label_key is not None:
+                            f1.create_dataset(f"labels/{args.label_key}", data=f2[args.label_key], compression="gzip", dtype=f2[args.label_key].dtype)
+                        else:
+                            for key2 in f2.keys():
+                                f1.create_dataset(f"labels/{key2}", data=f2[key2], compression="gzip", dtype=f2[key2].dtype)
+                    print("Saved original segmentation from", args.label_path, "to", output_path)
+                print("Saved to", output_path)
 
 
 if __name__ == "__main__":

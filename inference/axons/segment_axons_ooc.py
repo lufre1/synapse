@@ -49,6 +49,7 @@ def build_parser():
     p.add_argument("--preprocess_volem", "-pv", action="store_true")
     p.add_argument("--disk_based_prediction", "-dbp", action="store_true")
     p.add_argument("--only_foreground", "-of", action="store_true", default=False, help="No boundary predictions")
+    p.add_argument("--tmp_folder", "-tmp", type=str, default=None)
     return p
 
 def parse_args():
@@ -151,6 +152,7 @@ def get_all_dataset_keys(file_path):
 
 
 def main():
+
     args = parse_args()
     exp_scale = args.downscale_export
     print(args.base_path)
@@ -196,15 +198,15 @@ def main():
         else:
             os.makedirs(args.export_path, exist_ok=True)
             output_path = os.path.join(args.export_path, (os.path.basename(args.model_path)).replace(".pt", "") +
-                                    f"_sd{args.seed_distance}_bt{bt_string}_ft{ft_string}_with_pred_ts_z{ts['z']}_y{ts['y']}_x{ts['x']}_halo_z{halo['z']}_y{halo['y']}_x{halo['x']}_",
+                                    f"_sd{args.seed_distance}_bt{bt_string}_ft{ft_string}_with_pred_ts_z{ts['z']}_y{ts['y']}_x{ts['x']}_halo_z{halo['z']}_y{halo['y']}_x{halo['x']}_" +
                                     os.path.basename(path))
             output_path = output_path.replace(".zarr", ".h5")
-        if os.path.exists(output_path) and not args.force_overwrite:
-            print("Skipping... output path exists", output_path)
-            continue
-        elif os.path.exists(output_path) and args.force_overwrite:
-            print("Overwriting... output path exists", output_path)
-            os.remove(output_path)
+            if os.path.exists(output_path) and not args.force_overwrite:
+                print("Skipping... output path exists", output_path)
+                continue
+            elif os.path.exists(output_path) and args.force_overwrite:
+                print("Overwriting... output path exists", output_path)
+                os.remove(output_path)
         if path.endswith(".h5"):
             keys = get_all_keys_from_h5(path)
         else:
@@ -260,15 +262,24 @@ def main():
         if args.use_custom_segment:
             if args.disk_based_prediction:
                 pred_name = os.path.basename(path) + "_axons_pred.zarr"
-                pred_path = os.path.join(os.path.dirname(path), pred_name)
-                spatial_shape = image.shape  
-                expected_shape = tuple(spatial_shape)
+                if args.tmp_folder is not None:
+                    pred_path = os.path.join(args.tmp_folder, pred_name)
+                else:
+                    pred_path = os.path.join(os.path.dirname(path), pred_name)
+                print("using pred path:\n", pred_path)
+                spatial_shape = image.shape
+                n_out = 1 
+                expected_shape = (n_out,) + tuple(spatial_shape)
                 # chunk by the *inner* block shape used for writing
                 inner_ts = {k: ts[k] - 2 * halo[k] for k in ("z", "y", "x")}
-                chunks = (inner_ts["z"], inner_ts["y"], inner_ts["x"])
+                chunks = (n_out, inner_ts["z"], inner_ts["y"], inner_ts["x"])
                 root = zarr.open(pred_path, mode="a")
                 pred = root.get("pred", None)
-                pred_ready = (pred is not None and pred.shape == expected_shape)
+                pred_ready = (
+                    pred is not None 
+                    and pred.shape == expected_shape 
+                    and pred.chunks == chunks
+                )
                 if not pred_ready:
                     pred = root.create_dataset(
                         "pred",
@@ -276,14 +287,15 @@ def main():
                         chunks=chunks,
                         dtype="float32",
                         compressor=zarr.Blosc(cname="zstd", clevel=3, shuffle=2),
-                        overwrite=False,
+                        overwrite=True,
                     )
-            else:
+            if not pred_ready:
                 pred = get_prediction(
                     input_volume=image,
                     model_path=args.model_path,
                     tiling=tiling,
-                    preprocess=torch_em.transform.raw.normalize_percentile
+                    preprocess=torch_em.transform.raw.normalize_percentile,
+                    prediction=pred
                     # preprocess=_get_raw_transform
                 )
             if not args.only_foreground:
@@ -302,11 +314,13 @@ def main():
                 if args.disk_based_prediction:
                     out_name = os.path.basename(path) + "_tmp.zarr"
                     out_path = os.path.join(os.path.dirname(path), out_name)
-                    out_key = "s1"
+                    if ".zarr" in output_path:
+                        out_path = output_path
+                    out_key = args.key if "s" in str(args.key) else "s" + str(args.key)
                     if ".zarr" in args.export_path:
                         out_path = args.export_path
                     seg = util.segment_axons_ooc(
-                        foreground=pred,
+                        pred=pred,
                         out_path=out_path,
                         foreground_threshold=args.foreground_threshold,
                         min_size=args.min_size,

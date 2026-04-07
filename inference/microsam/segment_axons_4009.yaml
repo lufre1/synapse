@@ -1,0 +1,10 @@
+input_path: /mnt/lustre-grete/usr/u15205/mobie/project_4009/4009/images/ome-zarr/raw.ome.zarr
+segmentation_path: /mnt/lustre-grete/usr/u15205/mobie/project_4009/4009/images/ome-zarr/axons.ome.zarr
+export_path: /mnt/lustre-grete/usr/u15205/mobie/4009_microsam_segmentation
+# embedding_path: /mnt/lustre-grete/usr/u15205/mobie/4009_embeddings_untiled
+checkpoint_path: /mnt/lustre-grete/usr/u15205/volume-em/microsam/checkpoints/vit_b-axons-vit_b-bs1-ps256/best.pt
+model_type: vit_b
+key: s2
+segmentation_key: s2
+# tile_shape: [512, 512]
+# halo: [128, 128]

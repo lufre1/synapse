@@ -11,6 +11,8 @@ import z5py
 import zarr
 from elf.io import open_file
 import elf.parallel as parallel
+import elf.wrapper as wrapper
+from elf.wrapper.base import MultiTransformationWrapper
 from tqdm import tqdm
 import napari
 import torch
@@ -406,8 +408,7 @@ def segment_axons(
 
 
 def segment_axons_ooc(
-    foreground,                   # zarr/dask/numpy-like (C-order), shape (Z,Y,X)
-    boundary=None,                # optional, same shape
+    pred,
     out_path=None,                # zarr directory for outputs
     out_key="seg",
     block_shape=(128, 256, 256),
@@ -417,15 +418,24 @@ def segment_axons_ooc(
     verbose=False,
     return_binary=False,
 ):
-    if boundary is not None:
-        raise NotImplementedError("OOC boundary/watershed branch not implemented here.")
-
     if out_path is None:
         raise ValueError("out_path is required for out-of-core output")
 
-    shape = foreground.shape
+    # --- SAFELY HANDLE 4D vs 3D INPUT ---
+    if pred.ndim == 4:
+        if verbose: 
+            print(f"Detected 4D input with shape {pred.shape}. Lazily wrapping channel 0.")
+        fg_3d = ZarrChannelWrapper(pred, channel=0)
+        shape = fg_3d.shape
+    elif pred.ndim == 3:
+        fg_3d = pred
+        shape = pred.shape
+    else:
+        raise ValueError(f"Expected 3D or 4D prediction input, got {pred.ndim}D")
+
     root = zarr.open(out_path, mode="a")
 
+    # Define out-of-core datasets
     mask = root.require_dataset(
         "mask", shape=shape, chunks=block_shape, dtype="uint8",
         overwrite=True, compressor=compressor
@@ -435,7 +445,8 @@ def segment_axons_ooc(
         overwrite=True, compressor=compressor
     )
 
-    # 1) build mask blockwise (OOC)
+    # 1) Build mask blockwise (OOC)
+    if verbose: print("Thresholding foreground out-of-core...")
     bz, by, bx = block_shape
     Z, Y, X = shape
     for z0 in range(0, Z, bz):
@@ -444,18 +455,22 @@ def segment_axons_ooc(
             y1 = min(y0 + by, Y)
             for x0 in range(0, X, bx):
                 x1 = min(x0 + bx, X)
-                blk = foreground[z0:z1, y0:y1, x0:x1]  # loads only a block
+                # Safely load only a 3D block via the wrapper
+                blk = fg_3d[z0:z1, y0:y1, x0:x1]  
                 mask[z0:z1, y0:y1, x0:x1] = (blk > foreground_threshold).astype(np.uint8)
 
-    # 2) blockwise connected components (requires truly OOC implementation)
+    # 2) Blockwise connected components
+    if verbose: print("Computing connected components out-of-core...")
     parallel.label(mask, block_shape=block_shape, out=seg, verbose=verbose)
 
-    # 3) size filter OOC (needs an OOC implementation; in-memory unique/is in will OOM)
+    # 3) Size filter OOC
     if min_size and min_size > 0:
+        if verbose: print(f"Applying size filter (min_size={min_size})...")
         seg = apply_size_filter_ooc(seg, min_size=min_size, block_shape=block_shape, out=seg, verbose=verbose)
 
     if return_binary:
-        # convert to binary OOC
+        if verbose: print("Converting back to binary out-of-core...")
+        # Convert to binary OOC
         for z0 in range(0, Z, bz):
             z1 = min(z0 + bz, Z)
             for y0 in range(0, Y, by):
@@ -624,6 +639,136 @@ def apply_size_filter_ooc_optim(
         
     return segmentation
 
+class ZarrChannelWrapper:
+    """Lazily extracts a single channel from a multi-channel Zarr array."""
+    def __init__(self, zarr_array, channel):
+        self.zarr_array = zarr_array
+        self.channel = channel
+        self.shape = zarr_array.shape[1:]
+        self.ndim = len(self.shape)
+        self.dtype = zarr_array.dtype
+
+    def __getitem__(self, key):
+        # When a block is requested (e.g., key = (slice(0, 128), slice(0, 256), ...))
+        # we prepend the channel index so we only load that specific block for this channel.
+        if isinstance(key, tuple):
+            return self.zarr_array[(self.channel,) + key]
+        else:
+            return self.zarr_array[(self.channel, key)]
+
+
+def segment_mitos_ooc_wrapped(
+    pred, out_dir, min_size=250,
+    verbose=True,
+    block_shape=(128, 256, 256),
+    halo=(48, 48, 48),
+    seed_distance=6,
+    boundary_threshold=0.25,
+    foreground_threshold=0.5,
+    area_threshold=5000,   # kept for signature compatibility (not used here)
+    reuse_computed=False,
+):
+    # pred is (C,Z,Y,X)
+    shape = pred.shape[1:]
+    fg, bd = ZarrChannelWrapper(pred, 0), ZarrChannelWrapper(pred, 1)
+
+    store = zarr.DirectoryStore(out_dir)
+    root = zarr.group(store=store)  #, overwrite=not reuse_computed)
+
+    def needs(name):
+        return (not reuse_computed) or (name not in root)
+
+    # --- dist (persisted) ---
+    dist = root.get("dist")
+
+    if dist is None or needs("dist"):
+        dist = root.require_dataset("dist", shape=shape, chunks=block_shape, dtype=np.float32)
+        if verbose: print("Computing dist (distance transform)...")
+        t0 = time.time()
+
+        # virtual boolean boundaries-threshold volume (no dataset written)
+        boundaries_thresh = wrapper.SimpleTransformationWrapper(
+            bd, lambda x: x < boundary_threshold
+        )
+
+        parallel.distance_transform(
+            boundaries_thresh, halo=halo, verbose=verbose,
+            block_shape=block_shape, distances=dist
+        )
+        if verbose: print("dist in", time.time() - t0, "s")
+    elif verbose:
+        print("Reusing existing dist...")
+
+    # --- seeds (persisted labeled CC) ---
+    seeds = root.get("seeds")
+
+    if seeds is None or needs("seeds"):
+        seeds = root.require_dataset("seeds", shape=shape, chunks=block_shape, dtype=np.uint32)
+        if verbose: print("Computing seeds (mask) + CC labeling...")
+        t0 = time.time()
+
+        # virtual seed mask (no dataset written)
+        seed_mask = MultiTransformationWrapper(
+            lambda f, d: np.logical_and(f > foreground_threshold, d > seed_distance),
+            fg, dist
+        )
+
+        # label writes out-of-core into `seeds`
+        parallel.label(seed_mask, block_shape=block_shape, verbose=verbose, out=seeds)
+        if verbose: print("seeds in", time.time() - t0, "s")
+    elif verbose:
+        print("Reusing existing seeds...")
+
+    # --- compute dist_max (blockwise reduction) ---
+    if verbose: print("Computing dist_max...")
+    t0 = time.time()
+    dist_max = float(max(np.max(dist[bb]) for bb in iterate_blocks(shape, block_shape)))
+    if verbose: print("dist_max =", dist_max, "in", time.time() - t0, "s")
+
+    bg_penalty = 2.0
+
+    # --- hmap + mask as virtual volumes (no datasets written) ---
+    def hmap_tf(d_chunk, index):
+        # index is the spatial block slice tuple (z,y,x)
+        f_chunk = fg[index]
+        b_chunk = bd[index]
+        h = (dist_max - d_chunk) / dist_max
+        bg = np.logical_and(b_chunk > boundary_threshold, f_chunk < boundary_threshold)
+        h[bg] = bg_penalty
+        return h.astype(np.float32, copy=False)
+
+    hmap = wrapper.TransformationWrapper(dist, hmap_tf)
+
+    mask = MultiTransformationWrapper(
+        lambda f, b: (f + b) > 0.5,
+        fg, bd
+    )
+
+    # --- watershed (persisted) ---
+    seg = root.get("seg")
+
+    if seg is None or needs("seg"):
+        seg = root.require_dataset("seg", shape=shape, chunks=block_shape, dtype=np.uint32)
+        if verbose: print("Computing watershed...")
+        t0 = time.time()
+
+        parallel.seeded_watershed(
+            hmap, seeds,
+            block_shape=block_shape, halo=halo,
+            out=seg, mask=mask,
+            verbose=verbose
+        )
+        if verbose: print("watershed in", time.time() - t0, "s")
+
+        if verbose: print("Applying size filter...")
+        seg = apply_size_filter_ooc_optim(seg, min_size, verbose=verbose, block_shape=block_shape)
+    elif verbose:
+        print("Reusing existing segmentation...")
+
+    return {"segmentation": seg}
+
+
+
 def segment_mitos_ooc_optimized(pred, out_dir, min_size=250,
     verbose=True,
     block_shape=(128, 256, 256),
@@ -748,8 +893,8 @@ def convert_white_patches_to_black(img, min_patch_size=20):
     if img.dtype != np.uint8:
         warnings.warn("img must be uint8, converting to uint8 from " + str(img.dtype))
         img = img.astype(np.uint8)
-    if img.ndim != 3:
-        raise ValueError("img must be a 3D volume")
+    if img.ndim not in (2, 3):
+        raise ValueError(f"img must be a 2D or 3D array, but got {img.ndim}D")
 
     # Binary mask of white voxels
     white_mask = img == 255
@@ -844,6 +989,7 @@ def export_data(export_path: str, data, voxel_size=None):
     Args:
         data (np.ndarray | dict): The data to save. For HDF5/Zarr, a dict of named datasets is required.
         export_path (str): The file path where the data should be saved.
+        voxel_size (tuple | list | np.ndarray, optional): The voxel dimensions.
     
     Raises:
         ValueError: If the file format is unsupported or if data format does not match the expected type.
@@ -859,7 +1005,6 @@ def export_data(export_path: str, data, voxel_size=None):
                 tifffile.imwrite(out_name, value, dtype=value.dtype, compression="zlib")
         elif not isinstance(data, np.ndarray):
             raise ValueError("For .tif format, data must be a NumPy array or a dict of named NumPy arrays.")
-        # iio.imwrite(export_path, data, compression="zlib")
 
     elif ext in {"mrc", "rec"}:
         if not isinstance(data, np.ndarray):
@@ -877,14 +1022,21 @@ def export_data(export_path: str, data, voxel_size=None):
     elif ext in {"h5", "hdf5"}:
         if not isinstance(data, dict):
             raise ValueError("For .h5 and .hdf5 formats, data must be a dictionary with dataset names as keys.")
+        
         with h5py.File(export_path, "w") as f:
+            if voxel_size is not None:
+                voxel_size_array = voxel_size if isinstance(voxel_size, np.ndarray) else np.array(voxel_size, dtype=np.float32)
+                f.attrs.create(name='voxel_size', data=voxel_size_array)
+                # Add explicit indication of the dimension order
+                f.attrs.create(name='voxel_size_order', data='z, y, x')
+            
             for key, value in data.items():
                 ds = f.create_dataset(name=key, data=value, dtype=value.dtype, compression="gzip")
+                
                 if "raw" in key and voxel_size is not None:
-                    # voxel_dtype = np.dtype([('x', np.float32), ('y', np.float32), ('z', np.float32)])
-                    # voxel_size_attr = np.array(voxel_size, dtype=voxel_dtype)
-                    voxel_size_array = voxel_size if isinstance(voxel_size, np.ndarray) else np.array(voxel_size, dtype=np.float32)
                     ds.attrs.create(name='voxel_size', data=voxel_size_array)
+                    # Add it to the dataset attributes as well
+                    ds.attrs.create(name='voxel_size_order', data='z, y, x')
     
     else:
         raise ValueError(f"Unsupported file format: {ext}")
