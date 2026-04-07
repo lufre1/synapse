@@ -260,4 +260,4 @@ if __name__ == "__main__":
     scale = args.scale
     upsample = args.upsample
     label_path = args.label_path
-    main(path, ext, scale, upsample, label_path, segment=args.segment, offset_z=args.offset_z , args=args)
+    main(path, ext, scale, upsample, label_path, segment=args.segment, offset_z=args.offset_z, args=args)
