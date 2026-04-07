@@ -233,7 +233,8 @@ def main(args):
                 # labels = labels[valid_mask]
                 # seg = seg[valid_mask]
             # scores = evaluate_binary(labels, seg)
-            scores = evaluate_binary(labels, seg, ignore_mask=np.logical_not(valid_mask), spacing=None)
+            scores = evaluate_binary(labels, seg, ignore_mask=np.logical_not(valid_mask), spacing=None,
+                                     compute_hd95=args.compute_hd95)
             all_scores.append(scores)
             export(scores, output_path, cut_after_halo(os.path.basename(label_path.replace("0.", "0")).split(".")[0]))
         if all_scores:
