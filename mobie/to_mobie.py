@@ -83,17 +83,77 @@ def _get_sources(ds_folder):
     return md.get("sources", {})
 
 
+def _repair_views_if_needed(ds_folder):
+    """Ensure 'views' in dataset.json is a dict, not a list."""
+    md_path = os.path.join(ds_folder, "dataset.json")
+    if not os.path.exists(md_path):
+        return
+    md = mobie.metadata.read_dataset_metadata(ds_folder)
+    views = md.get("views", {})
+    if isinstance(views, list):
+        print(f"[REPAIR] 'views' in {md_path} is a list — converting to dict")
+        new_views = {}
+        for entry in views:
+            if isinstance(entry, dict):
+                new_views.update(entry)
+        md["views"] = new_views
+        mobie.metadata.write_dataset_metadata(ds_folder, md)
+
+
+def _remove_source_from_metadata(ds_folder, source_name, file_format="ome.zarr"):
+    """Remove a source (image or segmentation) from MoBIE dataset metadata and disk."""
+    md = mobie.metadata.read_dataset_metadata(ds_folder)
+    sources = md.get("sources", {})
+
+    if source_name not in sources:
+        return
+
+    # Find and delete the on-disk data
+    source_info = sources[source_name]
+    # source_info looks like: {"segmentation": {"imageData": {"ome.zarr": {"relativePath": "..."}}}}
+    # or:                     {"image": {"imageData": {"ome.zarr": {"relativePath": "..."}}}}
+    for source_type in ("image", "segmentation"):
+        if source_type in source_info:
+            rel_path = (source_info[source_type]
+                        .get("imageData", {})
+                        .get(file_format, {})
+                        .get("relativePath", None))
+            if rel_path:
+                full_path = os.path.join(ds_folder, rel_path)
+                if os.path.exists(full_path):
+                    shutil.rmtree(full_path)
+                    print(f"  Deleted data: {full_path}")
+
+    # Remove from sources dict
+    del md["sources"][source_name]
+
+    # Remove from views dict (views is a dict, NOT a list)
+    views = md.get("views", {})
+    if isinstance(views, dict) and source_name in views:
+        del views[source_name]
+        md["views"] = views
+
+    mobie.metadata.write_dataset_metadata(ds_folder, md)
+    print(f"  Removed '{source_name}' from metadata")
+
+
 # -----------------------------
 # MoBIE add helpers
 # -----------------------------
 def add_raw(output_root, ds_name, path, key, tmp_folder, resolution,
             image_name="raw", clear_bg=False,
-            file_format="ome.zarr", target="local", max_jobs=16):
+            file_format="ome.zarr", target="local", max_jobs=16,
+            overwrite=False):
     ds_folder = os.path.join(output_root, ds_name)
+    _repair_views_if_needed(ds_folder)
     sources = _get_sources(ds_folder)
+
     if image_name in sources:
-        print(f"[SKIP] {ds_name}: image '{image_name}' already exists")
-        return
+        if not overwrite:
+            print(f"[SKIP] {ds_name}: image '{image_name}' already exists (use --overwrite)")
+            return
+        print(f"[OVERWRITE] {ds_name}: removing existing image '{image_name}'")
+        _remove_source_from_metadata(ds_folder, image_name, file_format)
 
     if clear_bg:
         path = clear_background(path, key=key, tmp_folder=tmp_folder)
@@ -118,12 +178,18 @@ def add_raw(output_root, ds_name, path, key, tmp_folder, resolution,
 
 def add_seg(output_root, ds_name, path, key, tmp_folder, resolution,
             seg_name,
-            file_format="ome.zarr", target="local", max_jobs=16):
+            file_format="ome.zarr", target="local", max_jobs=16,
+            overwrite=False):
     ds_folder = os.path.join(output_root, ds_name)
+    _repair_views_if_needed(ds_folder)
     sources = _get_sources(ds_folder)
+
     if seg_name in sources:
-        print(f"[SKIP] {ds_name}: segmentation '{seg_name}' already exists")
-        return
+        if not overwrite:
+            print(f"[SKIP] {ds_name}: segmentation '{seg_name}' already exists (use --overwrite)")
+            return
+        print(f"[OVERWRITE] {ds_name}: removing existing segmentation '{seg_name}'")
+        _remove_source_from_metadata(ds_folder, seg_name, file_format)
 
     scale_factors = [[1, 2, 2], [1, 2, 2], [2, 2, 2]]
     chunks = [64, 128, 128]
@@ -194,6 +260,8 @@ def build_parser():
                    help="MoBIE target (default: local).")
     p.add_argument("--max-jobs", type=int, default=8,
                    help="Parallel jobs for writing (default: 8).")
+    p.add_argument("--overwrite", action="store_true", default=False,
+               help="If set, overwrite existing sources instead of skipping them.")
 
     return p
 
@@ -236,6 +304,7 @@ def main():
             file_format=args.file_format,
             target=args.target,
             max_jobs=args.max_jobs,
+            overwrite=args.overwrite,
         )
         shutil.rmtree(tmp_folder)
 
@@ -251,6 +320,7 @@ def main():
             file_format=args.file_format,
             target=args.target,
             max_jobs=args.max_jobs,
+            overwrite=args.overwrite,
         )
         shutil.rmtree(tmp_folder)
     if os.path.isdir(tmp_folder):
