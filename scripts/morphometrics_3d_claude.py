@@ -52,6 +52,7 @@ Outputs
 import argparse
 import os
 import warnings
+from concurrent.futures import ProcessPoolExecutor
 from glob import glob
 from pathlib import Path
 
@@ -93,6 +94,111 @@ def _load_volume(path, key):
     if os.path.isdir(path):
         return zarr.open(path, mode='r')[key][:]
     return imread(path)
+
+
+def _open_lazy(path, key):
+    """Return a lazy array view without loading data into memory.
+
+    For Zarr: returns the zarr.Array (no data read).
+    For TIFF: attempts tifffile.memmap (uncompressed TIFFs only); falls back to
+    a full in-memory load, which will be sliced per block in _scan_bboxes.
+    """
+    if os.path.isdir(path):
+        return zarr.open(path, mode='r')[key]
+    import tifffile as _tf
+    try:
+        return _tf.memmap(path)
+    except Exception:
+        return imread(path)
+
+
+def _scan_bboxes(path, key, block_shape=(64, 512, 512)):
+    """Scan a label volume in 3-D blocks to build per-ID tight bounding boxes.
+
+    Keeps only one block in memory at a time — memory use is O(block_size).
+
+    Returns
+    -------
+    bboxes    : dict {label_id -> [z_min, z_max, y_min, y_max, x_min, x_max]}
+    vcounts   : dict {label_id -> voxel_count}
+    vol_shape : (Z, Y, X)
+    """
+    arr = _open_lazy(path, key)
+    vol_shape = arr.shape
+    Z, Y, X = vol_shape
+    bz, by, bx = block_shape
+
+    # Quick check: if binary label with relabelling needed, fail early.
+    sample = np.asarray(arr[0:min(bz, Z), 0:min(by, Y), 0:min(bx, X)])
+    nonzero_ids = set(np.unique(sample).tolist()) - {0}
+    if nonzero_ids and max(nonzero_ids) == 1:
+        warnings.warn(
+            "Binary (0/1) label detected. The lazy pipeline treats the entire foreground "
+            "as a single object (ID=1). Pre-compute connected-component instance labels "
+            "with skimage.measure.label if you need per-mitochondrion analysis.",
+            stacklevel=2,
+        )
+
+    bboxes: dict = {}
+    vcounts: dict = {}
+    total_blocks = (
+        ((Z + bz - 1) // bz) * ((Y + by - 1) // by) * ((X + bx - 1) // bx)
+    )
+    with tqdm(total=total_blocks, desc="  Scanning label volume", leave=False) as pbar:
+        for z0 in range(0, Z, bz):
+            for y0 in range(0, Y, by):
+                for x0 in range(0, X, bx):
+                    z1 = min(z0 + bz, Z)
+                    y1 = min(y0 + by, Y)
+                    x1 = min(x0 + bx, X)
+                    chunk = np.asarray(arr[z0:z1, y0:y1, x0:x1])
+
+                    ids = np.unique(chunk)
+                    ids = ids[ids != 0]
+                    for mid in ids:
+                        coords = np.argwhere(chunk == mid)
+                        gz = coords[:, 0] + z0
+                        gy = coords[:, 1] + y0
+                        gx = coords[:, 2] + x0
+                        vcounts[mid] = vcounts.get(mid, 0) + len(coords)
+                        if mid not in bboxes:
+                            bboxes[mid] = [int(gz.min()), int(gz.max()),
+                                           int(gy.min()), int(gy.max()),
+                                           int(gx.min()), int(gx.max())]
+                        else:
+                            b = bboxes[mid]
+                            b[0] = min(b[0], int(gz.min())); b[1] = max(b[1], int(gz.max()))
+                            b[2] = min(b[2], int(gy.min())); b[3] = max(b[3], int(gy.max()))
+                            b[4] = min(b[4], int(gx.min())); b[5] = max(b[5], int(gx.max()))
+                    pbar.update(1)
+
+    return bboxes, vcounts, vol_shape
+
+
+def _bb_to_slices(bbox, shape, margin=1):
+    """Convert [z0,z1,y0,y1,x0,x1] tight bbox to margin-padded tuple of slices."""
+    z0, z1, y0, y1, x0, x1 = bbox
+    return (
+        slice(max(0, z0 - margin), min(shape[0], z1 + margin + 1)),
+        slice(max(0, y0 - margin), min(shape[1], y1 + margin + 1)),
+        slice(max(0, x0 - margin), min(shape[2], x1 + margin + 1)),
+    )
+
+
+def _load_subvolume_from_path(path, key, slices):
+    """Open a file and read only the region defined by *slices*.
+
+    For Zarr: re-opens the store (safe for use in worker processes).
+    For TIFF: uses memmap for uncompressed files, full load otherwise.
+    """
+    if os.path.isdir(path):
+        return np.asarray(zarr.open(path, mode='r')[key][slices])
+    import tifffile as _tf
+    try:
+        arr = _tf.memmap(path)
+        return np.array(arr[slices])
+    except Exception:
+        return imread(path)[slices]
 
 
 # ---------------------------------------------------------------------------
@@ -442,6 +548,191 @@ def morphometrics_3d(
 
 
 # ---------------------------------------------------------------------------
+# Parallel worker (must be a top-level function to be picklable)
+# ---------------------------------------------------------------------------
+
+def _compute_mito_metrics_worker(task):
+    """Compute all morphometrics for one mitochondrion from its bounding-box subvolume.
+
+    Designed to run in a worker process: re-opens files from paths so no
+    large arrays are sent over IPC.
+    """
+    (raw_path, raw_key, mito_path, mito_key, cell_path, cell_key,
+     mito_id, slices, vol_shape, voxel_size_nm,
+     compute_surface, compute_skeleton) = task
+
+    raw_bb  = _load_subvolume_from_path(raw_path,  raw_key,  slices)
+    mito_bb = _load_subvolume_from_path(mito_path, mito_key, slices)
+    cell_bb = _load_subvolume_from_path(cell_path, cell_key, slices) if cell_path else None
+
+    local_mask = mito_bb == mito_id
+    local_coords = np.argwhere(local_mask)
+    if local_coords.size == 0:
+        return None
+
+    offsets = np.array([s.start for s in slices])
+    global_coords = local_coords + offsets
+    voxel_count = int(local_mask.sum())
+    centroid_vx = global_coords.mean(axis=0)
+
+    # --- voxel size ---
+    if voxel_size_nm is not None:
+        vs = np.asarray(voxel_size_nm, dtype=float).ravel()
+        if vs.size == 1:
+            scale_um = np.array([vs[0], vs[0], vs[0]]) * 1e-3
+        elif vs.size == 2:
+            scale_um = np.array([vs[0], vs[1], vs[1]]) * 1e-3
+        else:
+            scale_um = vs[:3] * 1e-3
+        scaled_coords   = global_coords.astype(float) * scale_um
+        centroid_um     = centroid_vx * scale_um
+        volume_um3      = float(voxel_count * np.prod(scale_um))
+        spacing_zyx_um  = tuple(scale_um.tolist())
+    else:
+        scaled_coords  = global_coords.astype(float)
+        centroid_um    = np.full(3, np.nan)
+        volume_um3     = np.nan
+        spacing_zyx_um = None
+
+    # --- intensity ---
+    pv = raw_bb[local_mask].astype(float)
+    intensity_mean = float(pv.mean())
+    intensity_min  = float(pv.min())
+    intensity_max  = float(pv.max())
+    intensity_std  = float(pv.std())
+
+    # --- shape metrics ---
+    (a_um, b_um, c_um), ax_metrics = _principal_axes_um(scaled_coords)
+
+    touches_border = bool(
+        global_coords[:, 0].min() == 0 or global_coords[:, 0].max() == vol_shape[0] - 1 or
+        global_coords[:, 1].min() == 0 or global_coords[:, 1].max() == vol_shape[1] - 1 or
+        global_coords[:, 2].min() == 0 or global_coords[:, 2].max() == vol_shape[2] - 1
+    )
+
+    try:
+        euler_char = int(euler_number(local_mask, connectivity=3))
+    except Exception:
+        euler_char = 0
+
+    surface_um2 = np.nan
+    sphericity  = np.nan
+    sv_ratio    = np.nan
+    if compute_surface and spacing_zyx_um is not None:
+        surface_um2 = _surface_area_um2(local_mask, spacing_zyx_um)
+        if np.isfinite(surface_um2) and surface_um2 > 0 and np.isfinite(volume_um3) and volume_um3 > 0:
+            sv_ratio   = float(surface_um2 / volume_um3)
+            sphericity = _sphericity(volume_um3, surface_um2)
+
+    skel_len = np.nan
+    if compute_skeleton and spacing_zyx_um is not None:
+        skel_len = _skeleton_length_um(local_mask, spacing_zyx_um)
+
+    # --- cell assignment ---
+    cell_id = np.nan
+    if cell_bb is not None:
+        cell_values = cell_bb[local_mask]
+        nz = cell_values[cell_values != 0]
+        if nz.size > 0:
+            vals, counts = np.unique(nz, return_counts=True)
+            cell_id = int(vals[counts.argmax()])
+
+    row = {
+        "label_id":            int(mito_id),
+        "cell_id":             cell_id,
+        "volume_vx":           voxel_count,
+        "volume_um3":          volume_um3,
+        "surface_um2":         surface_um2,
+        "sphericity":          sphericity,
+        "sv_ratio":            sv_ratio,
+        "a_um":                float(a_um),
+        "b_um":                float(b_um),
+        "c_um":                float(c_um),
+        "elongation_a_over_c": ax_metrics["elongation_a_over_c"],
+        "flatness_b_over_c":   ax_metrics["flatness_b_over_c"],
+        "isotropy_c_over_a":   ax_metrics["isotropy_c_over_a"],
+        "euler_char":          euler_char,
+        "touches_border":      touches_border,
+        "centroid_z_vx":       float(centroid_vx[0]),
+        "centroid_y_vx":       float(centroid_vx[1]),
+        "centroid_x_vx":       float(centroid_vx[2]),
+        "centroid_z_um":       float(centroid_um[0]),
+        "centroid_y_um":       float(centroid_um[1]),
+        "centroid_x_um":       float(centroid_um[2]),
+        "nearest_neighbor_um": np.nan,
+        "mean_intensity":      intensity_mean,
+        "min_intensity":       intensity_min,
+        "max_intensity":       intensity_max,
+        "std_intensity":       intensity_std,
+    }
+    if compute_skeleton:
+        row["skeleton_length_um"] = skel_len
+    return row
+
+
+def _aggregate_per_cell_lazy(
+    per_mito_df, cell_path, cell_key, vol_shape,
+    voxel_size_nm, compute_surface, block_shape,
+):
+    """Build per-cell summary from per-mito results using lazy cell-label loading."""
+    cell_bboxes, cell_vcounts, _ = _scan_bboxes(cell_path, cell_key, block_shape)
+
+    voxel_vol_um3  = None
+    spacing_zyx_um = None
+    if voxel_size_nm is not None:
+        vs = np.asarray(voxel_size_nm, dtype=float).ravel()
+        if vs.size == 1:
+            scale_um = np.array([vs[0], vs[0], vs[0]]) * 1e-3
+        elif vs.size == 2:
+            scale_um = np.array([vs[0], vs[1], vs[1]]) * 1e-3
+        else:
+            scale_um = vs[:3] * 1e-3
+        voxel_vol_um3  = float(np.prod(scale_um))
+        spacing_zyx_um = tuple(scale_um.tolist())
+
+    cell_rows = []
+    for cid, vcount in tqdm(cell_vcounts.items(), desc="  Per-cell aggregation", leave=False):
+        cell_vol_um3 = float(vcount * voxel_vol_um3) if voxel_vol_um3 else np.nan
+
+        cell_surface_um2 = np.nan
+        cell_sphericity  = np.nan
+        if compute_surface and spacing_zyx_um is not None:
+            slices   = _bb_to_slices(cell_bboxes[cid], vol_shape, margin=1)
+            cell_bb  = _load_subvolume_from_path(cell_path, cell_key, slices)
+            cell_obj = cell_bb == cid
+            cell_surface_um2 = _surface_area_um2(cell_obj, spacing_zyx_um)
+            cell_sphericity  = _sphericity(cell_vol_um3, cell_surface_um2)
+
+        mitodf_c      = per_mito_df[per_mito_df["cell_id"] == cid]
+        mito_count    = len(mitodf_c)
+        mito_vol_um3  = float(mitodf_c["volume_um3"].sum()) if mito_count > 0 else 0.0
+        mito_vol_frac = (
+            mito_vol_um3 / cell_vol_um3
+            if np.isfinite(cell_vol_um3) and cell_vol_um3 > 0 else np.nan
+        )
+        mito_mean_vol = float(mitodf_c["volume_um3"].mean()) if mito_count > 0 else np.nan
+        mito_density  = (
+            mito_count / cell_vol_um3
+            if np.isfinite(cell_vol_um3) and cell_vol_um3 > 0 else np.nan
+        )
+
+        cell_rows.append({
+            "label_id":             int(cid),
+            "volume_vx":            vcount,
+            "volume_um3":           cell_vol_um3,
+            "surface_um2":          cell_surface_um2,
+            "sphericity":           cell_sphericity,
+            "mito_count":           mito_count,
+            "mito_volume_um3":      mito_vol_um3,
+            "mito_volume_fraction": mito_vol_frac,
+            "mito_mean_volume_um3": mito_mean_vol,
+            "mito_density_per_um3": mito_density,
+        })
+
+    return pd.DataFrame(cell_rows)
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -452,6 +743,8 @@ def _resolve_voxel_size(vs_list):
 
 def main(args):
     ext = args.ext if args.ext is not None else ".tif"
+    block_shape = tuple(args.block_shape)
+    n_workers = args.n_workers if args.n_workers > 0 else os.cpu_count()
 
     # --- collect file paths ---
     paths = _find_paths(args.path, ext)
@@ -501,25 +794,58 @@ def main(args):
             if cell_path:
                 print(f"cell: {cell_path}")
 
-        raw = _load_volume(raw_path, args.raw_key)
-        mito_label = _load_volume(mito_path, args.mito_key)
-        cell_label = _load_volume(cell_path, args.cell_key) if cell_path else None
+        # Step 1: scan label volume in blocks — O(block_size) peak memory.
+        print(f"  Scanning bounding boxes in {os.path.basename(mito_path)} ...")
+        bboxes, _vcounts, vol_shape = _scan_bboxes(mito_path, args.mito_key, block_shape)
+        mito_ids = sorted(bboxes.keys())
+        print(f"  Found {len(mito_ids)} objects.")
 
-        mito_df, cell_df = morphometrics_3d(
-            raw=raw,
-            mito_label=mito_label,
-            cell_label=cell_label,
-            voxel_size_nm=voxel_size_nm,
-            relabel=args.relabel,
-            compute_surface=compute_surface,
-            compute_skeleton=args.skeleton,
-        )
+        # Step 2: build per-object tasks (only paths + slices are serialised).
+        tasks = [
+            (raw_path,  args.raw_key,
+             mito_path, args.mito_key,
+             cell_path, args.cell_key,
+             mito_id,
+             _bb_to_slices(bboxes[mito_id], vol_shape, margin=1),
+             vol_shape, voxel_size_nm, compute_surface, args.skeleton)
+            for mito_id in mito_ids
+        ]
 
-        mito_df.insert(0, "mito_file", os.path.basename(mito_path))
+        # Step 3: compute metrics in parallel — each worker loads only its subvolume.
+        chunksize = max(1, len(tasks) // (n_workers * 4))
+        rows = []
+        with ProcessPoolExecutor(max_workers=n_workers) as pool:
+            for row in tqdm(
+                pool.map(_compute_mito_metrics_worker, tasks, chunksize=chunksize),
+                total=len(tasks), desc="  Computing metrics", leave=False,
+            ):
+                if row is not None:
+                    rows.append(row)
+
+        per_mito_df = pd.DataFrame(rows)
+
+        # Step 4: nearest-neighbour distances (in main process; centroids are tiny).
+        if len(rows) >= 2:
+            pts = per_mito_df[["centroid_z_um", "centroid_y_um", "centroid_x_um"]].values
+            if not np.any(np.isnan(pts)):
+                tree = cKDTree(pts)
+                dists, _ = tree.query(pts, k=2)
+                per_mito_df["nearest_neighbor_um"] = dists[:, 1]
+
+        # Step 5: per-cell aggregation (lazy, no full cell array in memory).
+        cell_df = None
+        if cell_path is not None and not per_mito_df.empty:
+            print("  Aggregating per-cell stats ...")
+            cell_df = _aggregate_per_cell_lazy(
+                per_mito_df, cell_path, args.cell_key,
+                vol_shape, voxel_size_nm, compute_surface, block_shape,
+            )
+
+        per_mito_df.insert(0, "mito_file", os.path.basename(mito_path))
         if cell_path:
-            mito_df.insert(0, "cell_file", os.path.basename(cell_path))
-        mito_df.insert(0, "raw_file", os.path.basename(raw_path))
-        all_mito_rows.append(mito_df)
+            per_mito_df.insert(0, "cell_file", os.path.basename(cell_path))
+        per_mito_df.insert(0, "raw_file", os.path.basename(raw_path))
+        all_mito_rows.append(per_mito_df)
 
         if cell_df is not None and not cell_df.empty:
             cell_df.insert(0, "mito_file", os.path.basename(mito_path))
@@ -545,7 +871,7 @@ def main(args):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(
-        description="3D morphometrics for mitochondria (and cells) from TIFF volumes.",
+        description="3D morphometrics for mitochondria (and cells) from TIFF or Zarr v2 volumes.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     ap.add_argument("--path", "-p", type=str, required=True,
@@ -572,8 +898,13 @@ if __name__ == "__main__":
                     help="Dataset key inside cell label Zarr store (ignored for TIFF).")
     ap.add_argument("--voxel_size", "-vs", type=float, nargs="+", default=[25.0, 5.0, 5.0],
                     help="Voxel size in nm: 1 value (isotropic), 2 (z yx), or 3 (z y x). Default: 25 5 5.")
+    ap.add_argument("--n_workers", "-nw", type=int, default=0,
+                    help="Parallel worker processes (0 = all CPUs).")
+    ap.add_argument("--block_shape", type=int, nargs=3, default=[64, 512, 512],
+                    help="Z Y X block size for scanning the label volume.")
     ap.add_argument("--relabel", "-r", action="store_true",
-                    help="Relabel binary/non-sequential instance labels.")
+                    help="Relabel non-sequential instance labels. Binary inputs require "
+                         "pre-computed connected-component labels for large volumes.")
     ap.add_argument("--no_surface", action="store_true",
                     help="Skip marching-cubes surface area (faster).")
     ap.add_argument("--skeleton", action="store_true",
