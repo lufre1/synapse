@@ -20,7 +20,9 @@ import seaborn as sns
 from scipy import stats
 from statsmodels.stats.multitest import multipletests
 
-DATA_DIR = Path(__file__).parent.parent
+
+
+DATA_DIR = Path(__file__).parent.parent.parent
 
 DATASETS = {
     "4007": DATA_DIR / "4007_analysis" / "4007_cell_level_mito_summary.csv",
@@ -32,14 +34,17 @@ OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 
 CELL_LEVEL_METRICS = [
     "cell_volume_um3",
+    # count / density (prefer density for cross-dataset comparison)
     "mito_count",
     "mito_count_density",
+    # volume / density
     "mito_volume_um3",
     "mito_volume_fraction",
     "mito_volume_density",
-    "num_mitos_annotated",
+    # per-mito size
     "mean_mito_volume_um3",
     "median_mito_volume_um3",
+    # shape metrics (intrinsically normalised — no cell-volume normalisation needed)
     "mean_mito_sphericity",
     "median_mito_sphericity",
     "mean_mito_sv_ratio",
@@ -48,6 +53,7 @@ CELL_LEVEL_METRICS = [
     "median_mito_elongation",
     "mean_mito_flatness",
     "median_mito_flatness",
+    # num_mitos_annotated omitted: identical to mito_count after QC filtering
 ]
 
 LOG_METRICS_IF_AVAILABLE = [
@@ -152,6 +158,7 @@ def plot_metric(df1, df2, metric, outdir: Path):
     plt.title(metric.replace("_", " "))
     plt.tight_layout()
     plt.savefig(outdir / f"{metric}.png", dpi=200)
+    plt.savefig(outdir / f"{metric}.svg")
     plt.close()
 
 
@@ -176,6 +183,7 @@ def plot_effect_sizes(results_df: pd.DataFrame, outpath: Path):
     plt.title("Effect sizes for cell-level mitochondrial metrics")
     plt.tight_layout()
     plt.savefig(outpath, dpi=200)
+    plt.savefig(Path(str(outpath).replace(".png", ".svg")))
     plt.close()
 
 
@@ -209,7 +217,8 @@ def main():
     print(f"  {OUTPUT_DIR / 'cell_level_stats_raw.csv'}")
     print(f"  {OUTPUT_DIR / 'cell_level_stats_log_metrics.csv'}")
     print(f"  {OUTPUT_DIR / 'effect_sizes_raw.png'}")
-    print(f"  plots in {plots_dir}")
+    print(f"  {OUTPUT_DIR / 'effect_sizes_raw.svg'}")
+    print(f"  plots in {plots_dir} (png + svg)")
 
     print("\nTop results:")
     if len(results_raw) > 0:
