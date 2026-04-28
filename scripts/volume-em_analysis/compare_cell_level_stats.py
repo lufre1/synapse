@@ -29,7 +29,7 @@ DATASETS = {
     "4009": DATA_DIR / "4009_analysis" / "4009_cell_level_mito_summary.csv",
 }
 
-OUTPUT_DIR = DATA_DIR / "comparison_analysis"
+OUTPUT_DIR = DATA_DIR / "comparison_analysis_with_tests"
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 
 CELL_LEVEL_METRICS = [
