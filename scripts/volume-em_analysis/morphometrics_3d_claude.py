@@ -14,7 +14,9 @@ Metric mapping vs. morphometrics_2d.py
 Additional 3D metrics not in the 2D script:
   sv_ratio, elongation/flatness/isotropy, euler_char, centroid (vx + µm),
   nearest_neighbor_um, touches_border, cell_id (if cell seg provided),
-  skeleton_length_um (opt-in via --skeleton; branches/endpoints are TODO).
+  skeleton_length_um (opt-in via --skeleton),
+  axon torsion stats: axon_torsion_mean/std/max/min/integral, axon_centerline_length_um
+  (opt-in via --skeleton; requires cell/axon segmentation).
 
 Voxel size: supplied in nm on the CLI (consistent with 2D scripts); stored and
 reported in µm in all output columns.
@@ -47,6 +49,7 @@ Outputs
 -------
   <output_path>/mito_morphometrics_3d.csv   -- one row per mitochondrion
   <output_path>/cell_summary_3d.csv         -- one row per cell (if -clpth given)
+  With --skeleton: adds skeleton_length_um (mito) and axon_torsion_* + axon_centerline_length_um (cells)
 """
 
 import argparse
@@ -60,8 +63,10 @@ import numpy as np
 import pandas as pd
 import zarr
 from scipy.spatial import cKDTree
+from scipy.interpolate import splprep, splev
+from scipy.ndimage import binary_erosion
 from skimage.measure import euler_number, label as cc_label, marching_cubes
-from skimage.morphology import skeletonize
+from skimage.morphology import skeletonize, skeletonize_3d
 from skimage.segmentation import relabel_sequential
 from tifffile import imread
 from tqdm import tqdm
@@ -291,6 +296,251 @@ def _skeleton_length_um(obj, spacing_zyx_um):
     return float(skel.sum()) * voxel_dist
 
 
+def _skeleton_to_ordered_points(skel, spacing_zyx_um):
+    """
+    Convert a 3D skeleton to an ordered array of (z,y,x) coordinates in physical units.
+    
+    Uses graph traversal to find endpoints and trace the longest path through the skeleton.
+    
+    Returns
+    -------
+    points : ndarray, shape (N, 3)
+        Ordered points along the centerline in physical coordinates (µm).
+    """
+    from scipy import ndimage as ndi
+    from skimage.graph import central_pixel
+    
+    skel = np.asarray(skel, dtype=bool)
+    
+    if not np.any(skel):
+        return np.array([]).reshape(0, 3)
+    
+    coords = np.argwhere(skel)
+    
+    if len(coords) < 2:
+        return coords.astype(float) * np.array(spacing_zyx_um)
+    
+    n_points = len(coords)
+    coord_set = set(map(tuple, coords))
+    
+    def _get_neighbors(c):
+        neighbors = []
+        for dz in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                for dx in [-1, 0, 1]:
+                    if dz == 0 and dy == 0 and dx == 0:
+                        continue
+                    if abs(dz) + abs(dy) + abs(dx) > 2:
+                        continue
+                    n = (c[0] + dz, c[1] + dy, c[2] + dx)
+                    if n in coord_set:
+                        neighbors.append(n)
+        return neighbors
+    
+    degrees = {}
+    for c in map(tuple, coords):
+        degrees[c] = len(_get_neighbors(c))
+    
+    endpoints = [c for c, d in degrees.items() if d == 1]
+    
+    if len(endpoints) < 2:
+        endpoints = [tuple(coords[0]), tuple(coords[-1])]
+    
+    def _trace_path(start):
+        path = [start]
+        current = start
+        visited = {start}
+        
+        while True:
+            neighbors = _get_neighbors(current)
+            unvisited = [n for n in neighbors if n not in visited]
+            
+            if not unvisited:
+                break
+            
+            next_point = unvisited[0]
+            path.append(next_point)
+            visited.add(next_point)
+            current = next_point
+        
+        return path
+    
+    longest_path = []
+    for ep in endpoints[:10]:
+        path = _trace_path(ep)
+        if len(path) > len(longest_path):
+            longest_path = path
+    
+    if not longest_path:
+        longest_path = [tuple(coords[0])]
+    
+    points_vox = np.array(longest_path, dtype=float)
+    points_phys = points_vox * np.array(spacing_zyx_um)
+    
+    return points_phys
+
+
+def _frenet_torsion(points, n_sample=100, smoothing=0.5):
+    """
+    Compute torsion along a 3D curve using Frenet-Serret formulas.
+    
+    Parameters
+    ----------
+    points : ndarray, shape (N, 3)
+        Ordered 3D points in physical coordinates.
+    n_sample : int
+        Number of points to sample along the spline.
+    smoothing : float
+        Spline smoothing parameter (0 = no smoothing, 1 = high smoothing).
+    
+    Returns
+    -------
+    torsion_values : ndarray
+        Torsion values at sampled points (µm⁻¹).
+    """
+    if len(points) < 4:
+        return np.array([np.nan])
+    
+    try:
+        tck, u = splprep(points.T, s=smoothing, k=3)
+    except Exception:
+        return np.array([np.nan])
+    
+    u_sample = np.linspace(0, 1, n_sample)
+    
+    try:
+        first_deriv = splev(u_sample, tck, der=1)
+        second_deriv = splev(u_sample, tck, der=2)
+        third_deriv = splev(u_sample, tck, der=3)
+    except Exception:
+        return np.array([np.nan])
+    
+    first_deriv = np.array(first_deriv).T
+    second_deriv = np.array(second_deriv).T
+    third_deriv = np.array(third_deriv).T
+    
+    torsion_values = []
+    for i in range(n_sample):
+        T = first_deriv[i]
+        N_prime = second_deriv[i]
+        B_prime = third_deriv[i]
+        
+        speed = np.linalg.norm(T)
+        if speed < 1e-10:
+            torsion_values.append(np.nan)
+            continue
+        
+        T_unit = T / speed
+        
+        curvature_vec = N_prime - np.dot(N_prime, T_unit) * T_unit
+        curvature = np.linalg.norm(curvature_vec) / (speed ** 2)
+        
+        if curvature < 1e-10:
+            torsion_values.append(np.nan)
+            continue
+        
+        binormal_prime = B_prime - np.dot(B_prime, T_unit) * T_unit
+        
+        normal = curvature_vec / np.linalg.norm(curvature_vec)
+        
+        torsion = -np.dot(binormal_prime, normal) / (speed * curvature * speed)
+        torsion_values.append(torsion)
+    
+    return np.array(torsion_values)
+
+
+def _compute_axon_torsion(obj_mask, spacing_zyx_um, n_sample=100, smoothing=0.5):
+    """
+    Compute torsion statistics for an axon from its binary mask.
+    
+    Parameters
+    ----------
+    obj_mask : ndarray
+        Binary mask of the axon.
+    spacing_zyx_um : tuple
+        Voxel spacing in µm (z, y, x).
+    n_sample : int
+        Number of points for spline sampling.
+    smoothing : float
+        Spline smoothing parameter.
+    
+    Returns
+    -------
+    dict
+        Torsion statistics: mean, std, max, min, integral, centerline_length.
+    """
+    if not np.any(obj_mask) or obj_mask.ndim != 3:
+        return {
+            'axon_torsion_mean': np.nan,
+            'axon_torsion_std': np.nan,
+            'axon_torsion_max': np.nan,
+            'axon_torsion_min': np.nan,
+            'axon_torsion_integral': np.nan,
+            'axon_centerline_length_um': np.nan,
+        }
+    
+    try:
+        skel = skeletonize_3d(obj_mask)
+    except Exception:
+        skel = skeletonize(obj_mask)
+    
+    if not np.any(skel):
+        return {
+            'axon_torsion_mean': np.nan,
+            'axon_torsion_std': np.nan,
+            'axon_torsion_max': np.nan,
+            'axon_torsion_min': np.nan,
+            'axon_torsion_integral': np.nan,
+            'axon_centerline_length_um': np.nan,
+        }
+    
+    points = _skeleton_to_ordered_points(skel, spacing_zyx_um)
+    
+    if len(points) < 4:
+        skel_vox = np.sum(skel)
+        voxel_dist = np.linalg.norm(spacing_zyx_um)
+        return {
+            'axon_torsion_mean': np.nan,
+            'axon_torsion_std': np.nan,
+            'axon_torsion_max': np.nan,
+            'axon_torsion_min': np.nan,
+            'axon_torsion_integral': np.nan,
+            'axon_centerline_length_um': float(skel_vox * voxel_dist),
+        }
+    
+    skel_vox = np.sum(skel)
+    voxel_dist = np.linalg.norm(spacing_zyx_um)
+    centerline_length = float(skel_vox * voxel_dist)
+    
+    torsion_values = _frenet_torsion(points, n_sample=n_sample, smoothing=smoothing)
+    
+    torsion_values = torsion_values[np.isfinite(torsion_values)]
+    
+    if len(torsion_values) < 2:
+        return {
+            'axon_torsion_mean': np.nan,
+            'axon_torsion_std': np.nan,
+            'axon_torsion_max': np.nan,
+            'axon_torsion_min': np.nan,
+            'axon_torsion_integral': np.nan,
+            'axon_centerline_length_um': centerline_length,
+        }
+    
+    torsion_abs = np.abs(torsion_values)
+    
+    ds = centerline_length / (len(torsion_values) - 1) if len(torsion_values) > 1 else 0
+    torsion_integral = float(np.sum(torsion_abs) * ds)
+    
+    return {
+        'axon_torsion_mean': float(np.mean(torsion_abs)),
+        'axon_torsion_std': float(np.std(torsion_abs)),
+        'axon_torsion_max': float(np.max(torsion_abs)),
+        'axon_torsion_min': float(np.min(torsion_abs)),
+        'axon_torsion_integral': torsion_integral,
+        'axon_centerline_length_um': centerline_length,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Core computation
 # ---------------------------------------------------------------------------
@@ -303,6 +553,7 @@ def morphometrics_3d(
     relabel=True,
     compute_surface=True,
     compute_skeleton=False,
+    compute_axon_torsion=False,
 ):
     """Compute 3-D morphometrics for every mitochondrion in *mito_label*.
 
@@ -324,6 +575,9 @@ def morphometrics_3d(
         Compute surface_um2 via marching cubes (slower).
     compute_skeleton : bool
         Compute skeleton_length_um (slow; branches/endpoints not implemented).
+    compute_axon_torsion : bool
+        Compute axon torsion metrics for cell/axon objects (requires cell_label).
+        Uses --skeleton flag; adds centerline length and torsion statistics.
 
     Returns
     -------
@@ -522,6 +776,20 @@ def morphometrics_3d(
             cell_surface_um2 = _surface_area_um2(cell_obj, spacing_zyx_um)
             cell_sphericity = _sphericity(cell_vol_um3, cell_surface_um2)
 
+        # axon torsion (if enabled)
+        torsion_stats = {}
+        if compute_axon_torsion and spacing_zyx_um is not None:
+            torsion_stats = _compute_axon_torsion(cell_obj, spacing_zyx_um)
+        else:
+            torsion_stats = {
+                'axon_torsion_mean': np.nan,
+                'axon_torsion_std': np.nan,
+                'axon_torsion_max': np.nan,
+                'axon_torsion_min': np.nan,
+                'axon_torsion_integral': np.nan,
+                'axon_centerline_length_um': np.nan,
+            }
+
         # mito stats for this cell
         mitodf_c = per_mito_df[per_mito_df["cell_id"] == cid]
         mito_count = len(mitodf_c)
@@ -530,7 +798,7 @@ def morphometrics_3d(
         mito_mean_vol_um3 = float(mitodf_c["volume_um3"].mean()) if mito_count > 0 else np.nan
         mito_density = (mito_count / cell_vol_um3) if (np.isfinite(cell_vol_um3) and cell_vol_um3 > 0) else np.nan
 
-        cell_rows.append({
+        cell_row = {
             "label_id": int(cid),
             "volume_vx": cell_vx,
             "volume_um3": cell_vol_um3,
@@ -541,7 +809,9 @@ def morphometrics_3d(
             "mito_volume_fraction": mito_vol_frac,
             "mito_mean_volume_um3": mito_mean_vol_um3,
             "mito_density_per_um3": mito_density,
-        })
+        }
+        cell_row.update(torsion_stats)
+        cell_rows.append(cell_row)
 
     per_cell_df = pd.DataFrame(cell_rows)
     return per_mito_df, per_cell_df
@@ -673,6 +943,7 @@ def _compute_mito_metrics_worker(task):
 def _aggregate_per_cell_lazy(
     per_mito_df, cell_path, cell_key, vol_shape,
     voxel_size_nm, compute_surface, block_shape,
+    compute_axon_torsion=False,
 ):
     """Build per-cell summary from per-mito results using lazy cell-label loading."""
     cell_bboxes, cell_vcounts, _ = _scan_bboxes(cell_path, cell_key, block_shape)
@@ -696,12 +967,27 @@ def _aggregate_per_cell_lazy(
 
         cell_surface_um2 = np.nan
         cell_sphericity  = np.nan
+        torsion_stats = None
+        
+        slices   = _bb_to_slices(cell_bboxes[cid], vol_shape, margin=1)
+        cell_bb  = _load_subvolume_from_path(cell_path, cell_key, slices)
+        cell_obj = cell_bb == cid
+        
         if compute_surface and spacing_zyx_um is not None:
-            slices   = _bb_to_slices(cell_bboxes[cid], vol_shape, margin=1)
-            cell_bb  = _load_subvolume_from_path(cell_path, cell_key, slices)
-            cell_obj = cell_bb == cid
             cell_surface_um2 = _surface_area_um2(cell_obj, spacing_zyx_um)
             cell_sphericity  = _sphericity(cell_vol_um3, cell_surface_um2)
+        
+        if compute_axon_torsion and spacing_zyx_um is not None:
+            torsion_stats = _compute_axon_torsion(cell_obj, spacing_zyx_um)
+        else:
+            torsion_stats = {
+                'axon_torsion_mean': np.nan,
+                'axon_torsion_std': np.nan,
+                'axon_torsion_max': np.nan,
+                'axon_torsion_min': np.nan,
+                'axon_torsion_integral': np.nan,
+                'axon_centerline_length_um': np.nan,
+            }
 
         mitodf_c      = per_mito_df[per_mito_df["cell_id"] == cid]
         mito_count    = len(mitodf_c)
@@ -716,7 +1002,7 @@ def _aggregate_per_cell_lazy(
             if np.isfinite(cell_vol_um3) and cell_vol_um3 > 0 else np.nan
         )
 
-        cell_rows.append({
+        cell_row = {
             "label_id":             int(cid),
             "volume_vx":            vcount,
             "volume_um3":           cell_vol_um3,
@@ -727,7 +1013,9 @@ def _aggregate_per_cell_lazy(
             "mito_volume_fraction": mito_vol_frac,
             "mito_mean_volume_um3": mito_mean_vol,
             "mito_density_per_um3": mito_density,
-        })
+        }
+        cell_row.update(torsion_stats)
+        cell_rows.append(cell_row)
 
     return pd.DataFrame(cell_rows)
 
@@ -779,6 +1067,7 @@ def main(args):
 
     voxel_size_nm = _resolve_voxel_size(args.voxel_size)
     compute_surface = not args.no_surface
+    compute_axon_torsion = args.skeleton
 
     all_mito_rows = []
     all_cell_rows = []
@@ -839,6 +1128,7 @@ def main(args):
             cell_df = _aggregate_per_cell_lazy(
                 per_mito_df, cell_path, args.cell_key,
                 vol_shape, voxel_size_nm, compute_surface, block_shape,
+                compute_axon_torsion,
             )
 
         per_mito_df.insert(0, "mito_file", os.path.basename(mito_path))
@@ -908,7 +1198,9 @@ if __name__ == "__main__":
     ap.add_argument("--no_surface", action="store_true",
                     help="Skip marching-cubes surface area (faster).")
     ap.add_argument("--skeleton", action="store_true",
-                    help="Compute skeleton length (slow; branches/endpoints not yet implemented).")
+                    help="Compute skeleton-based metrics: skeleton_length_um for mitochondria, "
+                         "plus axon torsion statistics and centerline length for cells/axons "
+                         "(slow; requires cell segmentation for torsion).")
     ap.add_argument("--verbose", "-v", action="store_true")
     args = ap.parse_args()
     main(args)
