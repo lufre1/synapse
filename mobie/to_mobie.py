@@ -26,7 +26,9 @@ def get_resolution(volume_name):
     resolutions = {
         # 25 x 5 x 5 nanometer
         "4007": [0.025, 0.005, 0.005],
-        "4009": [0.025, 0.005, 0.005]
+        "4009": [0.025, 0.005, 0.005],
+        "4010": [0.025, 0.005, 0.005],
+        "4016": [0.025, 0.005, 0.005],
     }
     return resolutions[volume_name]
 

@@ -47,6 +47,9 @@ def build_parser():
     p.add_argument("--downscale_export", "-de", type=int)
     p.add_argument("--preprocess_volem", "-pv", action="store_true")
     p.add_argument("--disk_based_prediction", "-dbp", action="store_true")
+    p.add_argument("--bg_penalty", "-bp", type=float, default=2.0,
+                   help="Height-map penalty for barrier voxels in ooc watershed. "
+                        "Lower values (e.g. 1.2) reduce fragmentation at thin necks.")
     return p
 
 def parse_args():
@@ -347,20 +350,16 @@ def main(visualize=False):
                 occ_path = os.path.join(os.path.dirname(path), occ_filename)
                 if ".zarr" in output_path:
                     occ_path = output_path
-                seg = util.segment_mitos_ooc_wrapped(  #segment_mitos_cc_ooc(
-                    # foreground=pred[0],
-                    # boundary=pred[1],
+                seg = util.segment_mitos_ooc_wrapped(
                     pred=pred,
                     foreground_threshold=args.foreground_threshold,
                     boundary_threshold=args.boundary_threshold,
                     seed_distance=args.seed_distance,
                     min_size=args.min_size,
                     area_threshold=args.area_threshold,
-                    # post_iter3d=args.post_iter3d,
-                    # return_all=False,
-                    # occ_path=occ_path
                     out_dir=occ_path,
-                    reuse_computed=False
+                    reuse_computed=False,
+                    bg_penalty=args.bg_penalty,
                 )["segmentation"]
             else:
                 occ_path = None

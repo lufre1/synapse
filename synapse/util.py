@@ -667,6 +667,7 @@ def segment_mitos_ooc_wrapped(
     foreground_threshold=0.5,
     area_threshold=5000,   # kept for signature compatibility (not used here)
     reuse_computed=False,
+    bg_penalty=2.0,        # height-map penalty for barrier voxels; lower (e.g. 1.2) reduces fragmentation
 ):
     # pred is (C,Z,Y,X)
     shape = pred.shape[1:]
@@ -724,8 +725,6 @@ def segment_mitos_ooc_wrapped(
     t0 = time.time()
     dist_max = float(max(np.max(dist[bb]) for bb in iterate_blocks(shape, block_shape)))
     if verbose: print("dist_max =", dist_max, "in", time.time() - t0, "s")
-
-    bg_penalty = 2.0
 
     # --- hmap + mask as virtual volumes (no datasets written) ---
     def hmap_tf(d_chunk, index):
