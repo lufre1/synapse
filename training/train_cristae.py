@@ -43,7 +43,7 @@ def main():
     parser.add_argument("--early_stopping", type=int, default=15, help="Number of epochs without improvement before stopping training")
     parser.add_argument("--save_dir", "-sd", default=None, help="Savedir to store logs and checkpoints to.")
     parser.add_argument("--ignore_label", type=int, default=None, help="Label to ignore during training")
-    parser.add_argument("--ignore_state_value", type=int, default=None, help="During loss computation ignore this state value")
+    parser.add_argument("--ignore_state_value", type=int, default=2, help="During loss computation ignore this state value")
     parser.add_argument("--state_channel", type=int, default=None, help="Use this channel as state channel")
 
     # Parse arguments
@@ -66,20 +66,13 @@ def main():
     print(f"Using {device} with {n_workers} workers.")
     label_transform = torch_em.transform.label.BoundaryTransform(add_binary_target=True)
 
-    loss_name = "dice"
-    metric_name = "dice"
     ndim = 3
 
-    loss_function = util.get_loss_function(loss_name, **{
-        "ignore_label": args.ignore_label,
-        "ignore_state_value": args.ignore_state_value,
-        "state_channel": args.state_channel
-    })
-    metric_function = util.get_loss_function(metric_name, **{
-        "ignore_label": args.ignore_label,
-        "ignore_state_value": args.ignore_state_value,
-        "state_channel": args.state_channel
-    })
+    # Only compute loss inside mitochondria with state label == 1.
+    # MitoStateMaskTransform appends the mask as extra label channels;
+    # MaskedDiceLoss peels them off before computing Dice.
+    loss_function = util.MaskedDiceLoss()
+    metric_function = util.MaskedDiceLoss()
     gain = 2
     in_channels, out_channels = 2, 2
     scale_factors = [
@@ -88,11 +81,9 @@ def main():
         [2, 2, 2],
         [2, 2, 2]
     ]
-    
-    final_activation = None
-    if final_activation is None and loss_name == "dice":
-        final_activation = "Sigmoid"
-        
+
+    final_activation = "Sigmoid"
+
     # load data paths etc.
     start_time = time.time()
     print(f"Start time {time.ctime()}")
@@ -121,7 +112,7 @@ def main():
         random.shuffle(data_paths)
         ensure_strs = ["wichmann", "cooper"] if torch.cuda.is_available() else None
         data = util.split_data_paths_to_dict_with_ensure(
-            data_paths, train_ratio=.8, val_ratio=0.1, test_ratio=0.1,
+            data_paths, train_ratio=1, val_ratio=0.0, test_ratio=0.0,
             ensure_strings=ensure_strs
             )
 
@@ -159,7 +150,9 @@ def main():
     with_channels = True
     with_label_channels = False
     sampler = MinInstanceSampler(p_reject=0.95)
-    # raw2_transform = torch_em.transform.label.labels_to_binary
+    mito_mask_transform = util.MitoStateMaskTransform(
+        mito_channel=1, exclude_state_value=float(args.ignore_state_value)
+    )
     print("Path for this model", os.path.join(SAVE_DIR, experiment_name))
     print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
     print("data['train']", data["train"])
@@ -173,7 +166,8 @@ def main():
             patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
-            rois=rois_dict["train"]
+            rois=rois_dict["train"],
+            transform=mito_mask_transform,
         )
         val_loader = torch_em.default_segmentation_loader(
             raw_paths=data["val"], raw_key="raw_mitos_combined",
@@ -181,7 +175,8 @@ def main():
             patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
-            rois=rois_dict["val"]
+            rois=rois_dict["val"],
+            transform=mito_mask_transform,
         )
     else:
         train_loader = torch_em.default_segmentation_loader(
@@ -191,7 +186,8 @@ def main():
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
             sampler=sampler,
-            raw_transform=util.standardize_channel
+            raw_transform=util.standardize_channel,
+            transform=mito_mask_transform,
         )
         val_loader = torch_em.default_segmentation_loader(
             raw_paths=data["val"], raw_key="raw_mitos_combined",
@@ -200,8 +196,9 @@ def main():
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
             sampler=sampler,
-            raw_transform=util.standardize_channel
-        )
+            raw_transform=util.standardize_channel,
+            transform=mito_mask_transform,
+        ) if torch.cuda.is_available() else None
 
     trainer = torch_em.default_segmentation_trainer(
         name=experiment_name, model=model,
@@ -221,61 +218,40 @@ def main():
         print("CUDA is not available, debugging instead.")
         # check_loader(train_loader, n_samples=5)
         # check_trainer(trainer, n_samples=5)
-        samples = []
         it = iter(trainer.train_loader)
 
         for i in range(100):
             image, label = next(it)  # don't recreate iter(...) each time
 
-            # pick one sample from batch for visualization
-            x = image[0].detach().cpu()   # [C_in,D,H,W]
-            y = label[0].detach().cpu()   # [C_out,D,H,W]
-            
-            if 2 not in np.unique(x[1].numpy().astype(int)):
-                print("No mito-state channel id=2 in sample", i)
-                continue
+            # label has shape [B, 4, D, H, W]: [binary, boundary, mask_binary, mask_boundary]
+            x = image[0].detach().cpu()   # [2, D, H, W]
+            y = label[0].detach().cpu()   # [4, D, H, W]
 
-            # create a sane dummy prediction in [0,1] with correct shape
-            pred = torch.rand_like(label)  # [B,C_out,...]
+            # dummy prediction: 2 output channels (binary + boundary)
+            n_out = label.size(1) // 2
+            pred = torch.rand(label.size(0), n_out, *label.shape[2:])
             p = pred[0].detach().cpu()
 
-            # compute loss (state should be the input that contains mito-state channel)
-            loss_value = loss_function(pred, label, image)
+            loss_value = loss_function(pred, label)
 
-            # reconstruct ignore/valid mask the same way DiceLoss does (for inspection)
-            state_channel = loss_function.state_channel
-            ignore_value = loss_function.ignore_state_value
-            state_ch = image[:, state_channel:state_channel + 1]  # [B,1,...]
-            ignore_mask = (state_ch == ignore_value)[0, 0].detach().cpu()  # [D,H,W] bool
-            valid_mask = (~ignore_mask).to(torch.uint8)
+            # the mask is the second half of the label channels
+            valid_mask = y[n_out].to(torch.uint8)  # [D, H, W]
+
             viewer = napari.Viewer()
-            # visualize: input channels
             viewer.add_image(x[0].numpy(), name=f"{i}/raw_em", contrast_limits=(x[0].min().item(), x[0].max().item()))
             viewer.add_labels(x[1].numpy().astype(int), name=f"{i}/mito_state")
 
-            # visualize: targets and preds (per output channel)
             viewer.add_image(y[0].numpy(), name=f"{i}/target_cristae")
             viewer.add_image(y[1].numpy(), name=f"{i}/target_boundary")
             viewer.add_image(p[0].numpy(), name=f"{i}/pred_cristae")
             viewer.add_image(p[1].numpy(), name=f"{i}/pred_boundary")
 
-            # visualize mask + print sanity checks
-            viewer.add_labels(valid_mask.numpy(), name=f"{i}/valid_mask (1=used)")
+            viewer.add_labels(valid_mask.numpy(), name=f"{i}/valid_mask (1=mito_state==1)")
             print(
                 f"sample {i}: loss={loss_value.item():.4f}, "
-                f"valid_frac={(valid_mask.float().mean().item()):.3f}, "
-                f"ignore_value={ignore_value}, state_channel={state_channel}"
+                f"valid_frac={(valid_mask.float().mean().item()):.3f}"
             )
-
-            # optional: compare to loss without masking to verify masking effect
-            if hasattr(loss_function, "ignore_state_value"):
-                # temporarily disable masking
-                old = loss_function.ignore_state_value
-                loss_function.ignore_state_value = None
-                loss_nomask = loss_function(pred, label, image).item()
-                loss_function.ignore_state_value = old
-                print(f"           loss_no_mask={loss_nomask:.4f}")
-                viewer.grid.enabled = True
+            viewer.grid.enabled = True
             napari.run()
     else:
         trainer.fit(n_iterations)

@@ -1229,6 +1229,62 @@ def standardize_channel(raw, channel=0):
 
     return raw_norm
 
+
+class MitoStateMaskTransform:
+    """Joint (raw, label) transform for cristae training.
+
+    After `label_transform` has produced labels of shape [n_ch, D, H, W], this
+    appends n_ch mask channels encoding voxels where loss should be computed.
+    Voxels where `raw[mito_channel] == exclude_state_value` are masked out
+    (mask=0); all other voxels — including background — remain active (mask=1).
+
+    This prevents the network from being penalised for predictions inside
+    mitochondria that carry no cristae annotations (typically label 2), while
+    still letting it learn the no-cristae signal from background voxels.
+
+    The result has shape [2*n_ch, D, H, W], compatible with `MaskedDiceLoss`.
+    The mito-state channel is left as integer-valued floats by
+    `standardize_channel` (which only normalises channel 0), so the equality
+    check is safe.
+    """
+
+    def __init__(self, mito_channel: int = 1, exclude_state_value: float = 2.0):
+        self.mito_channel = mito_channel
+        self.exclude_state_value = exclude_state_value
+
+    def __call__(self, raw: np.ndarray, labels: np.ndarray):
+        mito_state = raw[self.mito_channel]                                        # [D, H, W]
+        mask = (np.abs(mito_state - self.exclude_state_value) >= 0.5).astype(np.float32)  # 1 where NOT excluded
+        masks = np.stack([mask] * labels.shape[0], axis=0)                         # [n_ch, D, H, W]
+        labels = np.concatenate([labels, masks], axis=0)                           # [2*n_ch, D, H, W]
+        return raw, labels
+
+
+class MaskedDiceLoss(nn.Module):
+    """Dice loss that reads a per-channel binary mask from the second half of
+    the target tensor (as produced by `MitoStateMaskTransform`).
+
+    target shape: [B, 2*n_ch, ...] – first n_ch channels are the actual
+    targets, second n_ch channels are the spatial masks (1 = compute loss,
+    0 = ignore).  Masking is applied via element-wise multiplication so that
+    zeroed-out voxels contribute 0 to both the numerator and denominator of
+    the Dice score.
+    """
+
+    def __init__(self, **dice_kwargs):
+        super().__init__()
+        self._dice = torch_em.loss.DiceLoss(**dice_kwargs)
+
+    def forward(self, prediction: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        n_pred_ch = prediction.size(1)
+        assert target.size(1) == 2 * n_pred_ch, (
+            f"MaskedDiceLoss expects target with {2 * n_pred_ch} channels, got {target.size(1)}"
+        )
+        mask = target[:, n_pred_ch:]   # [B, n_ch, ...]
+        target = target[:, :n_pred_ch] # [B, n_ch, ...]
+        return self._dice(prediction * mask, target * mask)
+
+
 def normalize_percentile_with_channel(raw, lower=1, upper=99, channel=0):
     """
     Normalize a specific channel of a multi-channel array using percentile normalization.
