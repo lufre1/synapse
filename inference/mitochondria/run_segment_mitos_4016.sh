@@ -5,8 +5,8 @@
 #SBATCH --job-name=inference-volume-em
 #SBATCH -c 8
 #SBATCH --mem 256G
-#SBATCH --partition=grete:shared
-#SBATCH -G A100:1
+#SBATCH --partition=standard96s:shared
+## SBATCH -G A100:1
 
 source /mnt/vast-nhr/home/freckmann15/u15205/.bashrc
 micromamba activate /mnt/vast-nhr/home/freckmann15/u15205/micromamba/envs/synapse
