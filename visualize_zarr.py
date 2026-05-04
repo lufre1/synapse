@@ -3,11 +3,12 @@ import zarr
 import napari
 import numpy as np
 import tifffile
+from skimage.transform import resize
 
 
 def open_arr(path, key):
-    store = zarr.DirectoryStore(path)          # zarr v2
-    root = zarr.open(store=store, mode="r")    # group/array
+    store = zarr.DirectoryStore(path)
+    root = zarr.open(store=store, mode="r")
     return root[key]
 
 
@@ -17,42 +18,170 @@ def filter_labels(labels, ids):
     return labels * mask
 
 
+def auto_scale(arr, max_gb=2.0):
+    """Return the smallest integer scale that keeps the loaded array under max_gb."""
+    import math
+    nbytes = np.prod(arr.shape) * np.dtype(arr.dtype).itemsize
+    if nbytes <= max_gb * 1024 ** 3:
+        return 1
+    scale = math.ceil((nbytes / (max_gb * 1024 ** 3)) ** (1 / 3))
+    return max(2, scale)
+
+
+def lazy_downscale(arr, factor):
+    """Stride-based downscale that reads one Z-slab at a time.
+
+    Bounds peak RAM to one decompressed slab instead of the full volume.
+    Works for both zarr arrays and memory-mapped TIFFs.
+    """
+    if factor <= 1:
+        return np.asarray(arr)
+
+    ndim = arr.ndim
+    # Use the array's native Z-chunk size as slab height (fall back to 64).
+    if hasattr(arr, "chunks") and arr.chunks is not None:
+        slab_z = int(arr.chunks[-3]) if ndim >= 3 else 1
+    else:
+        slab_z = 64
+    slab_z = max(slab_z, factor)  # need at least `factor` rows to emit one output row
+
+    z_size = arr.shape[-3]
+    out_shape = tuple(len(range(0, s, factor)) for s in arr.shape)
+    out = np.empty(out_shape, dtype=arr.dtype)
+
+    out_z = 0
+    for z0 in range(0, z_size, slab_z):
+        z1 = min(z0 + slab_z, z_size)
+        # Align the slab start to the global ::factor grid so that slab-wise
+        # striding produces the same indices as a single arr[::factor] call.
+        z_start = z0 + (-z0 % factor)   # first global index inside [z0, z1)
+        if z_start >= z1:
+            continue
+        if ndim == 3:
+            slab = np.asarray(arr[z_start:z1:factor, ::factor, ::factor])
+            n = slab.shape[0]
+            out[out_z:out_z + n] = slab
+        else:                            # 4-D channel-first (C, Z, Y, X)
+            slab = np.asarray(arr[:, z_start:z1:factor, ::factor, ::factor])
+            n = slab.shape[1]
+            out[:, out_z:out_z + n] = slab
+        out_z += n
+
+    return out
+
+
+def chunked_resize(arr, target_shape, order=1, slab_size=64):
+    """Resize a 3D array in Z-slabs to bound memory usage.
+
+    Args:
+        arr: Input array (3D)
+        target_shape: Target output shape
+        order: Interpolation order (0=nearest, 1=linear, etc.)
+        slab_size: Number of input Z-slices to process at once
+
+    Returns:
+        Resized array with target_shape
+    """
+    from skimage.transform import resize
+
+    if arr.shape == target_shape:
+        return np.asarray(arr)
+
+    z_in, y_in, x_in = arr.shape
+    z_out, y_out, x_out = target_shape
+
+    out = np.empty(target_shape, dtype=arr.dtype)
+
+    z_scale = z_out / z_in
+
+    for z0 in range(0, z_in, slab_size):
+        z1 = min(z0 + slab_size, z_in)
+        slab = arr[z0:z1]
+
+        out_z_start = int(round(z0 * z_scale))
+        out_z_end = int(round(z1 * z_scale))
+        slab_z_out = out_z_end - out_z_start
+
+        if slab_z_out == 0:
+            continue
+
+        slab_target = (slab_z_out, y_out, x_out)
+        resized_slab = resize(
+            slab, slab_target,
+            order=order,
+            preserve_range=True,
+            anti_aliasing=(order > 0)
+        ).astype(arr.dtype)
+
+        out[out_z_start:out_z_end] = resized_slab
+
+    return out
+
+
 def main():
     parser = argparse.ArgumentParser(description="View a Zarr dataset and optional label TIFF in napari")
     parser.add_argument("--zarr_path", "-p", default="/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-volume-em/cutout_1/images/ome-zarr/raw.ome.zarr", help="Path to the Zarr file")
     parser.add_argument("--dataset_key", "-k", default=0, help="Key to the Zarr /group/dataset")
     parser.add_argument("--is_segmentation", "-seg", "--seg", default=False, action="store_true")
     parser.add_argument("--label_path", "-lp", default=None, help="Path to the labels TIFF file")
-    parser.add_argument("--scale", "-s", type=int, default=1, help="Scale factor for the image")
+    parser.add_argument("--scale", "-s", type=int, default=1,
+                        help="Integer downscale factor applied to every layer before display "
+                             "(images: local-mean pooling; segmentations: nearest-neighbour)")
     parser.add_argument("--second_zarr_path", "-sp", default=None, help="Path to the second Zarr file")
     parser.add_argument("--second_dataset_key", "-sk", default=None, help="Key to the Zarr /group/dataset")
     parser.add_argument(
         "--voxel_size", "-vs",
-        type=lambda x: tuple(map(float, x.split(','))) if ',' in x else (float(x),) * 3,  # Always return a tuple
+        type=lambda x: tuple(map(float, x.split(','))) if ',' in x else (float(x),) * 3,
         default=None,
         help="Voxel size in nm, either a single float (e.g., 12) or a tuple (e.g., 12,12,12)"
     )
     parser.add_argument("--filter_ids", "-fid", type=str, default=None,
                         help="Comma-separated list of label IDs to display (e.g., '1,3,5,7')")
     args = parser.parse_args()
-    voxel_size = None
-    if args.voxel_size is not None:
-        voxel_size = args.voxel_size
-    
+
+    scale = args.scale
+    voxel_size = args.voxel_size
+    if voxel_size is not None and scale > 1:
+        voxel_size = tuple(v * scale for v in voxel_size)
+
     filter_ids = None
     if args.filter_ids is not None:
         filter_ids = [int(x.strip()) for x in args.filter_ids.split(',')]
-    
-    ndim = 3
-    slicing = None
-    if args.scale != 1:
-        scale = args.scale
-        slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
 
-    a1 = open_arr(args.zarr_path, args.dataset_key)
-    if slicing is not None:
-        a1 = a1[slicing]
+    # --- load arrays (lazy downscale: slice zarr on disk, never load full volume) ---
+    raw1 = open_arr(args.zarr_path, args.dataset_key)
+    scale1 = scale if scale > 1 else auto_scale(raw1)
+    if scale1 > 1 and scale == 1:
+        print(f"Auto-scaling a1 by {scale1}x "
+              f"({np.prod(raw1.shape) * np.dtype(raw1.dtype).itemsize / 1024**3:.1f} GB)")
+    a1 = lazy_downscale(raw1, scale1) if scale1 > 1 else np.asarray(raw1)
+    print(f"a1 loaded: {a1.shape}")
+
+    # Load second array early so we can match shapes afterwards.
+    a2 = None
+    if args.second_zarr_path is not None:
+        second_key = args.second_dataset_key or args.dataset_key
+        raw2 = open_arr(args.second_zarr_path, second_key)
+        scale2 = scale if scale > 1 else auto_scale(raw2)
+        if scale2 > 1 and scale == 1:
+            print(f"Auto-scaling a2 by {scale2}x "
+                  f"({np.prod(raw2.shape) * np.dtype(raw2.dtype).itemsize / 1024**3:.1f} GB)")
+        a2 = lazy_downscale(raw2, scale2) if scale2 > 1 else np.asarray(raw2)
+        print(f"a2 loaded: {a2.shape}")
+
+    # --- match shapes: always downscale the larger array to the smaller shape, never upscale ---
+    if a2 is not None and a1.shape != a2.shape:
+        target = tuple(min(s1, s2) for s1, s2 in zip(a1.shape, a2.shape))
+        if a1.shape != target:
+            print(f"Downscaling a1 {a1.shape} → {target} (nearest-neighbour)")
+            a1 = chunked_resize(a1, target, order=0, slab_size=64)
+        if a2.shape != target:
+            print(f"Downscaling a2 {a2.shape} → {target} (linear)")
+            a2 = chunked_resize(a2, target, order=1, slab_size=64)
+
+    # --- build viewer ---
     viewer = napari.Viewer()
+
     if not args.is_segmentation:
         viewer.add_image(a1, name=f"zarr1:{args.dataset_key}", scale=voxel_size)
     else:
@@ -63,22 +192,15 @@ def main():
                 raise ValueError("No labels found after filtering")
         viewer.add_labels(seg_data, name=f"zarr1:{args.dataset_key}", scale=voxel_size)
 
-    if args.second_zarr_path is not None:
+    if a2 is not None:
         print("second_zarr_path", args.second_zarr_path)
-        second_key = args.second_dataset_key
-        if second_key is None:
-            second_key = args.dataset_key  # default: same key as first
-        if slicing is not None:
-            a2 = open_arr(args.second_zarr_path, second_key)[slicing]
-        else:
-            a2 = open_arr(args.second_zarr_path, second_key)
         viewer.add_image(a2, name=f"zarr2:{second_key}", scale=voxel_size)
 
     if args.label_path is not None:
-        labels = tifffile.imread(args.label_path)
-        if slicing is not None and labels.shape != a1.shape:
-            print("slicing", slicing)
-            labels = labels[slicing]
+        labels = tifffile.memmap(args.label_path, mode="r")  # memory-mapped: no full load
+        labels = lazy_downscale(labels, scale) if scale > 1 else np.asarray(labels)
+        if scale > 1:
+            print(f"label TIFF downscaled to {labels.shape}")
         if filter_ids is not None:
             labels = filter_labels(labels, filter_ids)
         viewer.add_labels(labels, name="Labels", scale=voxel_size)

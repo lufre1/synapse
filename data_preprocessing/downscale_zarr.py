@@ -371,7 +371,7 @@ if __name__ == "__main__":
     p.add_argument("--output_key", "-ok", type=str, default=None)
     p.add_argument("--scale", "-s", type=float, nargs="+", default=[0.5], help="zyx downscale factor")
     p.add_argument("--is_segmentation", "-is", action="store_true", default=False)
-    p.add_argument("--z_chunked", "-zc", action="store_true", default=False)
+    p.add_argument("--z_chunked", "-zc", action="store_true", default=False, help="old approach, might reprocduce inconsitent output shapes!")
     args = p.parse_args()
     ZARR_FILE = "/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_zarr/4007/images/ome-zarr/raw.ome.zarr"
     file = args.input_path if args.input_path is not None else ZARR_FILE

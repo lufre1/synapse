@@ -668,6 +668,7 @@ def segment_mitos_ooc_wrapped(
     area_threshold=5000,   # kept for signature compatibility (not used here)
     reuse_computed=False,
     bg_penalty=2.0,        # height-map penalty for barrier voxels; lower (e.g. 1.2) reduces fragmentation
+    n_threads=8,           # cap threads to match SLURM CPU allocation; multiprocessing.cpu_count() can return full node count
 ):
     # pred is (C,Z,Y,X)
     shape = pred.shape[1:]
@@ -694,7 +695,7 @@ def segment_mitos_ooc_wrapped(
 
         parallel.distance_transform(
             boundaries_thresh, halo=halo, verbose=verbose,
-            block_shape=block_shape, distances=dist
+            block_shape=block_shape, distances=dist, n_threads=n_threads,
         )
         if verbose: print("dist in", time.time() - t0, "s")
     elif verbose:
@@ -715,7 +716,7 @@ def segment_mitos_ooc_wrapped(
         )
 
         # label writes out-of-core into `seeds`
-        parallel.label(seed_mask, block_shape=block_shape, verbose=verbose, out=seeds)
+        parallel.label(seed_mask, block_shape=block_shape, verbose=verbose, out=seeds, n_threads=n_threads)
         if verbose: print("seeds in", time.time() - t0, "s")
     elif verbose:
         print("Reusing existing seeds...")
@@ -755,7 +756,7 @@ def segment_mitos_ooc_wrapped(
             hmap, seeds,
             block_shape=block_shape, halo=halo,
             out=seg, mask=mask,
-            verbose=verbose
+            verbose=verbose, n_threads=n_threads,
         )
         if verbose: print("watershed in", time.time() - t0, "s")
 

@@ -50,6 +50,9 @@ def build_parser():
     p.add_argument("--bg_penalty", "-bp", type=float, default=2.0,
                    help="Height-map penalty for barrier voxels in ooc watershed. "
                         "Lower values (e.g. 1.2) reduce fragmentation at thin necks.")
+    p.add_argument("--n_threads", "-nt", type=int, default=8,
+                   help="Number of threads for parallel OOC operations. "
+                        "Set to match SLURM -c allocation to avoid OOM from using all node CPUs.")
     return p
 
 def parse_args():
@@ -360,6 +363,7 @@ def main(visualize=False):
                     out_dir=occ_path,
                     reuse_computed=False,
                     bg_penalty=args.bg_penalty,
+                    n_threads=args.n_threads,
                 )["segmentation"]
             else:
                 occ_path = None

@@ -21,3 +21,4 @@ centered_crop: false
 label_path: null
 label_key: null
 disk_based_prediction: true
+n_threads: 8

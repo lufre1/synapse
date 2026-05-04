@@ -4,7 +4,7 @@
 #SBATCH --time=0-5:00:00
 #SBATCH --job-name=inference-volume-em
 #SBATCH -c 8
-#SBATCH --mem 128G
+#SBATCH --mem 256G
 #SBATCH --partition=grete:shared
 #SBATCH -G A100:1
 
