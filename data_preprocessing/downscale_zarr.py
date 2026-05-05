@@ -366,15 +366,14 @@ def downscale_zarr_dataset(zarr_path, input_key="0", output_key="1", scale_facto
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("--input_path", "-i", default=None)
+    p.add_argument("--input_path", "-i", required=True, type=str, help="Path to Zarr file")
     p.add_argument("--input_key", "-k", default=None)
     p.add_argument("--output_key", "-ok", type=str, default=None)
     p.add_argument("--scale", "-s", type=float, nargs="+", default=[0.5], help="zyx downscale factor")
     p.add_argument("--is_segmentation", "-is", action="store_true", default=False)
     p.add_argument("--z_chunked", "-zc", action="store_true", default=False, help="old approach, might reprocduce inconsitent output shapes!")
     args = p.parse_args()
-    ZARR_FILE = "/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_zarr/4007/images/ome-zarr/raw.ome.zarr"
-    file = args.input_path if args.input_path is not None else ZARR_FILE
+    file = args.input_path
     # Using z_block_size=64 means we load 64 slices at a time. 
     # If your images are massive in X and Y (e.g., >10,000 pixels) and you still run out of RAM, 
     # lower this number to 32 or 16.
