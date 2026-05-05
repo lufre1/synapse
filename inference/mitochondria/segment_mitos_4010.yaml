@@ -1,11 +1,12 @@
 base_path: /mnt/lustre-grete/usr/u15205/mobie/project_4010/4010/images/ome-zarr/raw.ome.zarr
 file_extension: .zarr
 key: s0
-export_path: /mnt/lustre-grete/usr/u15205/volume-em/4010/mitochondria.zarr
+export_path: /mnt/lustre-grete/usr/u15205/volume-em/4010/mitochondria_v2.zarr
 model_path: /mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-mito-net32-lr1e-4-bs4-ps32x512x512-final
 
 tile_shape: [32, 512, 512]
-seed_distance: 4
+seed_distance: 1
+bg_penalty: 1.5
 foreground_threshold: 0.6
 boundary_threshold: 0.08
 area_threshold: 200
