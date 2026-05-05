@@ -15,8 +15,10 @@ def process_mitos_and_cristae(data, bs=(32, 128, 128)):
         if "mito" in key:
             mito_ids = np.unique(val)
             mito_ids = mito_ids[mito_ids != 0]
-            if 1 in mito_ids and len(mito_ids) == 1:
+            if len(mito_ids) == 1 and mito_ids[0] == 1:
                 mitos = parallel.label(val, block_shape=bs)
+            else:
+                mitos = val
         elif "cristae" in key:
             cristae = val
         elif "raw" in key:
