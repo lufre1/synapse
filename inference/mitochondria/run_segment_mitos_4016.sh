@@ -1,7 +1,7 @@
 #!/bin/bash
 ## SBATCH --partition=grete:interactive
 ## SBATCH -G 1g.20gb:1
-#SBATCH --time=0-5:00:00
+#SBATCH --time=0-2:30:00
 #SBATCH --job-name=inference-volume-em
 #SBATCH -c 8
 #SBATCH --mem 256G
