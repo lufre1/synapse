@@ -1,0 +1,11 @@
+base_path: /mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_zarr/4007/images/ome-zarr/raw.ome.zarr
+file_extension: .zarr
+key: 0
+export_path: /mnt/lustre-grete/usr/u15205/volume-em/4007/grid_search_mitos/
+model_path: /mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-mito-net32-lr1e-4-bs4-ps32x512x512-final
+
+tile_shape: [32, 512, 512]
+area_threshold: 200
+min_size: 1000
+preprocess_volem: false
+n_threads: 8
