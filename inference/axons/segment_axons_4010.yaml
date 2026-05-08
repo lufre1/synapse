@@ -1,8 +1,8 @@
 base_path: /mnt/lustre-grete/usr/u15205/mobie/project_4010/4010/images/ome-zarr/raw.ome.zarr
 file_extension: .zarr
 key: s2
-export_path: /mnt/lustre-grete/usr/u15205/volume-em/4010/axons.zarr
-model_path: /mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-axons-net32-lr1e-4-bs4-ps32x512x512-s2-new-added_test_split
+export_path: /mnt/lustre-grete/usr/u15205/volume-em/4010/axons_KO_model.zarr
+model_path: /mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-axons-net32-lr5e-4-bs4-ps32x512x512-s2-4007
 
 tile_shape: [32, 512, 512]
 seed_distance: 2

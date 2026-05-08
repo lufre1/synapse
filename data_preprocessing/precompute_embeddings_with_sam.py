@@ -49,8 +49,8 @@ if __name__ == "__main__":
     parser.add_argument("--model_type", "-mt", default="vit_b_em_organelles", help="choose model type from (vit_b_em_organelles | vit_b | ...)")
     parser.add_argument("--checkpoint_path", "-cp", type=str, default=None, help="Path to the SAM model checkpoint")
     parser.add_argument("--key", "-k", type=str, default="raw", help="Key to select dataset from zarr or hdf5 file")
-    parser.add_argument("--tile_shape", "-ts", nargs=3, type=int, default=[1, 512, 512], help="Tile shape for embedding computation (3D)")
-    parser.add_argument("--halo", "-ha", nargs=3, type=int, default=[1, 128, 128], help="Halo size for embedding computation (3D)")
+    parser.add_argument("--tile_shape", "-ts", nargs=3, type=int, default=[512, 512], help="Tile shape for embedding computation (3D)")
+    parser.add_argument("--halo", "-ha", nargs=3, type=int, default=[128, 128], help="Halo size for embedding computation (3D)")
     
     args = parser.parse_args()
     base_path = args.base_path
