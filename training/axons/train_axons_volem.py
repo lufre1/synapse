@@ -32,7 +32,7 @@ def main():
     parser.add_argument("--data_dir2", type=str, default=None, help="Path to a second data directory")
     parser.add_argument("--data_dir3", type=str, default=None, help="Path to a third data directory")
     parser.add_argument("--raw_key", "-rk", type=str, default="raw")
-    parser.add_argument("--label_key", "-lk", type=str, default="labels/mitochondria")
+    parser.add_argument("--label_key", "-lk", type=str, default="labels/axons")
     parser.add_argument("--visualize", action="store_true", default=False, help="Visualize data with napari")
     parser.add_argument("--patch_shape", type=int, nargs=3, default=(32, 256, 256), help="Patch shape for data loading (3D tuple)")
     parser.add_argument("--n_iterations", type=int, default=10000, help="Number of training iterations")
@@ -60,7 +60,6 @@ def main():
     
     print(f"\n Experiment: {experiment_name}\n")
 
-    # label_transform = torch_em.transform.BoundaryTransform(add_binary_target=True)
     label_transform = torch_em.transform.labels_to_binary
 
     if os.path.exists(os.path.join(save_dir, "checkpoints", experiment_name, "best.pt")):
@@ -208,7 +207,77 @@ def main():
             early_stopping=args.early_stopping,
         )
 
-        trainer.fit(n_iterations)
+        if not torch.cuda.is_available():
+            import napari
+            print("CUDA not available — running debug instead of training.")
+
+            # --- initial stats over a few batches ---
+            model.eval()
+            it = iter(train_loader)
+            n_debug = 3
+            debug_raw, debug_label, debug_pred_init = None, None, None
+            with torch.no_grad():
+                for i in range(n_debug):
+                    raw, label = next(it)
+                    pred = model(raw)
+                    loss_val = loss_function(pred, label)
+                    # label may be [B,1,D,H,W] or [B,D,H,W] depending on loader
+                    fg_frac = label.float().mean().item()
+                    print(
+                        f"  batch {i}: raw [{raw.min():.3f}, {raw.max():.3f}] mean={raw.mean():.3f} | "
+                        f"label shape={tuple(label.shape)} unique={label.unique().tolist()} fg={fg_frac:.3f} | "
+                        f"pred [{pred.min():.3f}, {pred.max():.3f}] mean={pred.mean():.3f} | "
+                        f"loss={loss_val.item():.4f}"
+                    )
+                    if i == 0:
+                        debug_raw, debug_label, debug_pred_init = raw, label, pred
+
+            # --- simulate N gradient steps to watch for collapse ---
+            n_steps = 30
+            print(f"\nSimulating {n_steps} gradient steps to watch for collapse...")
+            model.train()
+            optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+            it2 = iter(train_loader)
+            for step in range(n_steps):
+                raw_s, label_s = next(it2)
+                optimizer.zero_grad()
+                pred_s = model(raw_s)
+                loss_s = loss_function(pred_s, label_s)
+                loss_s.backward()
+                grad_norm = sum(p.grad.norm().item() for p in model.parameters() if p.grad is not None)
+                optimizer.step()
+                print(
+                    f"  step {step:3d}: loss={loss_s.item():.4f}  "
+                    f"pred=[{pred_s.min():.3f}, {pred_s.max():.3f}] mean={pred_s.mean():.3f}  "
+                    f"|grad|={grad_norm:.3f}"
+                )
+
+            # --- prediction on the same batch after training steps ---
+            model.eval()
+            with torch.no_grad():
+                debug_pred_after = model(debug_raw)
+
+            # --- unpack volumes (handle label being 4D or 5D) ---
+            r  = debug_raw[0, 0].numpy()   # [D, H, W]
+            p0 = debug_pred_init[0, 0].numpy()
+            pN = debug_pred_after[0, 0].numpy()
+            if debug_label.ndim == 5:
+                lb = debug_label[0, 0].numpy().astype(int)
+            else:
+                lb = debug_label[0].numpy().astype(int)
+
+            print(f"\nBefore {n_steps} steps: pred mean={p0.mean():.4f}  After: pred mean={pN.mean():.4f}")
+
+            viewer = napari.Viewer()
+            viewer.add_image(r,       name="raw",                    colormap="gray")
+            viewer.add_labels(lb,     name="label")
+            viewer.add_image(p0,      name=f"pred_init (mean={p0.mean():.3f})",             colormap="bop orange", opacity=0.7)
+            viewer.add_image(pN,      name=f"pred_after_{n_steps}_steps (mean={pN.mean():.3f})", colormap="bop blue",   opacity=0.7)
+            viewer.add_image(p0 - pN, name="delta init−after",       colormap="RdBu",       opacity=0.7)
+            viewer.grid.enabled = True
+            napari.run()
+        else:
+            trainer.fit(n_iterations)
 
 
 if __name__ == "__main__":

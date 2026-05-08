@@ -49,9 +49,9 @@ if __name__ == "__main__":
     parser.add_argument("--model_type", "-mt", default="vit_b_em_organelles", help="choose model type from (vit_b_em_organelles | vit_b | ...)")
     parser.add_argument("--checkpoint_path", "-cp", type=str, default=None, help="Path to the SAM model checkpoint")
     parser.add_argument("--key", "-k", type=str, default="raw", help="Key to select dataset from zarr or hdf5 file")
-    parser.add_argument("--tile_shape", "-ts", nargs=3, type=int, default=[512, 512], help="Tile shape for embedding computation (3D)")
-    parser.add_argument("--halo", "-ha", nargs=3, type=int, default=[128, 128], help="Halo size for embedding computation (3D)")
-    
+    parser.add_argument("--tile_shape", "-ts", nargs="+", type=int, default=[512, 512], help="Tile shape for embedding computation (2D yx, or 3D zyx — z is ignored)")
+    parser.add_argument("--halo", "-ha", nargs="+", type=int, default=[128, 128], help="Halo size for embedding computation (2D yx, or 3D zyx — z is ignored)")
+
     args = parser.parse_args()
     base_path = args.base_path
     output_path = args.output_path
@@ -73,6 +73,8 @@ if __name__ == "__main__":
         if os.path.exists(out_filepath):
             print("Embeddings already precomputed for:", out_filepath)
             continue
+        tile_shape = args.tile_shape[-2:]
+        halo = args.halo[-2:]
         compute_embeddings(path, out_filepath, model_type=args.model_type, key=args.key, cp=args.checkpoint_path,
-                           tile_shape=args.tile_shape, halo=args.halo)
+                           tile_shape=tile_shape, halo=halo)
         print("Precomuted embeddings and saved to:", output_path)
