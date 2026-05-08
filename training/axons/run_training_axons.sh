@@ -16,7 +16,7 @@ micromamba activate /mnt/vast-nhr/home/freckmann15/u15205/micromamba/envs/synaps
 N_ITER=50000
 PATCH_SHAPE="32 512 512"
 BS=4
-LR=5e-4
+LR=1e-4
 DD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_hdf5/all_cutouts_s2_new"
 SDD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4009_hdf5/cutouts_segmented_s2_new/"
 TDD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/test_split_s2_new/"
