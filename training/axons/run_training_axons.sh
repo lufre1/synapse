@@ -14,7 +14,6 @@ micromamba activate /mnt/vast-nhr/home/freckmann15/u15205/micromamba/envs/synaps
 
 # ================ Define ALL parameters here ONCE ================
 N_ITER=50000
-<<<<<<< HEAD
 PATCH_SHAPE="64 512 512"
 BS=2
 LR=1e-4
