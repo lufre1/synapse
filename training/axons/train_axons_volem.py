@@ -153,7 +153,12 @@ def main():
         n_workers = 8
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        loss_function = util.get_loss_function(loss_name)
+        # loss_function = torch_em.loss.CombinedLoss(
+        #     torch_em.loss.DiceLoss(),
+        #     torch.nn.BCELoss(),
+        # )
+        loss_function= torch_em.loss.DiceLoss()
+        
         metric_function = util.get_loss_function(metric_name)
         if args.with_batchrenorm:
             norm = "BatchRenorm"

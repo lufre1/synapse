@@ -14,8 +14,8 @@ micromamba activate /mnt/vast-nhr/home/freckmann15/u15205/micromamba/envs/synaps
 
 # ================ Define ALL parameters here ONCE ================
 N_ITER=50000
-PATCH_SHAPE="64 512 512"
-BS=2
+PATCH_SHAPE="64 256 256"
+BS=8
 LR=1e-4
 DD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_hdf5/all_cutouts_s2_new"
 SDD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4009_hdf5/cutouts_segmented_s2_new_white_removed/"
