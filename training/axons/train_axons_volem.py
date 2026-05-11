@@ -26,6 +26,17 @@ import synapse.h5_util as h5_util
 SAVE_DIR = "/mnt/lustre-grete/usr/u15205/volume-em/models/"
 
 
+class SigmoidDiceLoss(torch.nn.Module):
+    """DiceLoss that applies sigmoid to logits first (for use with BCEWithLogitsLoss)."""
+    def __init__(self):
+        super().__init__()
+        self.dice = torch_em.loss.DiceLoss()
+        self.init_kwargs = {}
+
+    def forward(self, input_, target):
+        return self.dice(torch.sigmoid(input_), target)
+
+
 def main():
     parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
     parser.add_argument("--data_dir", type=str, default=None, help="Path to the data directory")
@@ -77,9 +88,7 @@ def main():
     loss_name = "dice"
     in_channels, out_channels = 1, 1
 
-    final_activation = None
-    if final_activation is None and loss_name == "dice":
-        final_activation = "Sigmoid"
+    final_activation = None  # BCEWithLogitsLoss handles sigmoid internally
 
     # load data paths etc.
     start_time = time.time()
@@ -150,16 +159,20 @@ def main():
         ndim = 3
         scale_factors = [[1, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2]]
         raw_transform = torch_em.transform.raw.normalize_percentile
+        train_raw_transform = torch_em.transform.Compose(
+            torch_em.transform.raw.normalize_percentile,
+            torch_em.transform.raw.RandomContrast(alpha=(0.5, 2.0)),
+            torch_em.transform.raw.AdditiveGaussianNoise(scale=(0.0, 0.1)),
+            is_multi_tensor=False,
+        )
         n_workers = 8
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        # loss_function = torch_em.loss.CombinedLoss(
-        #     torch_em.loss.DiceLoss(),
-        #     torch.nn.BCELoss(),
-        # )
-        loss_function= torch_em.loss.DiceLoss()
-        
-        metric_function = util.get_loss_function(metric_name)
+        loss_function = torch_em.loss.CombinedLoss(
+            SigmoidDiceLoss(),
+            torch.nn.BCEWithLogitsLoss(),
+        )
+        metric_function = SigmoidDiceLoss()
         if args.with_batchrenorm:
             norm = "BatchRenorm"
         elif args.with_instancenorm:
@@ -185,7 +198,7 @@ def main():
             raw_paths=data["train"], raw_key=args.raw_key,
             label_paths=data["train"], label_key=args.label_key,
             patch_shape=patch_shape, ndim=ndim, batch_size=batch_size,
-            raw_transform=raw_transform,
+            raw_transform=train_raw_transform,
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
             sampler=sampler, n_samples=args.n_samples,

@@ -12,7 +12,7 @@
 source /mnt/vast-nhr/home/freckmann15/u15205/.bashrc
 micromamba activate /mnt/vast-nhr/home/freckmann15/u15205/micromamba/envs/synapse
 
-CONFIG_FILE_PATH="/mnt/vast-nhr/home/freckmann15/u15205/synapse/inference/axons/segment_axons_4010.yaml"
+CONFIG_FILE_PATH="/mnt/vast-nhr/home/freckmann15/u15205/synapse/inference/axons/segment_axons_4010_small.yaml"
 
 python /mnt/vast-nhr/home/freckmann15/u15205/synapse/inference/axons/segment_axons_ooc.py \
   --config $CONFIG_FILE_PATH
