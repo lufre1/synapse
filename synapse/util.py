@@ -462,6 +462,7 @@ def segment_axons_ooc(
     # 2) Blockwise connected components
     if verbose: print("Computing connected components out-of-core...")
     parallel.label(mask, block_shape=block_shape, out=seg, verbose=verbose)
+    del root["mask"]
 
     # 3) Size filter OOC
     if min_size and min_size > 0:
