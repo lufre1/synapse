@@ -221,26 +221,24 @@ def main():
         a3 = lazy_downscale(raw3, scale3, z_start=z_start, z_end=z_end, no_z_scale=no_z_scale)
         print(f"a3 loaded: {a3.shape}")
 
-    # --- match shapes: always downscale the larger array to the smaller shape, never upscale ---
+    # --- match shapes: raw (a2) is the reference; resize labels to match it ---
+    # If there is no a2, fall back to a1 as reference.
     # Segmentations always use order=0 (nearest-neighbour) with no anti-aliasing.
-    if a2 is not None and a1.shape != a2.shape:
-        target = tuple(min(s1, s2) for s1, s2 in zip(a1.shape, a2.shape))
-        if a1.shape != target:
-            print(f"Downscaling a1 {a1.shape} → {target} (nearest-neighbour)")
-            a1 = chunked_resize(a1, target, order=0, slab_size=64)
-        if a2.shape != target:
-            order2 = 0 if args.seg2 else 1
-            print(f"Downscaling a2 {a2.shape} → {target} ({'nearest-neighbour' if args.seg2 else 'linear'})")
-            a2 = chunked_resize(a2, target, order=order2, slab_size=64)
-    if a3 is not None and a1.shape != a3.shape:
-        target = tuple(min(s1, s3) for s1, s3 in zip(a1.shape, a3.shape))
-        if a1.shape != target:
-            print(f"Downscaling a1 {a1.shape} → {target} (nearest-neighbour)")
-            a1 = chunked_resize(a1, target, order=0, slab_size=64)
-        if a3.shape != target:
-            order3 = 0 if args.seg3 else 1
-            print(f"Downscaling a3 {a3.shape} → {target} ({'nearest-neighbour' if args.seg3 else 'linear'})")
-            a3 = chunked_resize(a3, target, order=order3, slab_size=64)
+    ref_shape = a2.shape if a2 is not None else a1.shape
+
+    if a1.shape != ref_shape:
+        print(f"Resizing a1 {a1.shape} → {ref_shape} (nearest-neighbour)")
+        a1 = chunked_resize(a1, ref_shape, order=0, slab_size=64)
+
+    if a2 is not None and a2.shape != ref_shape:
+        order2 = 0 if args.seg2 else 1
+        print(f"Resizing a2 {a2.shape} → {ref_shape} ({'nearest-neighbour' if args.seg2 else 'linear'})")
+        a2 = chunked_resize(a2, ref_shape, order=order2, slab_size=64)
+
+    if a3 is not None and a3.shape != ref_shape:
+        order3 = 0 if args.seg3 else 1
+        print(f"Resizing a3 {a3.shape} → {ref_shape} ({'nearest-neighbour' if args.seg3 else 'linear'})")
+        a3 = chunked_resize(a3, ref_shape, order=order3, slab_size=64)
 
     # --- build viewer ---
     viewer = napari.Viewer()
