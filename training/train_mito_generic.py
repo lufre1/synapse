@@ -48,6 +48,11 @@ def main():
     parser.add_argument("--with_rois", "-wr", default=False, action='store_true', help="Use to train with ROIs (manually set ROI in script!!)")
     parser.add_argument("--use_synapse_training", "-ust", default=False, action='store_true')
     parser.add_argument("--save_dir", "-sd", default=None, help="Savedir to store logs and checkpoints to.")
+    parser.add_argument("--scale_factors", type=int, nargs="+",
+                        default=[1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+                        help="Scale factors as flat list of ints, 3 per UNet level (e.g. '1 2 2 1 2 2 2 2 2 2 2 2')")
+    parser.add_argument("--mixed_precision", "-mp", default=False, action='store_true',
+                        help="Enable mixed-precision (fp16) training")
 
     # Parse arguments
     args = parser.parse_args()
@@ -128,7 +133,8 @@ def main():
     loss_name = "dice"
     metric_name = "dice"
     ndim = 3
-    scale_factors = [[1, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2]]
+    sf = args.scale_factors
+    scale_factors = [sf[i:i+3] for i in range(0, len(sf), 3)]
 
     loss_function = util.get_loss_function(loss_name)
     metric_function = util.get_loss_function(metric_name)
@@ -173,7 +179,7 @@ def main():
             train_loader=train_loader, val_loader=val_loader,
             loss=loss_function, metric=metric_function,
             learning_rate=args.learning_rate,
-            mixed_precision=False,
+            mixed_precision=args.mixed_precision,
             log_image_interval=50,
             device=device,
             compile_model=False,
