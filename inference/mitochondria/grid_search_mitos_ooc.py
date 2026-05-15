@@ -36,6 +36,7 @@ def _ensure_prediction(path, key, tile_shape, model_path, preprocess_volem):
     """Return the on-disk zarr prediction array, computing it if not already present."""
     pred_name = os.path.basename(path) + "_pred.zarr"
     pred_path = os.path.join(os.path.dirname(path), pred_name)
+    done_marker = os.path.join(pred_path, ".pred_complete")
 
     ts = {"z": tile_shape[0], "y": tile_shape[1], "x": tile_shape[2]}
     halo = {k: int(ts[k] * 0.125) for k in ts}
@@ -51,7 +52,11 @@ def _ensure_prediction(path, key, tile_shape, model_path, preprocess_volem):
 
     root = zarr.open(pred_path, mode="a")
     pred = root.get("pred")
-    pred_ready = pred is not None and pred.shape == expected_shape
+    pred_ready = (
+        pred is not None
+        and pred.shape == expected_shape
+        and os.path.exists(done_marker)
+    )
     print(f"Prediction already on disk: {pred_ready}  ({pred_path})")
 
     if not pred_ready:
@@ -63,10 +68,19 @@ def _ensure_prediction(path, key, tile_shape, model_path, preprocess_volem):
             compressor=zarr.Blosc(cname="zstd", clevel=3, shuffle=2),
             overwrite=True,
         )
-        with open_file(path, "r") as f:
-            image = f[key][...]
-        if preprocess_volem:
-            image = util.convert_white_patches_to_black(image)
+        # Open zarr inputs lazily so predict_with_halo reads tiles on demand
+        # instead of loading the full volume (~37 GB) into RAM at once.
+        # For h5/other formats we still load fully (they tend to be smaller).
+        if path.endswith(".zarr"):
+            raw_root = zarr.open(path, mode="r")
+            image = raw_root[key]
+            if preprocess_volem:
+                image = util.convert_white_patches_to_black(image[...])
+        else:
+            with open_file(path, "r") as f:
+                image = f[key][...]
+            if preprocess_volem:
+                image = util.convert_white_patches_to_black(image)
         get_prediction(
             input_volume=image,
             model_path=model_path,
@@ -74,6 +88,7 @@ def _ensure_prediction(path, key, tile_shape, model_path, preprocess_volem):
             preprocess=torch_em.transform.raw.normalize_percentile,
             prediction=pred,
         )
+        open(done_marker, "w").close()
         print(f"Prediction written to {pred_path}")
 
     return pred, pred_path

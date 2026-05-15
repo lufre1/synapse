@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --time=0-24:00:00
+#SBATCH --time=1-12:00:00
 #SBATCH --job-name=grid-search-mitos-4007
 #SBATCH -c 8
 #SBATCH --mem 512G
 #SBATCH --partition=large96s
-##SBATCH --partition=standard96s:shared
+##SBATCH --partition=grete-h100:shared
 
 source /mnt/vast-nhr/home/freckmann15/u15205/.bashrc
 micromamba activate /mnt/vast-nhr/home/freckmann15/u15205/micromamba/envs/synapse
