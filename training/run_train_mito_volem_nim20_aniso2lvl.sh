@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --partition=grete:shared
-#SBATCH -G A100:1
+#SBATCH --partition=grete-h100:shared
+#SBATCH -G H100:1
 #SBATCH --time=1-12:00:00
 #SBATCH --nodes=1
 #SBATCH -c 8
 #SBATCH --mem 64G
 #SBATCH --job-name=mito-aniso2lvl
-#SBATCH --constraint 80gb
+# # SBATCH --constraint 80gb
 
 
 source /mnt/vast-nhr/home/freckmann15/u15205/.bashrc
@@ -20,7 +20,7 @@ LR=1e-4
 # Scale factors: 2 anisotropic [1,2,2] levels + 2 isotropic [2,2,2] levels
 # Matches 5:1 z:xy anisotropy (z=25nm, xy=5nm)
 SF="1 2 2 1 2 2 2 2 2 2 2 2"
-DD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_hdf5/"
+DD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_hdf5/all_cutouts_s0"
 RAW_KEY="raw"
 LABEL_KEY="labels/mitochondria"
 SDD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4009_hdf5/cutouts_segmented/"
