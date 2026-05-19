@@ -156,6 +156,29 @@ def chunked_resize(arr, target_shape, order=1, slab_size=64):
     return out
 
 
+def nonzero_bbox(*arrays):
+    """Return (slice_z, slice_y, slice_x) covering the union bounding box of non-zero content.
+
+    Only considers 3D arrays. Returns None if all arrays are empty.
+    """
+    z0 = y0 = x0 = np.inf
+    z1 = y1 = x1 = -np.inf
+    found = False
+    for arr in arrays:
+        if arr is None or arr.ndim != 3:
+            continue
+        nz = np.nonzero(arr)
+        if len(nz[0]) == 0:
+            continue
+        found = True
+        z0 = min(z0, int(nz[0].min())); z1 = max(z1, int(nz[0].max()))
+        y0 = min(y0, int(nz[1].min())); y1 = max(y1, int(nz[1].max()))
+        x0 = min(x0, int(nz[2].min())); x1 = max(x1, int(nz[2].max()))
+    if not found:
+        return None
+    return (slice(z0, z1 + 1), slice(y0, y1 + 1), slice(x0, x1 + 1))
+
+
 def main():
     parser = argparse.ArgumentParser(description="View a Zarr dataset and optional label TIFF in napari")
     parser.add_argument("--zarr_path", "-p", default="/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-volume-em/cutout_1/images/ome-zarr/raw.ome.zarr", help="Path to the Zarr file")
@@ -202,6 +225,10 @@ def main():
                         help="Directory to export all napari layers as zarr files after closing "
                              "the viewer. Each layer is saved as <name>.zarr with key 'seg' "
                              "(Labels) or 'raw' (Image).")
+    parser.add_argument("--scale_bar", "-sb", default=False, action="store_true",
+                        help="Show a scale bar in the viewer (uses --voxel_size unit as 'nm')")
+    parser.add_argument("--axes", "-ax", default=False, action="store_true",
+                        help="Show 3D axis indicators in the viewer")
     args = parser.parse_args()
 
     scale = args.scale
@@ -327,6 +354,26 @@ def main():
             print(f"Resizing a3 {a3.shape} → {ref_shape} ({'nearest-neighbour' if args.seg3 else 'linear'})")
             a3 = chunked_resize(a3, ref_shape, order=order3, slab_size=64)
 
+    # --- tight bbox crop when --axes is active so axes sit close to actual data ---
+    if args.axes:
+        seg_arrays = [
+            a1 if args.seg1 else None,
+            a2 if args.seg2 else None,
+            a3 if args.seg3 else None,
+        ]
+        bbox = nonzero_bbox(*seg_arrays)
+        if bbox is None:
+            bbox = nonzero_bbox(a1, a2, a3)
+        if bbox is not None:
+            print(f"Axes bbox crop: z={bbox[0]}, y={bbox[1]}, x={bbox[2]}")
+            if a1 is not None and a1.ndim == 3:
+                a1 = a1[bbox]
+                seg1_data = a1
+            if a2 is not None and a2.ndim == 3:
+                a2 = a2[bbox]
+            if a3 is not None and a3.ndim == 3:
+                a3 = a3[bbox]
+
     # --- base plane: reduce raw (a2) to first z-slice only ---
     a2_scale = voxel_size  # default scale for a2
     if args.base_plane and a2 is not None and not args.seg2:
@@ -336,6 +383,13 @@ def main():
 
     # --- build viewer ---
     viewer = napari.Viewer()
+
+    if args.scale_bar:
+        viewer.scale_bar.visible = True
+        if voxel_size is not None:
+            viewer.scale_bar.unit = "nm"
+    if args.axes:
+        viewer.axes.visible = True
 
     if not args.seg1:
         viewer.add_image(a1, name=f"zarr1:{args.dataset_key}", scale=voxel_size)
