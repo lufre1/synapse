@@ -1,7 +1,7 @@
-base_path: /mnt/lustre-grete/usr/u15205/mobie/project_4010/4010/images/ome-zarr/raw.ome.zarr
+base_path: /mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_zarr/4007/images/ome-zarr/raw.ome.zarr
 file_extension: .zarr
-key: s0
-export_path: /mnt/lustre-grete/usr/u15205/volume-em/4010/mitochondria_aniso2lvl.zarr
+key: 0
+export_path: /mnt/lustre-grete/usr/u15205/volume-em/4007/mitochondria_aniso2lvl.zarr
 model_path: /mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-mito-aniso2lvl-lr1e-4-bs8-ps64x256x256-final
 
 tile_shape: [64, 256, 256]

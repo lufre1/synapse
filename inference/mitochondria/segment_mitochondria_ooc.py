@@ -53,6 +53,9 @@ def build_parser():
     p.add_argument("--n_threads", "-nt", type=int, default=8,
                    help="Number of threads for parallel OOC operations. "
                         "Set to match SLURM -c allocation to avoid OOM from using all node CPUs.")
+    p.add_argument("--keep_intermediates", "-ki", action="store_true",
+                   help="Keep intermediate OOC datasets (dist, seeds) in the output zarr. "
+                        "By default they are deleted after segmentation.")
     return p
 
 def parse_args():
@@ -368,6 +371,12 @@ def main(visualize=False):
                     bg_penalty=args.bg_penalty,
                     n_threads=args.n_threads,
                 )["segmentation"]
+                if not args.keep_intermediates:
+                    ooc_root = zarr.open(zarr.DirectoryStore(occ_path), mode="a")
+                    for _ds in ("dist", "seeds"):
+                        if _ds in ooc_root:
+                            del ooc_root[_ds]
+                            print(f"Removed intermediate dataset '{_ds}' from {occ_path}")
             else:
                 occ_path = None
                 seg = util.segment_mitos(
