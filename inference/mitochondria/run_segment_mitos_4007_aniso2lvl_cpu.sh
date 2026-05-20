@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=0-04:00:00
+#SBATCH --time=0-02:00:00
 #SBATCH --job-name=watershed-4007-aniso2lvl-cpu
 #SBATCH -c 16
 #SBATCH --mem=256G
