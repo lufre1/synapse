@@ -229,6 +229,8 @@ def main():
                         help="Show a scale bar in the viewer (uses --voxel_size unit as 'nm')")
     parser.add_argument("--axes", "-ax", default=False, action="store_true",
                         help="Show 3D axis indicators in the viewer")
+    parser.add_argument("--rotation_widget", "-rw", default=False, action="store_true",
+                        help="Add an interactive rotation panel with elevation/azimuth/roll sliders")
     args = parser.parse_args()
 
     scale = args.scale
@@ -237,8 +239,6 @@ def main():
     no_z_scale = args.no_z_scale
     no_downscale = args.no_downscale
     voxel_size = args.voxel_size
-    if voxel_size is not None and scale > 1:
-        voxel_size = tuple(v * scale for v in voxel_size)
 
     filter_ids = None
     if args.filter_ids is not None:
@@ -294,6 +294,18 @@ def main():
         if args.seg3 and a3.dtype == np.uint64:
             a3 = a3.astype(np.uint32)
         print(f"a3 loaded: {a3.shape} {a3.dtype}")
+
+    # --- adjust voxel_size for effective downscale factor ---
+    # The display scale factor is the one applied to the reference array (a2 if present, else a1).
+    # All arrays are resized to match the reference shape, so one effective factor covers all.
+    if voxel_size is not None and not no_downscale:
+        display_scale = scale2 if a2 is not None else scale1
+        if display_scale > 1:
+            if no_z_scale:
+                # Z was not downsampled; only Y/X were
+                voxel_size = (voxel_size[0], voxel_size[1] * display_scale, voxel_size[2] * display_scale)
+            else:
+                voxel_size = tuple(v * display_scale for v in voxel_size)
 
     # --- record original shapes + scale factors for export upsampling ---
     _layer_meta = {
@@ -421,6 +433,38 @@ def main():
         if filter_ids is not None:
             labels = filter_labels(labels, filter_ids)
         viewer.add_labels(labels, name="Labels", scale=voxel_size)
+
+    if args.rotation_widget:
+        from magicgui import magicgui
+
+        _syncing = [False]  # guard against slider↔camera feedback loop
+
+        @magicgui(
+            elevation={"widget_type": "FloatSlider", "min": -180, "max": 180, "value": 0},
+            azimuth={"widget_type": "FloatSlider", "min": -180, "max": 180, "value": 0},
+            roll={"widget_type": "FloatSlider", "min": -180, "max": 180, "value": 0},
+            auto_call=True,
+            call_button=False,
+        )
+        def _rotation_widget(elevation: float = 0, azimuth: float = 0, roll: float = 0):
+            if _syncing[0]:
+                return
+            _syncing[0] = True
+            viewer.camera.angles = (elevation, azimuth, roll)
+            _syncing[0] = False
+
+        def _on_camera_angles(event):
+            if _syncing[0]:
+                return
+            _syncing[0] = True
+            e, a, r = viewer.camera.angles
+            _rotation_widget.elevation.value = e
+            _rotation_widget.azimuth.value = a
+            _rotation_widget.roll.value = r
+            _syncing[0] = False
+
+        viewer.camera.events.angles.connect(_on_camera_angles)
+        viewer.window.add_dock_widget(_rotation_widget, name="Rotation", area="right")
 
     napari.run()
 

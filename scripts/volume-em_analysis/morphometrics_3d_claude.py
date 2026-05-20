@@ -724,6 +724,7 @@ def _compute_mito_metrics_worker(task):
 def _aggregate_per_cell_lazy(
     per_mito_df, cell_path, cell_key, vol_shape,
     voxel_size_nm, compute_surface, block_shape, cell_scale=(1, 1, 1),
+    compute_cell_surface=True,
 ):
     """Build per-cell summary from per-mito results using lazy cell-label loading."""
     cell_bboxes, cell_vcounts, cell_vol_shape = _scan_bboxes(cell_path, cell_key, block_shape)
@@ -752,7 +753,7 @@ def _aggregate_per_cell_lazy(
 
         cell_surface_um2 = np.nan
         cell_sphericity  = np.nan
-        if compute_surface and spacing_zyx_um is not None:
+        if compute_surface and compute_cell_surface and spacing_zyx_um is not None:
             slices   = _bb_to_slices(cell_bboxes[cid], cell_vol_shape, margin=1)
             cell_bb  = _load_subvolume_from_path(cell_path, cell_key, slices)
             cell_obj = cell_bb == cid
@@ -1018,6 +1019,7 @@ def main(args):
                 per_mito_df, cell_path, args.cell_key,
                 vol_shape, voxel_size_nm, compute_surface, block_shape,
                 cell_scale=cell_scale,
+                compute_cell_surface=not args.no_cell_surface,
             )
 
         per_mito_df.insert(0, "mito_file", os.path.basename(mito_path))
@@ -1123,6 +1125,8 @@ if __name__ == "__main__":
                          "pre-computed connected-component labels for large volumes.")
     ap.add_argument("--no_surface", action="store_true",
                     help="Skip marching-cubes surface area (faster).")
+    ap.add_argument("--no_cell_surface", action="store_true",
+                    help="Skip marching-cubes surface area for cells only (avoids OOM on large objects).")
     ap.add_argument("--skeleton", action="store_true",
                     help="Compute skeleton length (slow; branches/endpoints not yet implemented).")
     ap.add_argument("--verbose", "-v", action="store_true")

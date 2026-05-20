@@ -1,11 +1,99 @@
 import argparse
-from typing import Sequence, Tuple, Union
+from typing import Optional, Sequence, Tuple, Union
 import zarr
 import numpy as np
 from skimage.transform import rescale, resize
 from tqdm import tqdm
 from numcodecs import Blosc
 import math
+
+
+# ---------------------------------------------------------------------------
+# OME-NGFF 0.4 metadata helpers
+# ---------------------------------------------------------------------------
+
+_AXES_ZYX = [
+    {"name": "z", "type": "space", "unit": "micrometer"},
+    {"name": "y", "type": "space", "unit": "micrometer"},
+    {"name": "x", "type": "space", "unit": "micrometer"},
+]
+
+
+def _read_voxel_size(root: zarr.Group, key: str) -> Optional[Tuple[float, ...]]:
+    """Return voxel_size for *key* from OME-NGFF multiscales or legacy root attrs, or None."""
+    attrs = dict(root.attrs)
+    # OME-NGFF multiscales
+    for ms in attrs.get("multiscales", []):
+        for ds in ms.get("datasets", []):
+            if ds["path"] == key:
+                for ct in ds.get("coordinateTransformations", []):
+                    if ct["type"] == "scale":
+                        return tuple(ct["scale"])
+    # Legacy per-dataset attrs (e.g. s0/.zattrs)
+    if key in root:
+        ds_attrs = dict(root[key].attrs)
+        if "voxel_size" in ds_attrs:
+            return tuple(ds_attrs["voxel_size"])
+    # Legacy root-level voxel_size — assumed to match the first / finest scale
+    if "voxel_size" in attrs:
+        return tuple(attrs["voxel_size"])
+    return None
+
+
+def _update_multiscales(
+    root: zarr.Group,
+    input_key: str,
+    output_key: str,
+    input_voxel_size: Tuple[float, ...],
+    scale: Tuple[float, ...],
+    unit: str = "micrometer",
+) -> None:
+    """Write/update OME-NGFF 0.4 multiscales entry for input and output datasets.
+
+    output voxel size = input voxel size / scale_factor
+    (downscaling by 0.5 doubles the physical voxel size).
+    """
+    out_voxel = tuple(v / s for v, s in zip(input_voxel_size, scale))
+
+    axes = [{"name": ax["name"], "type": ax["type"], "unit": unit} for ax in _AXES_ZYX]
+
+    def _ds_entry(path, voxel):
+        return {
+            "path": path,
+            "coordinateTransformations": [{"type": "scale", "scale": list(voxel)}],
+        }
+
+    attrs = dict(root.attrs)
+    if "multiscales" in attrs:
+        ms = attrs["multiscales"][0]
+        ms.setdefault("axes", axes)
+        datasets = ms.get("datasets", [])
+        # Ensure input_key is present
+        if not any(d["path"] == input_key for d in datasets):
+            datasets.append(_ds_entry(input_key, input_voxel_size))
+        # Replace or append output_key
+        datasets = [d for d in datasets if d["path"] != output_key]
+        datasets.append(_ds_entry(output_key, out_voxel))
+        datasets.sort(key=lambda d: d["path"])
+        ms["datasets"] = datasets
+    else:
+        attrs["multiscales"] = [
+            {
+                "version": "0.4",
+                "axes": axes,
+                "datasets": sorted(
+                    [_ds_entry(input_key, input_voxel_size), _ds_entry(output_key, out_voxel)],
+                    key=lambda d: d["path"],
+                ),
+                "coordinateTransformations": [{"type": "scale", "scale": [1.0] * len(input_voxel_size)}],
+            }
+        ]
+
+    root.attrs.update(attrs)
+    print(
+        f"OME-NGFF multiscales updated: '{input_key}' {list(input_voxel_size)} → "
+        f"'{output_key}' {[round(v, 8) for v in out_voxel]} {unit}"
+    )
 
 
 def resize_zarr_dataset_safe(
@@ -19,6 +107,8 @@ def resize_zarr_dataset_safe(
     halo: Union[int, Sequence[int], None] = None,
     order_raw: int = 1,
     overwrite: bool = True,
+    voxel_size: Optional[Tuple[float, ...]] = None,
+    unit: str = "micrometer",
 ):
     """
     Safely resize a 2D/3D Zarr dataset by iterating over OUTPUT chunks.
@@ -272,6 +362,16 @@ def resize_zarr_dataset_safe(
 
     print(f"Successfully wrote '{output_key}' to {zarr_path}")
 
+    # --- OME-NGFF metadata ---
+    effective_voxel_size = voxel_size or _read_voxel_size(root, input_key)
+    if effective_voxel_size is not None and len(effective_voxel_size) == ndim:
+        _update_multiscales(root, input_key, output_key, effective_voxel_size, scale, unit=unit)
+    else:
+        print(
+            "No voxel_size found — skipping OME-NGFF metadata update. "
+            "Pass voxel_size= or add legacy voxel_size to root .zattrs to enable it."
+        )
+
 
 def downscale_zarr_dataset(zarr_path, input_key="0", output_key="1", scale_factor=0.5, z_block_size=64,
                            args=None):
@@ -372,11 +472,15 @@ if __name__ == "__main__":
     p.add_argument("--scale", "-s", type=float, nargs="+", default=[0.5], help="zyx downscale factor")
     p.add_argument("--is_segmentation", "-is", action="store_true", default=False)
     p.add_argument("--z_chunked", "-zc", action="store_true", default=False, help="old approach, might reprocduce inconsitent output shapes!")
+    p.add_argument(
+        "--voxel_size", "-vs", type=float, nargs="+", default=None,
+        help="Input voxel size in zyx order (e.g. --voxel_size 0.025 0.005 0.005). "
+             "If omitted the script reads it from existing zarr metadata.",
+    )
+    p.add_argument("--unit", "-u", type=str, default="micrometer", help="Physical unit for voxel_size (default: micrometer)")
     args = p.parse_args()
     file = args.input_path
-    # Using z_block_size=64 means we load 64 slices at a time. 
-    # If your images are massive in X and Y (e.g., >10,000 pixels) and you still run out of RAM, 
-    # lower this number to 32 or 16.
+    voxel_size = tuple(args.voxel_size) if args.voxel_size else None
     if args.z_chunked:
         downscale_zarr_dataset(
             file,
@@ -385,7 +489,7 @@ if __name__ == "__main__":
             output_key=args.output_key,
             scale_factor=args.scale,
             args=args,
-            )
+        )
     else:
         resize_zarr_dataset_safe(
             zarr_path=file,
@@ -393,6 +497,8 @@ if __name__ == "__main__":
             output_key=args.output_key,
             scale_factor=args.scale,
             is_segmentation=args.is_segmentation,
-            output_chunk_shape=None,   # or set explicitly, e.g. (64, 256, 256)
+            output_chunk_shape=None,
             overwrite=True,
+            voxel_size=voxel_size,
+            unit=args.unit,
         )
