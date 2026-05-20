@@ -4,31 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-3D deep learning segmentation framework for mitochondria and other subcellular organelles (cristae, axons) in electron microscopy (EM) data. Targets cryo-ET and volume EM datasets from multiple sources (Janelia, CellMap, EMBL).
+3D deep learning segmentation framework for mitochondria and other subcellular organelles (cristae, axons) in electron microscopy (EM) data. Targets EM tomography and volume EM datasets from multiple sources (Janelia, CellMap, EMBL).
 
-## Environment Setup
-
-Dependencies are managed via conda/mamba. Multiple environment files exist for different targets:
-
-```bash
-mamba env create --file=env.yaml          # main GPU environment
-mamba env create --file=env_desktop.yaml  # desktop/visualization
-mamba env create --file=env_cpu.yaml      # CPU-only
-mamba env create --file=cryo_env.yaml     # cryo-ET specific
-```
-
-Install the package in development mode after activating the environment:
-```bash
-pip install -e .
-```
+## Import local claude md
+@.claude/local.md
 
 ## Common Commands
-
-**Training (main entry point):**
-```bash
-python main.py --data_dir <path> --experiment_name <name> [--checkpoint_path <ckpt>]
-# Key flags: --patch_shape 32 256 256, --n_iterations 10000, --batch_size 1, --feature_size 32, --learning_rate 1e-4
-```
 
 **Generic trainer (multi-dataset support):**
 ```bash
@@ -58,9 +39,7 @@ python post_processing.py  # watershed, connected components, size filtering
 ```
 
 **Submit GPU job (SLURM):**
-```bash
-python submit_gpu_job_grete.py
-```
+
 
 ## Configuration
 
