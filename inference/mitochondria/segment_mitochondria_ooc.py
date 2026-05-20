@@ -325,6 +325,9 @@ def main(visualize=False):
                 root = zarr.open(pred_path, mode="a")
                 pred = root.get("pred", None)
                 pred_ready = (pred is not None and pred.shape == expected_shape)
+                if args.force_overwrite and pred_ready:
+                    pred_ready = False
+                    print("Force overwrite: discarding cached prediction, will recompute.")
                 print("Prediction needs to be recomputed:", not pred_ready)
                 if not pred_ready:
                     pred = root.create_dataset(
@@ -333,7 +336,7 @@ def main(visualize=False):
                         chunks=chunks,
                         dtype="float32",
                         compressor=zarr.Blosc(cname="zstd", clevel=3, shuffle=2),
-                        overwrite=False,
+                        overwrite=True,
                     )
                 print("Disk based prediction:", args.disk_based_prediction)
                 print("prediction path", pred_path)
