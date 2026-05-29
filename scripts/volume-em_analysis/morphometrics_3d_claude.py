@@ -959,6 +959,14 @@ def main(args):
         mito_ids = sorted(bboxes.keys())
         print(f"  Found {len(mito_ids)} objects.")
 
+        # Z-range filtering: keep only mitos whose bbox overlaps [z_start, z_end].
+        if args.z_start is not None or args.z_end is not None:
+            z0 = args.z_start if args.z_start is not None else 0
+            z1 = args.z_end   if args.z_end   is not None else (vol_shape[0] - 1)
+            mito_ids = [mid for mid in mito_ids
+                        if bboxes[mid][0] <= z1 and bboxes[mid][1] >= z0]
+            print(f"  After z-range filter [{z0}, {z1}]: {len(mito_ids)} objects.")
+
         # Step 2: detect mito→raw scale (mito segmentation may be at coarser resolution).
         raw_arr = _open_lazy(raw_path, args.raw_key)
         raw_vol_shape = raw_arr.shape
@@ -1002,6 +1010,12 @@ def main(args):
                     rows.append(row)
 
         per_mito_df = pd.DataFrame(rows)
+
+        # Cell/axon ID whitelist: keep only mitos assigned to the requested IDs.
+        if args.cell_ids and not per_mito_df.empty and "cell_id" in per_mito_df.columns:
+            keep = set(args.cell_ids)
+            per_mito_df = per_mito_df[per_mito_df["cell_id"].isin(keep)].copy()
+            print(f"  After cell ID filter: {len(per_mito_df)} mitos in {len(keep)} cells/axons.")
 
         # Step 5: nearest-neighbour distances (in main process; centroids are tiny).
         if len(rows) >= 2:
@@ -1129,6 +1143,15 @@ if __name__ == "__main__":
                     help="Skip marching-cubes surface area for cells only (avoids OOM on large objects).")
     ap.add_argument("--skeleton", action="store_true",
                     help="Compute skeleton length (slow; branches/endpoints not yet implemented).")
+    ap.add_argument("--z_start", "-zs", type=int, default=None,
+                    help="First z slice to include (0-indexed, inclusive). "
+                         "Mito objects whose bounding box doesn't overlap this range are skipped.")
+    ap.add_argument("--z_end", "-ze", type=int, default=None,
+                    help="Last z slice to include (0-indexed, inclusive). "
+                         "Mito objects whose bounding box doesn't overlap this range are skipped.")
+    ap.add_argument("--cell_ids", "-cids", type=int, nargs="+", default=None,
+                    help="Whitelist of cell/axon label IDs. Only mitos assigned to these "
+                         "IDs (via the cell segmentation) are kept in the output.")
     ap.add_argument("--verbose", "-v", action="store_true")
     ap.add_argument("--no_qc_border", action="store_true",
                     help="Do not exclude mitos touching the volume boundary.")

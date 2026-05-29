@@ -1,221 +1,254 @@
-import h5py
-import mrcfile
+"""
+Interactive correction tool for cristae / mitochondria annotations.
+
+Each sample consists of three files sharing a common base name:
+  <base>_rec.mrc              — raw tomogram
+  <base>_model.tif            — manual annotation to correct (editable Labels layer)
+  <base>_rec_prediction.tif   — model prediction (reference Labels layer)
+
+Corrected labels are exported as TIFF to --save_dir.
+
+MRC alignment
+-------------
+MRC files often use an inverted y-axis relative to TIFF convention, so the raw
+image needs to be flipped before it aligns with the segmentation layers.
+Use --flip to choose the axis:  y (default), x, xy (180° rotation), or none.
+
+Widgets (right panel)
+---------------------
+  Relabel layer  — parallel connected components via elf.parallel.label;
+                   blockwise CC merged across boundaries, uses all available threads.
+  Move instance  — pick an instance ID and move it between any two Labels layers.
+                   Source and target layer dropdowns are auto-populated from the viewer.
+  Save           — writes every layer to <save_dir>/<raw_basename>_<layer_name>.tif
+
+Key bindings
+------------
+  s  — Save
+  n  — Save & advance to next sample
+  q  — Skip (no save)
+
+Usage
+-----
+  python data_preprocessing/run_correction.py
+  python data_preprocessing/run_correction.py -p <data_dir> -o <out_dir> --flip y
+"""
+
 import os
 from glob import glob
-import numpy as np
+
+import mrcfile
 import napari
-import argparse
+import numpy as np
+import tifffile
 from magicgui import magicgui
-from skimage.measure import label
-# from scipy import ndimage
 from napari.utils.notifications import show_info
-from tqdm import tqdm
-from skimage.measure import regionprops
+from elf.parallel import label as elf_label
 
-SAVE_DIR = "/home/freckmann15/data/mitochondria/corrected_mito_h5"
-BASE_PATH = "/home/freckmann15/data/mitochondria/20240722_Mito_cristae_segmentation/"
-
-
-def label_image_in_chunks(image, chunk_size):
-    """Labels an image in chunks to reduce memory usage.
-
-    Args:
-        image: The input image as a NumPy array.
-        chunk_size: The size of the chunks to process.
-
-    Returns:
-        A labeled image as a NumPy array.
-    """
-
-    shape = image.shape
-    labels = np.zeros_like(image, dtype=np.int32)
-
-    for z in range(0, shape[2], chunk_size):
-        for y in range(0, shape[1], chunk_size):
-            for x in range(0, shape[0], chunk_size):
-                chunk = image[x:x+chunk_size, y:y+chunk_size, z:z+chunk_size]
-                chunk_labels = label(chunk)
-                # Adjust labels for overlap if necessary
-                labels[x:x+chunk_size, y:y+chunk_size, z:z+chunk_size] = chunk_labels
-
-    return labels
+DEFAULT_DATA_PATH = "/home/freckmann15/data/cristae/wichmann/2026-05-26"
+DEFAULT_SAVE_DIR  = "/home/freckmann15/data/cristae/wichmann/2026-05-26/corrected"
 
 
-def extend_corner_regions(labels):
-    """Extends regions that touch two borders of the image to fill the corner.
+# ---------------------------------------------------------------------------
+# File discovery
+# ---------------------------------------------------------------------------
 
-    Args:
-        labels: A 3D NumPy array containing the labels.
-
-    Returns:
-        A 3D NumPy array with extended labels.
-    """
-
-    label_image = label_image_in_chunks(labels, 512)
-    # label_image = label(labels)        # if iteration == 1:
-    #         continue
-    regions = regionprops(label_image)
-
-    for prop in regions:
-        minr, minc, minz, maxr, maxc, maxz = prop.bbox
-        shape = labels.shape
-
-        # Check for corners
-        if minr == 0 and minc == 0:
-            labels[minr, minc, minz:maxz+1] = prop.label
-        elif minr == 0 and maxc == shape[1] - 1:
-            labels[minr, maxc, minz:maxz+1] = prop.label
-        elif maxr == shape[0] - 1 and minc == 0:
-            labels[maxr, minc, minz:maxz+1] = prop.label
-        elif maxr == shape[0] - 1 and maxc == shape[1] - 1:
-            labels[maxr, maxc, minz:maxz+1] = prop.label
-        # Similar checks for other corners in the Z dimension
-
-    return labels
+def find_sample_groups(base_path):
+    """Return list of (base, rec_path, model_path, pred_path) for every complete sample."""
+    rec_files = sorted(glob(os.path.join(base_path, "*_rec.mrc")))
+    groups = []
+    for rec in rec_files:
+        base  = rec[:-len("_rec.mrc")]
+        model = base + "_model.tif"
+        pred  = base + "_rec_prediction.tif"
+        if os.path.exists(model) and os.path.exists(pred):
+            groups.append((base, rec, model, pred))
+        else:
+            print(f"  WARNING: incomplete group for {os.path.basename(base)}, skipping.")
+    return groups
 
 
-def load_labels(path, ext):
-    """
-    Load labels from a file based on the file extension.
+# ---------------------------------------------------------------------------
+# Napari session for one sample
+# ---------------------------------------------------------------------------
 
-    Args:
-        path (str): The path to the file.
-        ext (str): The file extension.
-
-    Returns:
-        numpy.ndarray: The loaded labels.
-
-    Raises:
-        FileNotFoundError: If the file does not exist.
-        ValueError: If the file extension is not supported.
-    """
-    if ext == ".mrc":
-        with mrcfile.open(path, "r") as f:
-            labels = f.data
-    if ext == ".h5":
-        with h5py.File(path, "r") as f:
-            labels = f["labels/mitochondria"][:]
-            if "raw" in f:
-                print("h5 file already has image data")
-    return labels
+def _flip_raw(raw, flip):
+    """Flip raw MRC array to match TIFF axis convention."""
+    if flip == "y":
+        return np.flip(raw, axis=1)
+    if flip == "x":
+        return np.flip(raw, axis=2)
+    if flip == "xy":
+        return np.flip(raw, axis=(1, 2))   # 180° rotation in YX plane
+    return raw   # "none"
 
 
-def run_correction(raw_input_path, label_input_path, output_path, fname, orig_label_path=None):
-    continue_correction = True
+def run_correction(base_name, rec_path, model_path, pred_path, save_dir, args):
+    """Open napari for one sample. Returns True to continue, False to stop all."""
+    continue_session = [True]   # list so closures can mutate it
+    fname = os.path.basename(base_name)
+    already_saved = any(
+        f.startswith(fname + "_") and f.endswith(".tif")
+        for f in os.listdir(save_dir)
+    ) if os.path.isdir(save_dir) else False
 
-    with mrcfile.open(raw_input_path, "r") as f:
-        raw = f.data
-    labels = load_labels(label_input_path, os.path.splitext(label_input_path)[1])
-    labels.setflags(write=1)
+    # --- load data ---
+    with mrcfile.open(rec_path, "r") as f:
+        raw = np.array(f.data, dtype=np.float32)
+    raw = _flip_raw(raw, args.flip)
+    model      = tifffile.imread(model_path).astype(np.int32)
+    prediction = tifffile.imread(pred_path).astype(np.int32)
 
-    if orig_label_path is not None:
-        orig_labels = load_labels(orig_label_path, os.path.splitext(orig_label_path)[1])
-    else:
-        orig_labels = None
+    # --- build viewer ---
+    viewer = napari.Viewer()
+    viewer.title = f"{'[saved] ' if already_saved else ''}[{fname}]"
 
-    v = napari.Viewer()
+    viewer.add_image(raw, name="raw")
+    viewer.add_labels(prediction, name="cristae", opacity=0.55)
+    edit_layer = viewer.add_labels(model, name="mitochondria")
+    edit_layer.mode = "paint"
 
-    # if orig_labels is None:
-    #     orig_labels = labels
+    # --- helpers ---
+    def _save():
+        os.makedirs(save_dir, exist_ok=True)
+        saved = []
+        for layer in viewer.layers:
+            safe_name = layer.name.replace(" ", "_").replace("—", "-").replace("/", "-")
+            out_path = os.path.join(save_dir, f"{fname}_{safe_name}.tif")
+            data = layer.data
+            if isinstance(layer, napari.layers.Labels):
+                tifffile.imwrite(out_path, data.astype(np.int32), compression="zlib")
+            else:
+                tifffile.imwrite(out_path, data, compression="zlib")
+            saved.append(os.path.basename(out_path))
+        viewer.title = f"[saved] [{fname}]"
+        show_info(f"Saved {len(saved)} layer(s) → {save_dir}")
 
-    v.add_image(raw)
-    v.add_labels(labels)
-    if orig_labels is not None:
-        v.add_labels(orig_labels)
-    labels_layer = v.layers["labels"]
-    labels_layer.mode = "paint"
-    
-    v.title = f"Tomo: {fname}, mitochondria"
+    # --- widgets ---
+    @magicgui(call_button="Save  [s]")
+    def btn_save():
+        _save()
 
-    @magicgui(call_button="Paint New Vesicle [f]")
-    def paint_new_mitos(v: napari.Viewer):
-        layer = v.layers["labels"]
-        layer.selected_label = 1
-        layer.mode = "paint"
+    @magicgui(call_button="Save & Next  [n]")
+    def btn_save_next():
+        _save()
+        viewer.close()
 
-    @magicgui(call_button="Save Correction")
-    def save_correction(v: napari.Viewer):
-        os.makedirs(os.path.split(output_path)[0], exist_ok=True)
-        labels = v.layers["labels"].data
-        raw = v.layers["raw"].data
-        # labels = labels #label(labels)
-        with h5py.File(output_path, "a") as f:
-            ds = f.require_dataset(
-                "labels/mitochondria", shape=labels.shape, dtype=labels.dtype, compression="gzip"
-            )
-            ds[:] = labels
-            ds_raw = f.require_dataset(
-                "raw", shape=raw.shape, dtype=raw.dtype, compression="gzip"
-            )
-            ds_raw[:] = raw
-        show_info(f"Saved segmentation to {output_path}.")
-    
-    @magicgui(call_button="Stop Correction")
-    def stop_correction(v: napari.Viewer):
-        nonlocal continue_correction
-        show_info("Stop correction.")
-        continue_correction = False
+    @magicgui(call_button="Skip — no save  [q]")
+    def btn_skip():
+        viewer.close()
 
-    v.window.add_dock_widget(paint_new_mitos)
-    v.window.add_dock_widget(save_correction)
-    v.window.add_dock_widget(stop_correction)
+    @magicgui(call_button="Stop all")
+    def btn_stop():
+        continue_session[0] = False
+        viewer.close()
 
-    v.bind_key("s", lambda _:  save_correction(v))
-    v.bind_key("q", lambda _:  stop_correction(v))
-    v.bind_key("f", lambda _:  paint_new_mitos(v))
+    @magicgui(
+        call_button="Move instance",
+        instance_id={"widget_type": "SpinBox", "label": "Instance ID", "min": 0, "max": 2**31 - 1, "value": 1},
+    )
+    def btn_move_instance(
+        source_layer: napari.layers.Labels,
+        target_layer: napari.layers.Labels,
+        instance_id: int = 1,
+    ):
+        if source_layer is None or target_layer is None:
+            show_info("Select both source and target layers.")
+            return
+        if source_layer.name == target_layer.name:
+            show_info("Source and target must be different layers.")
+            return
+        mask = source_layer.data == instance_id
+        if not np.any(mask):
+            show_info(f"Instance {instance_id} not found in '{source_layer.name}'.")
+            return
+        target_layer.data[mask] = instance_id
+        source_layer.data[mask] = 0
+        source_layer.refresh()
+        target_layer.refresh()
+        show_info(
+            f"Moved instance {instance_id}: '{source_layer.name}' → '{target_layer.name}'"
+        )
+
+    @magicgui(call_button="Relabel layer (CC)")
+    def btn_relabel(layer: napari.layers.Labels):
+        if layer is None:
+            show_info("Select a layer to relabel.")
+            return
+        n_before = len(np.unique(layer.data)) - 1
+        relabeled = elf_label(layer.data > 0, with_background=True, block_shape=(64, 512, 512)).astype(np.int32)
+        layer.data = relabeled
+        layer.refresh()
+        n_after = len(np.unique(relabeled)) - 1
+        show_info(f"Relabeled '{layer.name}': {n_before} → {n_after} instances")
+
+    for widget in (btn_relabel, btn_move_instance, btn_save, btn_save_next, btn_skip, btn_stop):
+        viewer.window.add_dock_widget(widget, area="right")
+
+    # key bindings
+    viewer.bind_key("s", lambda _: _save())
+    viewer.bind_key("n", lambda _: (_save(), viewer.close()))
+    viewer.bind_key("q", lambda _: viewer.close())
 
     napari.run()
+    return continue_session[0]
 
-    return continue_correction
 
+# ---------------------------------------------------------------------------
+# Main loop
+# ---------------------------------------------------------------------------
 
-def correct_mitochondria(args):
-    base_path = args.base_path
-    save_dir = args.save_dir
-    os.makedirs(save_dir, exist_ok=True)
+def correct_samples(args):
+    groups = find_sample_groups(args.base_path)
+    if not groups:
+        print(f"No complete sample groups found in:\n  {args.base_path}")
+        return
 
-    raw_files = sorted(glob(os.path.join(base_path, "**/*raw.mrc"), recursive=True))
-    label_files = sorted(glob(os.path.join(base_path, "**/*labels.mrc"), recursive=True))
-    
-    iteration = 0
-    for raw_path, label_path in tqdm(zip(raw_files, label_files)):
-        orig_label_path = None
-        iteration += 1
-        path, fname = os.path.split(raw_path)
-        fname, _ = os.path.splitext(fname)
-        fname = fname.replace("_raw", "")
-        fname = fname + ".h5"
-        # print("\nfname: ", fname)
-        output_path = os.path.join(save_dir, fname)
-        if iteration <= 0:
+    print(f"Found {len(groups)} sample(s).  Output → {args.save_dir}\n")
+    os.makedirs(args.save_dir, exist_ok=True)
+
+    for i, (base, rec, model, pred) in enumerate(groups):
+        fname = os.path.basename(base)
+        already_done = os.path.isdir(args.save_dir) and any(
+            f.startswith(fname + "_") and f.endswith(".tif")
+            for f in os.listdir(args.save_dir)
+        )
+
+        if args.skip_done and already_done:
+            print(f"  [{i+1}/{len(groups)}] [done] {fname}  — skipping (already saved)")
             continue
 
-        if os.path.exists(output_path):
-            # continue
-            # orig_label_path = label_path
-            label_path = output_path
-        print(f"Loading: \n{raw_path} \n{label_path}\n")
-
-        if not run_correction(raw_path, label_path, output_path, fname, orig_label_path):
+        print(f"  [{i+1}/{len(groups)}] {fname}")
+        if not run_correction(base, rec, model, pred, args.save_dir, args):
+            print("Stopped.")
             break
 
+    print("\nDone.")
 
-# def refine_mitochondria(args):
-#     h5_file_paths = sorted(glob(os.path.join(args.base_path, "**/*.h5"), recursive=True))
-#     for h5_file_path in tqdm(h5_file_paths):
-#         path, fname = os.path.split(h5_file_path)
-#         fname, _ = os.path.splitext(fname)
-#         if not run_correction(h5_file_path, h5_file_path, path, fname):
-#             break
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--base_path", type=str, default=BASE_PATH, help="Path to the data directory")
-    parser.add_argument("--save_dir", type=str, default=SAVE_DIR, help="Path to save the data to")
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Interactive napari correction for cristae / mito annotations.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("--base_path", "-p", default=DEFAULT_DATA_PATH,
+                        help="Directory containing *_rec.mrc / *_model.tif / *_rec_prediction.tif triplets")
+    parser.add_argument("--save_dir",  "-o", default=DEFAULT_SAVE_DIR,
+                        help="Output directory for corrected TIFF files")
+    parser.add_argument("--flip", default="y", choices=["y", "x", "xy", "none"],
+                        help="Axis to flip the raw MRC along to align with TIFFs. "
+                             "'y' flips top-bottom (most common), 'x' flips left-right, "
+                             "'xy' rotates 180° in plane, 'none' disables flipping.")
+    parser.add_argument("--no_skip_done", dest="skip_done", action="store_false",
+                        help="Re-open samples that already have a corrected file")
+    parser.set_defaults(skip_done=True)
     args = parser.parse_args()
-
-    correct_mitochondria(args)
-    # refine_mitochondria(args)
+    correct_samples(args)
 
 
 if __name__ == "__main__":
