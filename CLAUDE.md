@@ -16,6 +16,8 @@ mainly micromamba and conda-forge
 `micromamba env list` to see all available environements
 always use environment yaml file
 default environement for this repository is "synapse"
+activate with:
+`mamba activate synapse`
 
 **Training:**
 ```bash

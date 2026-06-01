@@ -892,7 +892,8 @@ def convert_white_patches_to_black(img, min_patch_size=20):
         Image with large white patches set to 0 (same dtype as input).
     """
     if img.dtype != np.uint8:
-        warnings.warn("img must be uint8, converting to uint8 from " + str(img.dtype))
+        if not (np.issubdtype(img.dtype, np.floating) and img.min() >= 0 and img.max() <= 255):
+            warnings.warn("img must be uint8, converting to uint8 from " + str(img.dtype))
         img = img.astype(np.uint8)
     if img.ndim not in (2, 3):
         raise ValueError(f"img must be a 2D or 3D array, but got {img.ndim}D")
