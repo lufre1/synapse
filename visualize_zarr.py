@@ -120,7 +120,6 @@ def chunked_resize(arr, target_shape, order=1, slab_size=64):
     Returns:
         Resized array with target_shape
     """
-    from skimage.transform import resize
 
     if arr.shape == target_shape:
         return np.asarray(arr)
