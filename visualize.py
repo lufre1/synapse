@@ -229,7 +229,7 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
                 if dim == 0:
                     data[f"raw_{dim}"] = data["raw_mitos_combined"][dim]
                 if dim == 1:
-                    data[f"mitos_{dim}"] = data["raw_mitos_combined"][dim]
+                    data[f"mitos_{dim}"] = data["raw_mitos_combined"][dim].astype(np.uint8)
             del data["raw_mitos_combined"]
         if segment:
             # get foreground and boundary
