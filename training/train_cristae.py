@@ -9,6 +9,7 @@ import os
 import random
 import argparse
 import time
+import h5py
 import torch_em
 # import torch_em.data.datasets as torchem_data
 from torch_em.data import MinInstanceSampler
@@ -25,6 +26,53 @@ SAVE_DIR = "/mnt/lustre-grete/usr/u12103/cristae/"
 
 def explude_string(list_of_strings, string_to_exlude):
     return [s for s in list_of_strings if string_to_exlude not in s]
+
+
+def log_dataset_stats(paths, split_name):
+    unique_paths = list(dict.fromkeys(paths))  # deduplicate while preserving order
+    print(f"\n--- Dataset statistics [{split_name}] ---  ({len(unique_paths)} files)")
+
+    total_bg = total_mito_ann = total_mito_unann = total_cristae = 0
+
+    for path in unique_paths:
+        try:
+            with h5py.File(path, "r") as f:
+                state   = f["raw_mitos_combined"][1]   # mito-state channel
+                cristae = f["labels/cristae"][()]
+
+            n_bg        = int(np.sum(state == 0))
+            n_mito_ann  = int(np.sum(state == 1))
+            n_mito_unan = int(np.sum(state == 2))
+            n_cristae   = int(np.sum(cristae > 0))
+            n_total     = state.size
+
+            total_bg        += n_bg
+            total_mito_ann  += n_mito_ann
+            total_mito_unann += n_mito_unan
+            total_cristae   += n_cristae
+
+            cristae_of_ann = 100 * n_cristae / n_mito_ann if n_mito_ann > 0 else float("nan")
+            print(
+                f"  {os.path.basename(path)}"
+                f"  shape={cristae.shape}"
+                f"  | mito_ann={n_mito_ann:>10,} ({100*n_mito_ann/n_total:4.1f}%)"
+                f"  mito_unann={n_mito_unan:>10,} ({100*n_mito_unan/n_total:4.1f}%)"
+                f"  | cristae={n_cristae:>8,} ({cristae_of_ann:4.1f}% of ann mito)"
+            )
+        except Exception as e:
+            print(f"  WARNING: could not read {path}: {e}")
+
+    grand_total = total_bg + total_mito_ann + total_mito_unann
+    if grand_total > 0:
+        cristae_of_ann = 100 * total_cristae / total_mito_ann if total_mito_ann > 0 else float("nan")
+        print(
+            f"  [TOTAL]"
+            f"  bg={total_bg:>12,} ({100*total_bg/grand_total:4.1f}%)"
+            f"  mito_ann={total_mito_ann:>10,} ({100*total_mito_ann/grand_total:4.1f}%)"
+            f"  mito_unann={total_mito_unann:>10,} ({100*total_mito_unann/grand_total:4.1f}%)"
+            f"  | cristae={total_cristae:>8,} ({cristae_of_ann:4.1f}% of ann mito)"
+        )
+    print()
 
 
 def main():
@@ -158,6 +206,10 @@ def main():
     print("data['train']", data["train"])
     print("data['val']", data["val"])
     print("data['test']", data["test"])
+
+    for split in ("train", "val", "test"):
+        if data[split]:
+            log_dataset_stats(data[split], split)
 
     if with_rois:
         train_loader = torch_em.default_segmentation_loader(
