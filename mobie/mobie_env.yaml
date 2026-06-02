@@ -1,0 +1,22 @@
+name: mobie-s3
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - git
+  - pybdv
+  - jsonschema
+  - numpy
+  - pandas
+  - requests
+  - pyyaml
+  - fsspec
+  - s3fs
+  - zarr
+  - python-elf
+  - luigi
+  - cluster_tools
+  - pip:
+      - git+https://github.com/mobie/mobie-utils-python.git
+      

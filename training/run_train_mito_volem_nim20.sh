@@ -17,7 +17,7 @@ N_ITER=50000
 PATCH_SHAPE="32 512 512"
 BS=4
 LR=1e-4
-DD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_hdf5/"
+DD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_hdf5/all_cutouts_s0"
 RAW_KEY="raw"
 LABEL_KEY="labels/mitochondria"
 SDD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4009_hdf5/cutouts_segmented/"
@@ -26,7 +26,7 @@ SDD="/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4009_hdf5/cutout
 # RAW_KEY="raw_crop"
 PATCH_SIZE=$(echo $PATCH_SHAPE | awk '{print $2}')
 read -r PZ PY PX <<< "$PATCH_SHAPE"
-EXPNAME="volume-em-mito-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-final"
+EXPNAME="volume-em-mito-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-final_v2"
 EARLY_STOPPING=20
 SAVE_DIR="/mnt/lustre-grete/usr/u15205/volume-em/models/"
 

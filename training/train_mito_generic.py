@@ -25,6 +25,36 @@ import synapse.label_utils as lutil
 SAVE_DIR = "/mnt/lustre-grete/usr/u15205/volume-em/models/"
 
 
+def _raw_transform_with_fix_white_patches(x):
+    x = util.convert_white_patches_to_black(x)
+    return torch_em.transform.raw.normalize_percentile(x)
+
+
+def _count_instances_in_files(file_paths, label_key):
+    import h5py
+    total = 0
+    for path in file_paths:
+        try:
+            with h5py.File(path, "r") as f:
+                labels = f[label_key][:]
+                unique = np.unique(labels)
+                total += int(np.sum(unique > 0))
+        except Exception as e:
+            print(f"  Warning: could not count instances in {os.path.basename(path)}: {e}")
+    return total
+
+
+def _log_dataset_stats(data, label_key):
+    n_train, n_val, n_test = len(data["train"]), len(data["val"]), len(data["test"])
+    print(f"\n=== Dataset split ===")
+    print(f"  Train: {n_train} files | Val: {n_val} files | Test: {n_test} files | Total: {n_train + n_val + n_test}")
+    if label_key is not None:
+        train_n = _count_instances_in_files(data["train"], label_key)
+        val_n = _count_instances_in_files(data["val"], label_key)
+        print(f"  Train instances: {train_n} | Val instances: {val_n} | Total: {train_n + val_n}")
+    print(f"=====================\n")
+
+
 def main():
     parser = argparse.ArgumentParser(description="3D UNet for medium organelle segmentation")
     parser.add_argument("--data_dir", type=str, required=True,
@@ -48,6 +78,13 @@ def main():
     parser.add_argument("--with_rois", "-wr", default=False, action='store_true', help="Use to train with ROIs (manually set ROI in script!!)")
     parser.add_argument("--use_synapse_training", "-ust", default=False, action='store_true')
     parser.add_argument("--save_dir", "-sd", default=None, help="Savedir to store logs and checkpoints to.")
+    parser.add_argument("--scale_factors", type=int, nargs="+",
+                        default=[1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+                        help="Scale factors as flat list of ints, 3 per UNet level (e.g. '1 2 2 1 2 2 2 2 2 2 2 2')")
+    parser.add_argument("--mixed_precision", "-mp", default=False, action='store_true',
+                        help="Enable mixed-precision (fp16) training")
+    parser.add_argument("--fix_white_patches", "-fwp", default=False, action='store_true',
+                        help="Zero out large connected white (255) regions before normalization (volume EM white borders)")
 
     # Parse arguments
     args = parser.parse_args()
@@ -79,7 +116,10 @@ def main():
     else:
         checkpoint_path = None
 
-    raw_transform = torch_em.transform.raw.normalize_percentile  # util.custom_raw_transform
+    if args.fix_white_patches:
+        raw_transform = _raw_transform_with_fix_white_patches
+    else:
+        raw_transform = torch_em.transform.raw.normalize_percentile
 
     in_channels, out_channels = 1, 2
 
@@ -112,6 +152,7 @@ def main():
     data = util.split_data_paths_to_dict_with_ensure(
         data_paths, ensure_strings=ensure_strings, train_ratio=1, val_ratio=0.0, test_ratio=0.0
         )
+    _log_dataset_stats(data, args.label_key)
 
     end_time = time.time()
     # Calculate execution time in seconds
@@ -128,7 +169,8 @@ def main():
     loss_name = "dice"
     metric_name = "dice"
     ndim = 3
-    scale_factors = [[1, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2]]
+    sf = args.scale_factors
+    scale_factors = [sf[i:i+3] for i in range(0, len(sf), 3)]
 
     loss_function = util.get_loss_function(loss_name)
     metric_function = util.get_loss_function(metric_name)
@@ -173,7 +215,7 @@ def main():
             train_loader=train_loader, val_loader=val_loader,
             loss=loss_function, metric=metric_function,
             learning_rate=args.learning_rate,
-            mixed_precision=False,
+            mixed_precision=args.mixed_precision,
             log_image_interval=50,
             device=device,
             compile_model=False,

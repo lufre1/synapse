@@ -462,6 +462,7 @@ def segment_axons_ooc(
     # 2) Blockwise connected components
     if verbose: print("Computing connected components out-of-core...")
     parallel.label(mask, block_shape=block_shape, out=seg, verbose=verbose)
+    del root["mask"]
 
     # 3) Size filter OOC
     if min_size and min_size > 0:
@@ -667,6 +668,8 @@ def segment_mitos_ooc_wrapped(
     foreground_threshold=0.5,
     area_threshold=5000,   # kept for signature compatibility (not used here)
     reuse_computed=False,
+    bg_penalty=2.0,        # height-map penalty for barrier voxels; lower (e.g. 1.2) reduces fragmentation
+    n_threads=8,           # cap threads to match SLURM CPU allocation; multiprocessing.cpu_count() can return full node count
 ):
     # pred is (C,Z,Y,X)
     shape = pred.shape[1:]
@@ -693,7 +696,7 @@ def segment_mitos_ooc_wrapped(
 
         parallel.distance_transform(
             boundaries_thresh, halo=halo, verbose=verbose,
-            block_shape=block_shape, distances=dist
+            block_shape=block_shape, distances=dist, n_threads=n_threads,
         )
         if verbose: print("dist in", time.time() - t0, "s")
     elif verbose:
@@ -714,7 +717,7 @@ def segment_mitos_ooc_wrapped(
         )
 
         # label writes out-of-core into `seeds`
-        parallel.label(seed_mask, block_shape=block_shape, verbose=verbose, out=seeds)
+        parallel.label(seed_mask, block_shape=block_shape, verbose=verbose, out=seeds, n_threads=n_threads)
         if verbose: print("seeds in", time.time() - t0, "s")
     elif verbose:
         print("Reusing existing seeds...")
@@ -724,8 +727,6 @@ def segment_mitos_ooc_wrapped(
     t0 = time.time()
     dist_max = float(max(np.max(dist[bb]) for bb in iterate_blocks(shape, block_shape)))
     if verbose: print("dist_max =", dist_max, "in", time.time() - t0, "s")
-
-    bg_penalty = 2.0
 
     # --- hmap + mask as virtual volumes (no datasets written) ---
     def hmap_tf(d_chunk, index):
@@ -756,7 +757,7 @@ def segment_mitos_ooc_wrapped(
             hmap, seeds,
             block_shape=block_shape, halo=halo,
             out=seg, mask=mask,
-            verbose=verbose
+            verbose=verbose, n_threads=n_threads,
         )
         if verbose: print("watershed in", time.time() - t0, "s")
 
@@ -891,7 +892,8 @@ def convert_white_patches_to_black(img, min_patch_size=20):
         Image with large white patches set to 0 (same dtype as input).
     """
     if img.dtype != np.uint8:
-        warnings.warn("img must be uint8, converting to uint8 from " + str(img.dtype))
+        if not (np.issubdtype(img.dtype, np.floating) and img.min() >= 0 and img.max() <= 255):
+            warnings.warn("img must be uint8, converting to uint8 from " + str(img.dtype))
         img = img.astype(np.uint8)
     if img.ndim not in (2, 3):
         raise ValueError(f"img must be a 2D or 3D array, but got {img.ndim}D")
@@ -1228,6 +1230,62 @@ def standardize_channel(raw, channel=0):
     raw_norm[channel] = torch_em.transform.raw.standardize(raw[channel])
 
     return raw_norm
+
+
+class MitoStateMaskTransform:
+    """Joint (raw, label) transform for cristae training.
+
+    After `label_transform` has produced labels of shape [n_ch, D, H, W], this
+    appends n_ch mask channels encoding voxels where loss should be computed.
+    Voxels where `raw[mito_channel] == exclude_state_value` are masked out
+    (mask=0); all other voxels — including background — remain active (mask=1).
+
+    This prevents the network from being penalised for predictions inside
+    mitochondria that carry no cristae annotations (typically label 2), while
+    still letting it learn the no-cristae signal from background voxels.
+
+    The result has shape [2*n_ch, D, H, W], compatible with `MaskedDiceLoss`.
+    The mito-state channel is left as integer-valued floats by
+    `standardize_channel` (which only normalises channel 0), so the equality
+    check is safe.
+    """
+
+    def __init__(self, mito_channel: int = 1, exclude_state_value: float = 2.0):
+        self.mito_channel = mito_channel
+        self.exclude_state_value = exclude_state_value
+
+    def __call__(self, raw: np.ndarray, labels: np.ndarray):
+        mito_state = raw[self.mito_channel]                                        # [D, H, W]
+        mask = (np.abs(mito_state - self.exclude_state_value) >= 0.5).astype(np.float32)  # 1 where NOT excluded
+        masks = np.stack([mask] * labels.shape[0], axis=0)                         # [n_ch, D, H, W]
+        labels = np.concatenate([labels, masks], axis=0)                           # [2*n_ch, D, H, W]
+        return raw, labels
+
+
+class MaskedDiceLoss(nn.Module):
+    """Dice loss that reads a per-channel binary mask from the second half of
+    the target tensor (as produced by `MitoStateMaskTransform`).
+
+    target shape: [B, 2*n_ch, ...] – first n_ch channels are the actual
+    targets, second n_ch channels are the spatial masks (1 = compute loss,
+    0 = ignore).  Masking is applied via element-wise multiplication so that
+    zeroed-out voxels contribute 0 to both the numerator and denominator of
+    the Dice score.
+    """
+
+    def __init__(self, **dice_kwargs):
+        super().__init__()
+        self._dice = torch_em.loss.DiceLoss(**dice_kwargs)
+
+    def forward(self, prediction: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        n_pred_ch = prediction.size(1)
+        assert target.size(1) == 2 * n_pred_ch, (
+            f"MaskedDiceLoss expects target with {2 * n_pred_ch} channels, got {target.size(1)}"
+        )
+        mask = target[:, n_pred_ch:]   # [B, n_ch, ...]
+        target = target[:, :n_pred_ch] # [B, n_ch, ...]
+        return self._dice(prediction * mask, target * mask)
+
 
 def normalize_percentile_with_channel(raw, lower=1, upper=99, channel=0):
     """

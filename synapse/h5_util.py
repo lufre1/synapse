@@ -61,6 +61,17 @@ def extract_data(group: Any, data: Dict[str, Any], prefix: str = "", scale: int 
             # data[full_key] = item[:]
 
 
+def _parse_axes_order(axes_attr) -> str:
+    """Return a comma-separated lowercase axes string, e.g. 'z,y,x'."""
+    if axes_attr is None:
+        return None
+    if isinstance(axes_attr, np.ndarray):
+        return ",".join(str(a).lower() for a in axes_attr)
+    if isinstance(axes_attr, bytes):
+        axes_attr = axes_attr.decode("utf-8")
+    return str(axes_attr).replace(" ", "").lower()
+
+
 def read_voxel_size(
     h5_path: Union[str, Path],
     h5_key: str = "raw",
@@ -70,6 +81,14 @@ def read_voxel_size(
     """
     Read the ``voxel_size`` attribute and return it as (z, y, x).
 
+    Checks attributes in this priority order:
+      1. The dataset/group at ``h5_key``
+      2. The root of the HDF5 file (common in files written by tools like IMOD)
+
+    The ``axes`` attribute (array of axis names, e.g. ``['z','y','x']``) or
+    ``voxel_size_order`` string is used to determine the storage order so the
+    result is always returned as **(z, y, x)**.
+
     Parameters
     ----------
     h5_path : str or pathlib.Path
@@ -77,67 +96,70 @@ def read_voxel_size(
     h5_key : str
         Internal HDF5 path to the object that holds the attribute.
     default : tuple of three floats, optional
-        Value to return if the attribute or key is missing. If ``None`` (default),
-        returns None instead of raising an error.
+        Value to return if the attribute is missing everywhere. If ``None``
+        (default), returns None instead of raising an error.
 
     Returns
     -------
     voxel_size : tuple (z, y, x) or None
-        The voxel size in (z, y, x) order, or None if no voxel size is defined.
     """
     h5_path = Path(h5_path).expanduser().resolve()
     if not h5_path.is_file():
         raise FileNotFoundError(f"HDF5 file not found: {h5_path}")
 
     with h5py.File(h5_path, "r") as f:
-        # If the dataset doesn't even exist, don't enforce it. Just return default/None.
-        if h5_key not in f:
+        # ------------------------------------------------------------------
+        # 1. Find the object that actually carries voxel_size
+        # ------------------------------------------------------------------
+        raw = None
+        axes_attr = None
+
+        # Check the requested dataset/group first
+        if h5_key in f and "voxel_size" in f[h5_key].attrs:
+            obj = f[h5_key]
+            raw = obj.attrs["voxel_size"]
+            axes_attr = obj.attrs.get("axes", obj.attrs.get("voxel_size_order", None))
+
+        # Fall back to root-level attributes (e.g. files written by IMOD/tomo tools)
+        elif "voxel_size" in f.attrs:
+            raw = f.attrs["voxel_size"]
+            axes_attr = f.attrs.get("axes", f.attrs.get("voxel_size_order", None))
+
+        if raw is None:
             return tuple(default) if default is not None else None
-            
-        obj = f[h5_key]
 
         # ------------------------------------------------------------------
-        # 1️⃣ Pull the attribute & handle missing keys safely
-        # ------------------------------------------------------------------
-        if "voxel_size" not in obj.attrs:
-            return tuple(default) if default is not None else None
-
-        raw = obj.attrs["voxel_size"]
-        
-        # Look for our specific ordering attribute
-        order_attr = obj.attrs.get("voxel_size_order", "x, y, z") 
-        if isinstance(order_attr, bytes):
-            order_attr = order_attr.decode('utf-8')
-        order_attr = order_attr.replace(" ", "").lower() # standardise to "zyx" or "xyz"
-
-        # ------------------------------------------------------------------
-        # 2️⃣ Parse the array based on its type
+        # 2. Parse the voxel_size value
         # ------------------------------------------------------------------
         if isinstance(raw, np.ndarray) and raw.dtype.names:
-            # Structured array: extract exactly z, y, x by their names
+            # Structured array with named fields z/y/x
             return (float(raw["z"]), float(raw["y"]), float(raw["x"]))
-            
-        else:
-            # Plain numeric array or sequence
-            try:
-                # Coerce to a length-3 tuple
-                seq = tuple(float(v) for v in (raw.flatten() if isinstance(raw, np.ndarray) else raw))
-                if len(seq) != 3:
-                    raise ValueError
-            except Exception as exc:
-                raise TypeError(
-                    f"Unable to interpret 'voxel_size' attribute on '{h5_key}' "
-                    "as a length‑3 float sequence."
-                ) from exc
+
+        try:
+            seq = tuple(float(v) for v in (raw.flatten() if isinstance(raw, np.ndarray) else raw))
+            if len(seq) != 3:
+                raise ValueError
+        except Exception as exc:
+            raise TypeError(
+                f"Unable to interpret 'voxel_size' as a length-3 float sequence "
+                f"in '{h5_path}' (key: '{h5_key}')."
+            ) from exc
 
         # ------------------------------------------------------------------
-        # 3️⃣ Re-order to (z, y, x) based on the order attribute
+        # 3. Re-order to (z, y, x)
         # ------------------------------------------------------------------
-        if order_attr == "z,y,x":
-            # Already ZYX, return as is
+        order = _parse_axes_order(axes_attr)
+        if order == "z,y,x":
             return (seq[0], seq[1], seq[2])
+        elif order == "x,y,z":
+            return (seq[2], seq[1], seq[0])
         else:
-            # Assume XYZ fallback, so reverse to ZYX
+            # Legacy fallback: check old voxel_size_order string
+            if axes_attr is not None:
+                order_str = _parse_axes_order(axes_attr)
+                if order_str and order_str.startswith("z"):
+                    return (seq[0], seq[1], seq[2])
+            # Default assumption: XYZ → reverse to ZYX
             return (seq[2], seq[1], seq[0])
 
 

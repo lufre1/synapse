@@ -14,9 +14,15 @@ def parse_args():
         "--bucket", required=True,
         help="S3 bucket name, optionally with prefix (e.g. 'volume-em' or 'volume-em/mitochondria')."
     )
+    # old endpoint for GoeNet
+    # p.add_argument(
+    #     "--endpoint", default="https://s3.fs.gwdg.de",
+    #     help="S3 service endpoint URL (default: https://s3.fs.gwdg.de)."
+    # )
+    # public domain
     p.add_argument(
-        "--endpoint", default="https://s3.fs.gwdg.de",
-        help="S3 service endpoint URL (default: https://s3.fs.gwdg.de)."
+        "--endpoint", default="https://s3.gwdg.de",
+        help="S3 service endpoint URL (default: https://s3.gwdg.de)."
     )
     return p.parse_args()
 

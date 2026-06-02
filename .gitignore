@@ -5,3 +5,8 @@ config.py
 slurm/
 slurm*
 *.egg-info/
+.claude/*
+AGENTS.md
+
+figures/
+anaysis_results*
