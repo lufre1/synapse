@@ -22,7 +22,7 @@ MODEL_PATH="/mnt/lustre-grete/usr/u12103/cristae/checkpoints/cristae-net32-lr1e-
 
 
 
-python /user/freckmann15/u12103/synapse/inference/segment_cristae.py \
+python /user/freckmann15/u12103/synapse/inference/cristae/segment_cristae.py \
   --base_path ${DD} \
   --export_path ${EXPORT_PATH} \
   --model_path ${MODEL_PATH} \
