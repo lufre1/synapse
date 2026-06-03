@@ -18,6 +18,10 @@ def main():
                         help="Tile shape (z y x)")
     parser.add_argument("--erode_mitos", "-em", action="store_true", default=False,
                         help="Erode mito mask in XY before prediction")
+    parser.add_argument("--save_predictions", "-sp", action="store_true", default=False,
+                        help="Also write pred/foreground and pred/boundary to the output")
+    parser.add_argument("--force", "-f", action="store_true", default=False,
+                        help="Overwrite existing output files instead of skipping")
     args = parser.parse_args()
 
     h5_paths = get_file_paths(args.base_path, ext=".h5")
@@ -31,7 +35,9 @@ def main():
         tile_shape=tuple(args.tile_shape),
         erode_mitos=args.erode_mitos,
         add_missing=args.add_missing,
+        save_predictions=args.save_predictions,
         base_path=args.base_path,
+        force=args.force,
     )
 
 

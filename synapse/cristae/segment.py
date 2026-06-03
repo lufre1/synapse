@@ -19,7 +19,9 @@ def run_cristae_segmentation(
     tile_shape=(32, 512, 512),
     erode_mitos=False,
     add_missing=False,
+    save_predictions=False,
     base_path=None,
+    force=False,
 ):
     """Run cristae segmentation on a list of multi-channel H5 files.
 
@@ -33,7 +35,9 @@ def run_cristae_segmentation(
         tile_shape: (z, y, x) tile size for tiled prediction.
         erode_mitos: Erode the mito mask in XY before using as extra_segmentation.
         add_missing: If True, merge model-found objects back into existing GT labels.
+        save_predictions: If True, also write pred/foreground and pred/boundary to the output.
         base_path: If given, preserve relative directory structure in the output.
+        force: If True, overwrite existing output files instead of skipping.
     """
     os.makedirs(export_path, exist_ok=True)
     z, y, x = tile_shape
@@ -52,8 +56,8 @@ def run_cristae_segmentation(
             stem = os.path.splitext(os.path.basename(path))[0]
             output_path = os.path.join(export_path, stem + ".h5")
 
-        if os.path.exists(output_path):
-            print("Skipping... output path exists", output_path)
+        if os.path.exists(output_path) and not force:
+            print("Skipping (already exists):", output_path)
             continue
 
         keys = get_all_keys_from_h5(path)
@@ -62,7 +66,7 @@ def run_cristae_segmentation(
 
         image = data["raw_mitos_combined"]  # [2, Z, Y, X]
         mito = image[1]
-        mito_proc = binarize_and_erode_xy(mito, radius_xy=5) if erode_mitos else (mito > 0)
+        mito_proc = binarize_and_erode_xy(mito, radius_xy=5) if erode_mitos else (mito > 0).astype(np.uint8)
 
         seg, pred = _segment_cristae(
             image[0], model_path,
@@ -81,15 +85,17 @@ def run_cristae_segmentation(
                     if "cristae" in key:
                         additional = find_additional_objects(data[key], seg, matching_threshold=0.1)
                         f[key] = skimage_label(data[key] + additional)
-                f["pred"] = pred
+                if save_predictions:
+                    f["pred"] = pred
                 f["labels/new_cristae_seg"] = seg
         else:
             out = {k: v for k, v in data.items() if k != "raw_mitos_combined"}
             out["raw"] = image[0]
             out["labels/mitochondria"] = image[1]
-            out["pred/foreground"] = pred[0]
-            out["pred/boundary"] = pred[1]
             out["seg"] = seg
+            if save_predictions:
+                out["pred/foreground"] = pred[0]
+                out["pred/boundary"] = pred[1]
             util.export_data(output_path, out)
 
         print("Saved to", output_path)
