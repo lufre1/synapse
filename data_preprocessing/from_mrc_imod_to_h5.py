@@ -12,6 +12,7 @@ import shutil
 import tempfile
 from subprocess import run
 from scipy.ndimage import binary_closing
+import gc
 import h5py
 from synapse_net.imod.export import get_label_names
 
@@ -62,6 +63,61 @@ def _write_h5(path, key, image, mrc_path=None):
                 traceback.print_exc()
     
     print(f"Saved {key} to \n{path}")
+
+
+def _write_raw_chunked(h5_path, raw_mrc, non_zero_slices, voxel_size=None, chunk_size=16):
+    """Write raw MRC memmap to HDF5 in chunks, keeping only non-zero z-slices.
+
+    Reads at most `chunk_size` slices at a time so the full volume is never
+    materialized in RAM.  Automatically downcasts to uint8 when the sampled
+    data range fits within [0, 255].
+    """
+    if os.path.exists(h5_path) and "raw" in get_all_keys_from_h5(h5_path):
+        print(f"raw already exists in {h5_path}")
+        return
+
+    slice_indices = np.where(non_zero_slices)[0]
+    n_slices = len(slice_indices)
+    if n_slices == 0:
+        return
+
+    # Sample ~20 slices to report the value range; only convert float data
+    # that genuinely lives in [0, 255] to uint8.  Integer dtypes (including
+    # int8 / MRC mode-0) are always preserved as-is to avoid wrap-around.
+    step = max(1, n_slices // 20)
+    sample_idx = slice_indices[::step]
+    global_min = min(float(raw_mrc[i].min()) for i in sample_idx)
+    global_max = max(float(raw_mrc[i].max()) for i in sample_idx)
+
+    if raw_mrc.dtype.kind == 'f' and global_min >= 0 and global_max <= 255:
+        out_dtype = np.uint8
+        print(f"  raw float range [{global_min:.2f}, {global_max:.2f}] fits uint8, converting.")
+    else:
+        out_dtype = raw_mrc.dtype
+        print(f"  raw dtype {out_dtype}, range [{global_min:.2f}, {global_max:.2f}], keeping original dtype.")
+
+    shape = (n_slices, raw_mrc.shape[1], raw_mrc.shape[2])
+    with h5py.File(h5_path, "a") as f:
+        ds = f.create_dataset(
+            "raw", shape=shape, dtype=out_dtype,
+            compression="gzip",
+            chunks=(min(chunk_size, n_slices), shape[1], shape[2]),
+        )
+        for start in range(0, n_slices, chunk_size):
+            end = min(start + chunk_size, n_slices)
+            chunk = raw_mrc[slice_indices[start:end]].astype(out_dtype)
+            ds[start:end] = chunk
+            del chunk
+
+        if voxel_size is not None:
+            try:
+                voxel_dtype = np.dtype([('x', np.float32), ('y', np.float32), ('z', np.float32)])
+                ds.attrs.create('voxel_size', np.array(voxel_size, dtype=voxel_dtype))
+                print(f"  voxel_size: {voxel_size}")
+            except Exception as e:
+                print(f"  Warning: could not write voxel_size: {e}")
+
+    print(f"Saved raw to\n{h5_path} (dtype={np.dtype(out_dtype).name}, shape={shape})")
 
 
 def reconstruct_label_mask(imod_data, shape):
@@ -159,6 +215,30 @@ def get_segmentation(imod_path, mrc_path, object_id=None, output_path=None, requ
 
     if output_path is None:
         return segmentation
+
+
+def _mesh_mod(mod_path, passes=20):
+    """Return path to a meshed copy of mod_path (imodmesh -s fills z-gaps).
+
+    passes: imodmesh -P value; must exceed the widest z-gap in the model.
+    Falls back to the original path if imodmesh is unavailable or fails.
+    """
+    imodmesh = shutil.which("imodmesh")
+    if imodmesh is None:
+        print("  [warn] imodmesh not found, skipping meshing step.")
+        return mod_path
+    fd, meshed_path = tempfile.mkstemp(suffix=".mod")
+    os.close(fd)
+    shutil.copy2(mod_path, meshed_path)
+    result = run(
+        ["imodmesh", "-s", "-P", str(passes), meshed_path],
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        print(f"  [warn] imodmesh failed:\n{result.stderr.decode()}")
+        os.remove(meshed_path)
+        return mod_path
+    return meshed_path
 
 
 def close_mask(labels, structuring_element_shape=(3, 1, 1), iterations=None):
@@ -263,6 +343,23 @@ def get_true_labels(label_dict):
     return true_labels
 
 
+def fill_z_gaps(mask):
+    """Fill empty z-slices using the nearest non-empty slices on each side."""
+    filled = mask.copy()
+    for z in range(mask.shape[0]):
+        if np.any(mask[z]):
+            continue
+        before = next((z2 for z2 in range(z - 1, -1, -1) if np.any(mask[z2])), None)
+        after = next((z2 for z2 in range(z + 1, mask.shape[0]) if np.any(mask[z2])), None)
+        if before is not None and after is not None:
+            filled[z] = mask[before] | mask[after]
+        elif before is not None:
+            filled[z] = mask[before]
+        elif after is not None:
+            filled[z] = mask[after]
+    return filled
+
+
 def crop_data(raw, labels_dict):
     """
     Crop the raw data and all label datasets in labels_dict to a subset containing only slices with label data.
@@ -309,6 +406,7 @@ def main():
     parser.add_argument("--visualize", "-v", default=False, action='store_true', help="If to visualize or not")
     parser.add_argument("--print_labels", "-pl", default=False, action='store_true', help="If to print labels from mod file or not")
     parser.add_argument("--force_overwrite", "-f", default=False, action='store_true', help="If to over-write already present segmentation results.")
+    parser.add_argument("--include_az", default=False, action='store_true', help="Include active zone (labels/az) in exported files.")
     # parser.add_argument("--save_dir", type=str, default="", help="Path to save the data to")
     args = parser.parse_args()
     print(args.base_path)
@@ -351,7 +449,7 @@ def main():
 
         label_names = get_true_labels(get_label_names(mod_path))
 
-        label_dict = label_names  # [key for key, value in label_names.items() if "mito" in value.lower()]
+        label_dict = {k: v for k, v in label_names.items() if args.include_az or v != "labels/az"}
 
         if not label_dict:
             print("\nNo mito labels found in", mod_path)
@@ -361,13 +459,14 @@ def main():
         if mrc_path is None:
             print("Could not find a mrc or rec file for", mod_path)
             continue
-        raw_data = mrcfile.open(mrc_path).data
-        labels = {}
-        for key, val in label_dict.items():
-            labels[key] = np.flip(get_segmentation(mod_path, mrc_path, require_object=False, object_id=key), axis=1)
-
-        if visualize:
-            v = napari.Viewer()
+        meshed_mod_path = _mesh_mod(mod_path)
+        try:
+            labels = {}
+            for key, val in label_dict.items():
+                labels[key] = np.flip(get_segmentation(meshed_mod_path, mrc_path, require_object=False, object_id=key), axis=1)
+        finally:
+            if meshed_mod_path != mod_path:
+                os.remove(meshed_mod_path)
 
         print("\nexporting to", export_file_path)
 
@@ -377,18 +476,41 @@ def main():
                 true_labels[val] = labels[key]
             else:
                 true_labels[val] = true_labels[val] + labels[key]
-        raw_data, true_labels = crop_data(raw_data, true_labels)
+        del labels
+
+        processed = {}
+        for k, v in true_labels.items():
+            v_bool = v.astype(bool)
+            if "cristae" not in k:
+                v_bool = close_mask(fill_z_gaps(v_bool), structuring_element_shape=(3, 1, 1), iterations=10)
+            processed[k] = v_bool
+        true_labels = processed
+        del processed
+
+        # Compute non-zero z-slices from labels without loading raw into RAM
+        combined_mask = np.zeros(next(iter(true_labels.values())).shape, dtype=bool)
+        for v in true_labels.values():
+            combined_mask |= v
+        non_zero_slices = np.any(combined_mask, axis=(1, 2))
+        del combined_mask
 
         if visualize:
-            v.add_image(raw_data)
+            with mrcfile.open(mrc_path, mode='r', permissive=True) as mrc:
+                raw_crop = mrc.data[non_zero_slices].copy()
+            v = napari.Viewer()
+            v.add_image(raw_crop)
             for k, val in true_labels.items():
-                v.add_labels(val, name=k)
+                v.add_labels(val[non_zero_slices], name=k)
             napari.run()
         else:
-            _write_h5(export_file_path, "raw", raw_data, mrc_path=mrc_path)
-            for key, val in true_labels.items():
-                #print("key", key, "image has vals?", np.any(val))
-                _write_h5(export_file_path, key, val)
+            # Write raw in chunks from memmap, never loading the full volume
+            with mrcfile.open(mrc_path, mode='r', permissive=True) as mrc:
+                _write_raw_chunked(export_file_path, mrc.data, non_zero_slices, voxel_size=mrc.voxel_size)
+            gc.collect()
+
+            # Write labels one at a time so only one is in RAM at a time
+            for key in list(true_labels.keys()):
+                _write_h5(export_file_path, key, true_labels.pop(key)[non_zero_slices])
 
 
 if __name__ == "__main__":
