@@ -20,7 +20,7 @@ DD3="/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/"
 source /user/freckmann15/u12103/.bashrc
 micromamba activate /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
 
-python /user/freckmann15/u12103/synapse/training/train_cristae.py \
+python /user/freckmann15/u12103/synapse/training/cristae/train_cristae.py \
   --experiment_name ${EXPNAME} \
   --patch_shape ${PATCH_SHAPE} \
   --n_iterations ${ITER} \

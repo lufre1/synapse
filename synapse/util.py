@@ -1273,18 +1273,27 @@ class MaskedDiceLoss(nn.Module):
     the Dice score.
     """
 
-    def __init__(self, **dice_kwargs):
+    def __init__(self, eps: float = 1e-7):
         super().__init__()
-        self._dice = torch_em.loss.DiceLoss(**dice_kwargs)
+        self.eps = eps
 
-    def forward(self, prediction: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    def forward(self, prediction: torch.Tensor, target: torch.Tensor, **kwargs) -> torch.Tensor:
         n_pred_ch = prediction.size(1)
         assert target.size(1) == 2 * n_pred_ch, (
             f"MaskedDiceLoss expects target with {2 * n_pred_ch} channels, got {target.size(1)}"
         )
         mask = target[:, n_pred_ch:]   # [B, n_ch, ...]
-        target = target[:, :n_pred_ch] # [B, n_ch, ...]
-        return self._dice(prediction * mask, target * mask)
+        tgt = target[:, :n_pred_ch]    # [B, n_ch, ...]
+        p = prediction * mask
+        t = tgt * mask
+        # Match torch_em DiceLoss: flatten [B, C, ...] -> [C, B*...] so dice
+        # is computed per channel across all batch samples (not per-sample).
+        n_ch = p.size(1)
+        p_flat = p.permute(1, 0, *range(2, p.dim())).reshape(n_ch, -1)  # [C, B*DHW]
+        t_flat = t.permute(1, 0, *range(2, t.dim())).reshape(n_ch, -1)  # [C, B*DHW]
+        num = (p_flat * t_flat).sum(-1)                                   # [C]
+        den = (p_flat * p_flat).sum(-1) + (t_flat * t_flat).sum(-1)      # [C]
+        return (1.0 - 2.0 * num / den.clamp(min=self.eps)).sum()         # scalar
 
 
 def normalize_percentile_with_channel(raw, lower=1, upper=99, channel=0):

@@ -21,6 +21,30 @@ import synapse.util as util
 # import data_classes
 # SAVE_DIR = "/scratch-grete/usr/nimlufre/synapse/mito_segmentation"
 SAVE_DIR = "/mnt/lustre-grete/usr/u12103/cristae/"
+
+# Pinned test split from training run 2026-06-01 (slurm job 14037451).
+# These 15 files are held out as a fixed test set when --test_split synapsenetv1-testsplit is passed.
+SYNAPSENETV1_TEST_SPLIT = [
+    "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT22_eb5_model2_combined.h5",
+    "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT40_eb10_model_combined.h5",
+    "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M5_eb1_model_combined.h5",
+    "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined.h5",
+    "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36194_B4_66K_TS_SC_22_rec_crop_combined.h5",
+    "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT21_eb5_model2_combined.h5",
+    "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/KO8_eb4_model_combined.h5",
+    "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/2026-05-26-dataset/2026-05-26_corrected_combined/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5",
+    "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M8_eb6_model_combined.h5",
+    "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT20_eb5_model2_combined.h5",
+    "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M1_eb6_model_combined.h5",
+    "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M2_eb5_model_combined.h5",
+    "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined.h5",
+    "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36194_B4_66K_TS_R01A_SC_01_rec_crop_combined.h5",
+    "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT21_syn4_model2_combined.h5",
+]
+
+NAMED_TEST_SPLITS = {
+    "synapsenetv1-testsplit": SYNAPSENETV1_TEST_SPLIT,
+}
 # from unet import UNet3D
 
 
@@ -77,6 +101,7 @@ def log_dataset_stats(paths, split_name):
 
 def main():
     parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
+    parser.add_argument("--config", "-c", type=str, default=None, help="Path to YAML config file")
     parser.add_argument("--data_dir", type=str, default=None, help="Path to the data directory")
     parser.add_argument("--data_dir2", type=str, default=None, help="Path to the second data directory")
     parser.add_argument("--data_dir3", type=str, default=None, help="Path to the third data directory")
@@ -93,14 +118,21 @@ def main():
     parser.add_argument("--ignore_label", type=int, default=None, help="Label to ignore during training")
     parser.add_argument("--ignore_state_value", type=int, default=2, help="During loss computation ignore this state value")
     parser.add_argument("--state_channel", type=int, default=None, help="Use this channel as state channel")
+    parser.add_argument("--test_split", type=str, default=None, choices=list(NAMED_TEST_SPLITS.keys()),
+                        help="Pin a named test split (e.g. synapsenetv1-testsplit) and exclude those files from training")
 
-    # Parse arguments
-    args = parser.parse_args()
+    # Parse --config first, apply as defaults, then re-parse so CLI overrides YAML
+    cfg_args, remaining = parser.parse_known_args()
+    if cfg_args.config is not None:
+        with open(cfg_args.config, "r") as f:
+            cfg = yaml.safe_load(f) or {}
+        parser.set_defaults(**cfg)
+    args = parser.parse_args(remaining)
     checkpoint_path = args.checkpoint_path
     n_iterations = args.n_iterations
     learning_rate = args.learning_rate
     data_dir = args.data_dir
-    # lucchi_data_dir = args.lucchi_data_dir
+    # lucchi_data_dir = args.lucchi_data_dir/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae
     # visualize = args.visualize
     experiment_name = args.experiment_name
     batch_size = args.batch_size
@@ -116,9 +148,10 @@ def main():
 
     ndim = 3
 
-    # Only compute loss inside mitochondria with state label == 1.
-    # MitoStateMaskTransform appends the mask as extra label channels;
-    # MaskedDiceLoss peels them off before computing Dice.
+    # Compute loss everywhere except voxels with mito state == ignore_state_value
+    # (unannotated mitochondria, label 2); background and annotated mitochondria
+    # both stay active. MitoStateMaskTransform appends this mask as extra label
+    # channels; MaskedDiceLoss peels them off before computing Dice.
     loss_function = util.MaskedDiceLoss()
     metric_function = util.MaskedDiceLoss()
     gain = 2
@@ -156,13 +189,30 @@ def main():
         for s in exclude_strings:
             data_paths = explude_string(data_paths, s)
         print("len data paths", len(data_paths))
+        pinned_test = None
+        if args.test_split is not None:
+            pinned_test = NAMED_TEST_SPLITS[args.test_split]
+            pinned_test_set = set(pinned_test)
+            data_paths = [p for p in data_paths if p not in pinned_test_set]
+            print(f"Using pinned test split '{args.test_split}' ({len(pinned_test)} files); {len(data_paths)} remain for train/val")
         random.seed(42)
         random.shuffle(data_paths)
         ensure_strs = ["wichmann", "cooper"] if torch.cuda.is_available() else None
-        data = util.split_data_paths_to_dict_with_ensure(
-            data_paths, train_ratio=1, val_ratio=0.0, test_ratio=0.0,
-            ensure_strings=ensure_strs
-            )
+        if pinned_test is not None:
+            data = util.split_data_paths_to_dict_with_ensure(
+                data_paths, train_ratio=0.9, val_ratio=0.1, test_ratio=0.0,
+                ensure_strings=ensure_strs
+                )
+            data["test"] = pinned_test
+        else:
+            train_ratio = 0.8
+            val_ratio = 0.1
+            test_ratio = 0.1
+            data = util.split_data_paths_to_dict_with_ensure(
+                data_paths, train_ratio=train_ratio, val_ratio=val_ratio, test_ratio=test_ratio,
+                ensure_strings=ensure_strs
+                )
+            print(f"Using dynamic train/val/test ratios: {train_ratio}/{val_ratio}/{test_ratio}")
 
     end_time = time.time()
     # Calculate execution time in seconds
@@ -250,7 +300,7 @@ def main():
             sampler=sampler,
             raw_transform=util.standardize_channel,
             transform=mito_mask_transform,
-        ) if torch.cuda.is_available() else None
+        ) if (torch.cuda.is_available() and data["val"]) else None
 
     trainer = torch_em.default_segmentation_trainer(
         name=experiment_name, model=model,

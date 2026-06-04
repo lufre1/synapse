@@ -1,0 +1,18 @@
+experiment_name: "cristae-net32-lr1e-4-bs8-ps32x256x256-2026-06-04"
+
+data_dir: "/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2"
+data_dir2: "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae"
+data_dir3: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/"
+
+checkpoint_path: "/mnt/lustre-grete/usr/u12103/cristae/checkpoints/cristae-net32-lr1e-4-bs8-ps32x256x256-2026-06-01"
+
+patch_shape: [32, 256, 256]
+n_iterations: 750000
+batch_size: 8
+learning_rate: 1.0e-4
+feature_size: 32
+
+ignore_state_value: 2
+state_channel: 1
+test_split: "synapsenetv1-testsplit"
+early_stopping: 15
