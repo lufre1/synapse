@@ -7,7 +7,7 @@ data_dir3: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/"
 checkpoint_path: "/mnt/lustre-grete/usr/u12103/cristae/checkpoints/cristae-net32-lr1e-4-bs8-ps32x256x256-2026-06-01"
 
 patch_shape: [32, 256, 256]
-n_iterations: 750000
+n_iterations: 125000
 batch_size: 8
 learning_rate: 1.0e-4
 feature_size: 32
