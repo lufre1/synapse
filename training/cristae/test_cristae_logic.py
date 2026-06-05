@@ -169,7 +169,7 @@ check("masking changes loss value", test_loss_masking_effect)
 # ── 6. model forward pass ─────────────────────────────────────────────────────
 print("\n=== 6. Model forward pass ===")
 
-model = AnisotropicUNet(
+model = util.get_3d_model(
     in_channels=2, out_channels=2, initial_features=32,
     final_activation="Sigmoid", gain=2,
     scale_factors=[[1,2,2],[2,2,2],[2,2,2],[2,2,2]],

@@ -22,19 +22,9 @@ from synapse_net.training.supervised_training import supervised_training, get_su
 import synapse.util as util
 import synapse.label_utils as lutil
 import synapse.h5_util as h5_util
+import synapse.training_util as tu
 
 SAVE_DIR = "/mnt/lustre-grete/usr/u15205/volume-em/models/"
-
-
-class SigmoidDiceLoss(torch.nn.Module):
-    """DiceLoss that applies sigmoid to logits first (for use with BCEWithLogitsLoss)."""
-    def __init__(self):
-        super().__init__()
-        self.dice = torch_em.loss.DiceLoss()
-        self.init_kwargs = {}
-
-    def forward(self, input_, target):
-        return self.dice(torch.sigmoid(input_), target)
 
 
 def main():
@@ -73,15 +63,7 @@ def main():
 
     label_transform = torch_em.transform.labels_to_binary
 
-    if os.path.exists(os.path.join(save_dir, "checkpoints", experiment_name, "best.pt")):
-        # torch_em default is to load "best.pt" (do not include it in path)
-        checkpoint_path = os.path.join(save_dir, "checkpoints", experiment_name)
-        print("Checkpoint exists, loading model from checkpoint", checkpoint_path)
-    elif args.checkpoint_path:
-        checkpoint_path = args.checkpoint_path
-        print("Loading model from given checkpoint", checkpoint_path)
-    else:
-        checkpoint_path = None
+    checkpoint_path = tu.resolve_checkpoint(save_dir, experiment_name, args.checkpoint_path)
     # if checkpoint_path:
     #     print("synapse-net supervised training has no checkpoint loading!")
 
@@ -103,12 +85,7 @@ def main():
     if args.data_dir3 is not None:
         data_paths3 = util.get_data_paths(args.data_dir3)
         data_paths.extend(data_paths3)
-    filtered = []
-    for path in data_paths:
-        keys = h5_util.get_all_keys_from_h5(path)
-        if "labels/axons" in keys:
-            filtered.append(path)
-    data_paths = filtered
+    data_paths = tu.filter_paths_by_h5_key(data_paths, "labels/axons")
     random.seed(42)
     random.shuffle(data_paths)
     # data_paths.sort(reverse=True)
@@ -169,10 +146,10 @@ def main():
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
         loss_function = torch_em.loss.CombinedLoss(
-            SigmoidDiceLoss(),
+            util.SigmoidDiceLoss(),
             torch.nn.BCEWithLogitsLoss(),
         )
-        metric_function = SigmoidDiceLoss()
+        metric_function = util.SigmoidDiceLoss()
         if args.with_batchrenorm:
             norm = "BatchRenorm"
         elif args.with_instancenorm:

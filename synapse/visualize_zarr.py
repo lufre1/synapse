@@ -18,13 +18,8 @@ import z5py
 from tifffile import imread
 from skimage.transform import resize
 
-
-def get_file_paths(path, ext=".h5", reverse=False):
-    if ext in path:
-        return [path]
-    else:
-        paths = sorted(glob(os.path.join(path, "**", f"*{ext}"), recursive=True), reverse=reverse)
-        return paths
+# Shared implementations (consolidated): see synapse.io.util / synapse.h5_util.
+from synapse.io.util import get_file_paths, extract_data, upsample_data  # noqa: F401
 
 
 def visualize_data(data):
@@ -49,38 +44,6 @@ def visualize_data(data):
         viewer.layers.insert(0, raw_layer)
 
     napari.run()
-
-
-def extract_data(group: Any, data: Dict[str, Any], prefix: str = "", scale: int = 1):
-    """
-    Recursively extract datasets from a group and store them in a dictionary.
-    """
-    for key, item in group.items():
-        full_key = f"{prefix}/{key}" if prefix else key
-        if isinstance(item, (zarr.Group, h5py.Group, z5py.Group)):
-            # Recursively extract data from subgroups
-            extract_data(item, data, prefix=full_key, scale=scale)
-        else:
-            ndim = item.ndim
-            # Generate a slicing tuple based on the number of dimensions
-            slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-
-            # Apply downsampling while preserving batch/channel dimensions
-            data[full_key] = item[slicing] if scale > 1 else item[:]
-            # # Store the dataset in the dictionary
-            # data[full_key] = item[:]
-
-
-def upsample_data(data, factor):
-    """Upsample a 3D dataset in chunks to avoid memory overload."""
-    upsampled_data = np.zeros(tuple(dim * factor for dim in data.shape), dtype=data.dtype)
-    for z in range(data.shape[0]):
-        upsampled_data[z * factor: (z + 1) * factor] = resize(
-            data[z],
-            (factor * data.shape[1], factor * data.shape[2]),
-            order=0, preserve_range=True, anti_aliasing=False
-        ).astype(data.dtype)
-    return upsampled_data
 
 
 def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False, root_label_path: str = None, args=None):

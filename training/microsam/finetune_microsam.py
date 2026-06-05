@@ -20,7 +20,7 @@ import synapse.io.util as io
 import synapse.cellmap_util as cutil
 import synapse.label_utils as lutil
 import synapse.sam_util as sutil
-import synapse.h5_util as h5_util
+import synapse.training_util as tu
 
 
 def main():
@@ -75,12 +75,7 @@ def main():
         data_paths2 = util.get_data_paths(data_dir2)
         data_paths.extend(data_paths2)
     
-    filtered = []
-    for path in data_paths:
-        keys = h5_util.get_all_keys_from_h5(path)
-        if "labels/axons" in keys:
-            filtered.append(path)
-    data_paths = filtered
+    data_paths = tu.filter_paths_by_h5_key(data_paths, "labels/axons")
 
     print(data_paths)
 

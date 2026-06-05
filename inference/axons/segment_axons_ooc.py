@@ -14,6 +14,7 @@ from elf.io import open_file
 import numpy as np
 import synapse.io.util as io
 import synapse.util as util
+import synapse.prediction as pred_util
 from synapse_net.inference.mitochondria import segment_mitochondria
 from synapse_net.inference.util import get_prediction
 # from synapse_net.ground_truth.matching import find_additional_objects
@@ -75,84 +76,6 @@ def parse_args():
 
     return args
 
-def export_to_h5(data, export_path):
-    with h5py.File(export_path, 'x') as h5f:
-        for key in data.keys():
-            h5f.create_dataset(key, data=data[key], compression="gzip")
-    print("exported to", export_path)
-
-
-def _read_h5(path, key, scale_factor, z_offset=None):
-    with h5py.File(path, "r") as f:
-        try:
-            print(f"{key} data shape", f[key].shape)
-            if key == "prediction" or "pred" in key:
-                image = f[key][:, ::scale_factor, ::scale_factor, ::scale_factor]
-                if z_offset:
-                    image = image[z_offset[0]:z_offset[1], :, :]
-            else:
-                image = f[key][::scale_factor, ::scale_factor, ::scale_factor]
-                if z_offset:
-                    image = image[z_offset[0]:z_offset[1], :, :]
-            print(f"{key} data shape after downsampling", image.shape)
-            # if not key == "raw":
-            #     print(np.unique(image))
-
-        except KeyError:
-            print(f"Error: {key} dataset not found in {path}")
-            return None  # Indicate error
-
-        return image
-
-def _get_raw_transform(x):
-    x = util.convert_white_patches_to_black(x, min_patch_size=100)
-    x = torch_em.transform.raw.normalize_percentile(x)
-    return x
-
-
-def get_all_keys_from_h5(file_path):
-    keys = []
-    with h5py.File(file_path, 'r') as h5file:
-        def collect_keys(name, obj):
-            if isinstance(obj, h5py.Dataset):
-                keys.append(name)  # Add each key (path) to the list
-        h5file.visititems(collect_keys)  # Visit all groups and datasets
-    return keys
-
-
-def get_all_dataset_keys(file_path):
-    """
-    Returns a list of all dataset keys in a file (HDF5, Zarr, or N5).
-    
-    Parameters:
-        file_path (str): Path to the file or directory.
-        
-    Returns:
-        keys (list): List of dataset keys (paths).
-    """
-    keys = []
-
-    if os.path.isfile(file_path) and file_path.endswith(('.h5', '.hdf5')):
-        # HDF5
-        with h5py.File(file_path, 'r') as h5file:
-            def collect_keys(name, obj):
-                if isinstance(obj, h5py.Dataset):
-                    keys.append(name)
-            h5file.visititems(collect_keys)
-
-    else:
-        # Assume Zarr or N5 directory
-        store = zarr.N5Store(file_path) if 'attributes.json' in os.listdir(file_path) else zarr.DirectoryStore(file_path)
-        root = zarr.open(store, mode='r')
-
-        def collect_keys(name, obj):
-            if isinstance(obj, zarr.core.Array):
-                keys.append(name)
-        root.visititems(collect_keys)
-
-    return keys
-
-
 def main():
 
     args = parse_args()
@@ -160,30 +83,13 @@ def main():
     print(args.base_path)
     print("\nUsing model", args.model_path)
     # tile_shape
-    z, y, x = args.tile_shape
-    ts = {
-        "z": z,
-        "y": y,
-        "x": x
-        }
-    halo = {
-        "z": int(ts["z"] * 0.125),
-        "y": int(ts["y"] * 0.125),
-        "x": int(ts["x"] * 0.125)
-        }
-    # if args.use_custom_segment:
-    #     # adjust for blocking in torch_em 
-    #     ts = {
-    #         "z": int(z - 2 * halo["z"]),
-    #         "y": int(y - 2 * halo["y"]),
-    #         "x": int(x - 2 * halo["x"])
-    #         }
-    # halo = {'z': 12, 'y': 128, 'x': 128}
-    # ts = {'z': ts["z"]+2*halo["z"], 'y': ts["y"]+2*halo["y"], 'x': ts["x"]+2*halo["x"]}
+    tiling = pred_util.make_tiling(args.tile_shape)
+    ts = tiling["tile"]
+    halo = tiling["halo"]
     h5_paths = io.load_file_paths(args.base_path, args.file_extension)
 
     print("len(h5_paths)", len(h5_paths))
-    tiling = {"tile": ts, "halo": halo}  # prediction function automatically subtracts the 2*halo from tile
+    # prediction function automatically subtracts the 2*halo from tile
     print("tiling:", tiling)
     scale = None
     bt_string = str(args.boundary_threshold).replace(".", "")
@@ -210,9 +116,9 @@ def main():
                 print("Overwriting... output path exists", output_path)
                 os.remove(output_path)
         if path.endswith(".h5"):
-            keys = get_all_keys_from_h5(path)
+            keys = io.get_all_keys_from_h5(path)
         else:
-            keys = get_all_dataset_keys(path)
+            keys = io.get_all_dataset_keys(path)
         data = {}
         scale_factor = 1
         with open_file(path, "r") as f:
@@ -270,27 +176,20 @@ def main():
                     pred_path = os.path.join(os.path.dirname(path), pred_name)
                 print("using pred path:\n", pred_path)
                 spatial_shape = image.shape
-                n_out = 1 
-                expected_shape = (n_out,) + tuple(spatial_shape)
+                n_out = 1
                 # chunk by the *inner* block shape used for writing
-                inner_ts = {k: ts[k] - 2 * halo[k] for k in ("z", "y", "x")}
+                inner_ts = pred_util.inner_tile_shape(tiling)
                 chunks = (n_out, inner_ts["z"], inner_ts["y"], inner_ts["x"])
-                root = zarr.open(pred_path, mode="a")
-                pred = root.get("pred", None)
-                pred_ready = (
-                    pred is not None 
-                    and pred.shape == expected_shape 
-                    and pred.chunks == chunks
+                # Drop a cached prediction whose chunking no longer matches so the
+                # helper recreates it (preserving the original shape+chunks check).
+                _root = zarr.open(pred_path, mode="a")
+                _cached = _root.get("pred", None)
+                if _cached is not None and _cached.chunks != chunks and "pred" in _root:
+                    del _root["pred"]
+                pred, pred_ready = pred_util.open_disk_prediction(
+                    pred_path, spatial_shape, inner_ts, n_out=n_out,
+                    use_done_marker=False, verbose=False,
                 )
-                if not pred_ready:
-                    pred = root.create_dataset(
-                        "pred",
-                        shape=expected_shape,
-                        chunks=chunks,
-                        dtype="float32",
-                        compressor=zarr.Blosc(cname="zstd", clevel=3, shuffle=2),
-                        overwrite=True,
-                    )
             if not pred_ready:
                 pred = get_prediction(
                     input_volume=image,

@@ -18,6 +18,7 @@ from torch_em.util.debug import check_loader, check_trainer
 
 # Import your util.py for data loading
 import synapse.util as util
+import synapse.training_util as tu
 # import data_classes
 # SAVE_DIR = "/scratch-grete/usr/nimlufre/synapse/mito_segmentation"
 SAVE_DIR = "/mnt/lustre-grete/usr/u12103/cristae/"
@@ -221,7 +222,7 @@ def main():
 
     print("Creating 3d UNet with", in_channels, "input channels and", out_channels, "output channels.")
     #UNet3d
-    model = AnisotropicUNet(
+    model = util.get_3d_model(
         in_channels=in_channels, out_channels=out_channels, initial_features=initial_features,
         final_activation=final_activation, gain=gain, scale_factors=scale_factors
     )
@@ -230,14 +231,7 @@ def main():
     else:
         save_dir = SAVE_DIR
     # load model from checkpoint if exists
-    if os.path.exists(os.path.join(save_dir, "checkpoints", experiment_name, "best.pt")):
-        checkpoint_path = os.path.join(save_dir, "checkpoints", experiment_name)
-        print("Checkpoint exists, loading model from checkpoint", checkpoint_path)
-    elif args.checkpoint_path is not None:
-        checkpoint_path = args.checkpoint_path
-        print("Loading model from given checkpoint", checkpoint_path)
-    else:
-        checkpoint_path = None
+    checkpoint_path = tu.resolve_checkpoint(save_dir, experiment_name, args.checkpoint_path)
     if checkpoint_path:
         model = torch_em.util.load_model(checkpoint=checkpoint_path, device=device)
         # state_dict = torch.load(checkpoint_path, map_location=torch.device("cpu"))["model_state"]

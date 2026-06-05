@@ -15,86 +15,7 @@ import micro_sam.training as sam_training
 from micro_sam.util import export_custom_sam_model
 from micro_sam.models.sam_3d_wrapper import get_sam_3d_model
 from micro_sam.training.util import ConvertToSemanticSamInputs
-from synapse.util import get_loaders
-
-
-class LabelTrafoToBinary:
-    def __call__(self, labels):
-        labels = (labels > 0).astype(labels.dtype)
-        return labels
-
-
-class RawTrafoFor3dInputs:
-    def _normalize_inputs(self, raw):
-        raw = normalize(raw)
-        raw = raw * 255
-        return raw
-
-    def _set_channels_for_inputs(self, raw):
-        raw = np.stack([raw] * 3, axis=0)
-        return raw
-
-    def __call__(self, raw):
-        raw = self._normalize_inputs(raw)
-        raw = self._set_channels_for_inputs(raw)
-        return raw
-
-
-class RawResizeTrafoFor3dInputs(RawTrafoFor3dInputs):
-    def __init__(self, desired_shape, padding="constant"):
-        super().__init__()
-        self.desired_shape = desired_shape
-        self.padding = padding
-
-    def __call__(self, raw):
-        raw = self._normalize_inputs(raw)
-
-        # let's pad the inputs
-        tmp_ddim = (
-           self.desired_shape[0] - raw.shape[0],
-           self.desired_shape[1] - raw.shape[1],
-           self.desired_shape[2] - raw.shape[2]
-        )
-        ddim = (tmp_ddim[0] / 2, tmp_ddim[1] / 2, tmp_ddim[2] / 2)
-        raw = np.pad(
-            raw,
-            pad_width=(
-                (ceil(ddim[0]), floor(ddim[0])), (ceil(ddim[1]), floor(ddim[1])), (ceil(ddim[2]), floor(ddim[2]))
-            ),
-            mode=self.padding
-        )
-
-        raw = self._set_channels_for_inputs(raw)
-
-        return raw
-
-
-# for sega
-class LabelResizeTrafoFor3dInputs:
-    def __init__(self, desired_shape, padding="constant"):
-        self.desired_shape = desired_shape
-        self.padding = padding
-
-    def __call__(self, labels):
-        # binarize the samples
-        labels = (labels > 0).astype("float32")
-
-        # let's pad the labels
-        tmp_ddim = (
-           self.desired_shape[0] - labels.shape[0],
-           self.desired_shape[1] - labels.shape[1],
-           self.desired_shape[2] - labels.shape[2]
-        )
-        ddim = (tmp_ddim[0] / 2, tmp_ddim[1] / 2, tmp_ddim[2] / 2)
-        labels = np.pad(
-            labels,
-            pad_width=(
-                (ceil(ddim[0]), floor(ddim[0])), (ceil(ddim[1]), floor(ddim[1])), (ceil(ddim[2]), floor(ddim[2]))
-            ),
-            mode=self.padding
-        )
-
-        return labels
+import synapse.sam_util as sutil
 
 
 def get_dataloaders(patch_shape, data_path):
@@ -111,8 +32,8 @@ def get_dataloaders(patch_shape, data_path):
     Important: the ID 0 is reseved for background, and the IDs must be consecutive
     """
     kwargs = {}
-    kwargs["raw_transform"] = RawResizeTrafoFor3dInputs(desired_shape=patch_shape)
-    kwargs["label_transform"] = LabelResizeTrafoFor3dInputs(desired_shape=patch_shape)
+    kwargs["raw_transform"] = sutil.RawResizeTrafoFor3dInputs(desired_shape=patch_shape)
+    kwargs["label_transform"] = sutil.LabelResizeTrafoFor3dInputs(desired_shape=patch_shape)
     kwargs["sampler"] = MinInstanceSampler()
 
     num_workers = 16
@@ -168,7 +89,7 @@ def finetune_duke_liver(args):
     # all the stuff we need for training
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.9, patience=3, verbose=True)
-    train_loader, val_loader = get_loaders(patch_shape=patch_shape, data_path=args.input_path)
+    train_loader, val_loader = get_dataloaders(patch_shape=patch_shape, data_path=args.input_path)
 
     # this class creates all the training data for a batch (inputs, prompts and labels)
     convert_inputs = ConvertToSemanticSamInputs()

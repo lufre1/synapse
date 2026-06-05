@@ -1,107 +1,14 @@
 import argparse
 import os
 from glob import glob
-import h5py
 import torch_em
 import torch_em.transform
 from tqdm import tqdm
 from elf.io import open_file
-import numpy as np
+import synapse.io.util as io
+import synapse.label_utils as lutil
 from synapse_net.inference.mitochondria import segment_mitochondria
-# from synapse_net.ground_truth.matching import find_additional_objects
-from elf.evaluation.matching import label_overlap, intersection_over_union
-from skimage.segmentation import relabel_sequential
 from skimage.measure import label
-
-
-def find_additional_objects(
-    ground_truth: np.ndarray,
-    segmentation: np.ndarray,
-    matching_threshold: float = 0.5
-) -> np.ndarray:
-    """
-    Identify additional objects in the segmentation that are not sufficiently covered
-    by the ground truth based on a matching threshold.
-
-    Args:
-        ground_truth (np.ndarray): Ground truth labeled segmentation.
-        segmentation (np.ndarray): Predicted labeled segmentation.
-        matching_threshold (float): IoU threshold to identify matched objects. 
-                                    Objects with IoU > threshold are considered covered.
-
-    Returns:
-        np.ndarray: A labeled segmentation containing only the additional objects.
-    """
-
-    # Relabel both ground truth and segmentation sequentially for consistent IDs
-    ground_truth = relabel_sequential(ground_truth)[0]
-    segmentation = relabel_sequential(segmentation)[0]
-
-    # Compute overlap and IoU between segmentation and ground truth
-    overlap, _ = label_overlap(segmentation, ground_truth)
-    iou = intersection_over_union(overlap)
-
-    # Get all segmentation IDs
-    seg_ids = np.unique(segmentation)
-
-    # Identify IDs of segmentation objects that overlap with ground truth objects above the threshold
-    matched_ids = set()
-    for seg_id in seg_ids:
-        if seg_id == 0:  # Skip background
-            continue
-        max_overlap = iou[seg_id, :].max()
-        if max_overlap > matching_threshold:
-            matched_ids.add(seg_id)
-
-    # Create a mask for additional objects (segmentation IDs not matched)
-    additional_objects = segmentation.copy()
-    for matched_id in matched_ids:
-        additional_objects[additional_objects == matched_id] = 0
-
-    # Relabel the additional objects to keep them contiguous
-    additional_objects = relabel_sequential(additional_objects)[0]
-
-    return additional_objects
-
-
-def export_to_h5(data, export_path):
-    with h5py.File(export_path, 'x') as h5f:
-        for key in data.keys():
-            h5f.create_dataset(key, data=data[key], compression="gzip")
-    print("exported to", export_path)
-
-
-def _read_h5(path, key, scale_factor, z_offset=None):
-    with h5py.File(path, "r") as f:
-        try:
-            print(f"{key} data shape", f[key].shape)
-            if key == "prediction" or "pred" in key:
-                image = f[key][:, ::scale_factor, ::scale_factor, ::scale_factor]
-                if z_offset:
-                    image = image[z_offset[0]:z_offset[1], :, :]
-            else:
-                image = f[key][::scale_factor, ::scale_factor, ::scale_factor]
-                if z_offset:
-                    image = image[z_offset[0]:z_offset[1], :, :]
-            print(f"{key} data shape after downsampling", image.shape)
-            # if not key == "raw":
-            #     print(np.unique(image))
-
-        except KeyError:
-            print(f"Error: {key} dataset not found in {path}")
-            return None  # Indicate error
-
-        return image
-
-
-def get_all_keys_from_h5(file_path):
-    keys = []
-    with h5py.File(file_path, 'r') as h5file:
-        def collect_keys(name, obj):
-            if isinstance(obj, h5py.Dataset):
-                keys.append(name)  # Add each key (path) to the list
-        h5file.visititems(collect_keys)  # Visit all groups and datasets
-    return keys
 
 
 def main(visualize=False):
@@ -166,7 +73,7 @@ def main(visualize=False):
         if os.path.exists(output_path):
             print("Skipping... output path exists", output_path)
             continue
-        keys = get_all_keys_from_h5(path)
+        keys = io.get_all_keys_from_h5(path)
         data = {}
         scale_factor = 1
         with open_file(path, "r") as f:
@@ -200,7 +107,7 @@ def main(visualize=False):
             for key in keys:
                 if "mito" in key:
                     if add_missing_mitos:
-                        additional_objects = find_additional_objects(data[key], seg, matching_threshold=0.1)
+                        additional_objects = lutil.find_additional_objects(data[key], seg, matching_threshold=0.1)
                         f1[key] = label(data[key] + additional_objects)
                     else:
                         f1["labels/mitochondria"] = seg

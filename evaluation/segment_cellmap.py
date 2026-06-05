@@ -1,93 +1,23 @@
 import argparse
 import os
-from glob import glob
 import h5py
-import zarr
-import torch
+import torch  # noqa: F401
 import torch_em
 import torch_em.transform
 from tqdm import tqdm
 from elf.io import open_file
-import numpy as np
 import synapse.io.util as io
-# from synapse_net.inference.mitochondria import segment_mitochondria
-# from synapse_net.ground_truth.matching import find_additional_objects
-from elf.evaluation.matching import label_overlap, intersection_over_union
-from skimage.segmentation import relabel_sequential
-from skimage.measure import label
-from skimage.transform import resize
 
 
-def export_to_h5(data, export_path):
-    with h5py.File(export_path, 'x') as h5f:
-        for key in data.keys():
-            h5f.create_dataset(key, data=data[key], compression="gzip")
-    print("exported to", export_path)
-
-
-def _read_h5(path, key, scale_factor, z_offset=None):
-    with h5py.File(path, "r") as f:
-        try:
-            print(f"{key} data shape", f[key].shape)
-            if key == "prediction" or "pred" in key:
-                image = f[key][:, ::scale_factor, ::scale_factor, ::scale_factor]
-                if z_offset:
-                    image = image[z_offset[0]:z_offset[1], :, :]
-            else:
-                image = f[key][::scale_factor, ::scale_factor, ::scale_factor]
-                if z_offset:
-                    image = image[z_offset[0]:z_offset[1], :, :]
-            print(f"{key} data shape after downsampling", image.shape)
-            # if not key == "raw":
-            #     print(np.unique(image))
-
-        except KeyError:
-            print(f"Error: {key} dataset not found in {path}")
-            return None  # Indicate error
-
-        return image
-
-
-def get_all_keys_from_h5(file_path):
+def _get_filtered_keys(file_path):
+    # FILTERED variant: only keeps datasets whose name contains "raw" or "all".
+    # Differs from synapse.io.util.get_all_keys_from_h5 (unfiltered), so kept local.
     keys = []
     with h5py.File(file_path, 'r') as h5file:
         def collect_keys(name, obj):
             if isinstance(obj, h5py.Dataset) and ("raw" in name or "all" in name):
                 keys.append(name)  # Add each key (path) to the list
         h5file.visititems(collect_keys)  # Visit all groups and datasets
-    return keys
-
-
-def get_all_dataset_keys(file_path):
-    """
-    Returns a list of all dataset keys in a file (HDF5, Zarr, or N5).
-    
-    Parameters:
-        file_path (str): Path to the file or directory.
-        
-    Returns:
-        keys (list): List of dataset keys (paths).
-    """
-    keys = []
-
-    if os.path.isfile(file_path) and file_path.endswith(('.h5', '.hdf5')):
-        # HDF5
-        with h5py.File(file_path, 'r') as h5file:
-            def collect_keys(name, obj):
-                if isinstance(obj, h5py.Dataset):
-                    keys.append(name)
-            h5file.visititems(collect_keys)
-
-    else:
-        # Assume Zarr or N5 directory
-        store = zarr.N5Store(file_path) if 'attributes.json' in os.listdir(file_path) else zarr.DirectoryStore(file_path)
-        root = zarr.open(store, mode='r')
-
-        def collect_keys(name, obj):
-            if isinstance(obj, zarr.core.Array):
-                keys.append(name)
-        root.visititems(collect_keys)
-
     return keys
 
 
@@ -130,9 +60,9 @@ def main(visualize=False):
             print("Skipping... output path exists", output_path)
             continue
         if path.endswith(".h5"):
-            keys = get_all_keys_from_h5(path)
+            keys = _get_filtered_keys(path)
         else:
-            keys = get_all_dataset_keys(path)
+            keys = io.get_all_dataset_keys(path)
         data = {}
         scale_factor = 1
         if args.halo is None:

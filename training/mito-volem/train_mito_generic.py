@@ -21,38 +21,9 @@ from synapse_net.file_utils import read_ome_zarr
 import synapse.util as util
 import synapse.cellmap_util as cutil
 import synapse.label_utils as lutil
+import synapse.training_util as tu
 # import data_classes
 SAVE_DIR = "/mnt/lustre-grete/usr/u15205/volume-em/models/"
-
-
-def _raw_transform_with_fix_white_patches(x):
-    x = util.convert_white_patches_to_black(x)
-    return torch_em.transform.raw.normalize_percentile(x)
-
-
-def _count_instances_in_files(file_paths, label_key):
-    import h5py
-    total = 0
-    for path in file_paths:
-        try:
-            with h5py.File(path, "r") as f:
-                labels = f[label_key][:]
-                unique = np.unique(labels)
-                total += int(np.sum(unique > 0))
-        except Exception as e:
-            print(f"  Warning: could not count instances in {os.path.basename(path)}: {e}")
-    return total
-
-
-def _log_dataset_stats(data, label_key):
-    n_train, n_val, n_test = len(data["train"]), len(data["val"]), len(data["test"])
-    print(f"\n=== Dataset split ===")
-    print(f"  Train: {n_train} files | Val: {n_val} files | Test: {n_test} files | Total: {n_train + n_val + n_test}")
-    if label_key is not None:
-        train_n = _count_instances_in_files(data["train"], label_key)
-        val_n = _count_instances_in_files(data["val"], label_key)
-        print(f"  Train instances: {train_n} | Val instances: {val_n} | Total: {train_n + val_n}")
-    print(f"=====================\n")
 
 
 def main():
@@ -107,17 +78,10 @@ def main():
     if torch.cuda.is_available():
         os.makedirs(save_dir, exist_ok=True)
     # load model from checkpoint if exists
-    if os.path.exists(os.path.join(save_dir, "checkpoints", experiment_name, "best.pt")):
-        checkpoint_path = os.path.join(save_dir, "checkpoints", experiment_name)
-        print("Checkpoint exists, loading model from checkpoint", checkpoint_path)
-    elif args.checkpoint_path is not None:
-        checkpoint_path = args.checkpoint_path
-        print("Loading model from given checkpoint", checkpoint_path)
-    else:
-        checkpoint_path = None
+    checkpoint_path = tu.resolve_checkpoint(save_dir, experiment_name, args.checkpoint_path)
 
     if args.fix_white_patches:
-        raw_transform = _raw_transform_with_fix_white_patches
+        raw_transform = tu.raw_transform_fix_white_patches
     else:
         raw_transform = torch_em.transform.raw.normalize_percentile
 
@@ -152,7 +116,7 @@ def main():
     data = util.split_data_paths_to_dict_with_ensure(
         data_paths, ensure_strings=ensure_strings, train_ratio=1, val_ratio=0.0, test_ratio=0.0
         )
-    _log_dataset_stats(data, args.label_key)
+    tu.log_dataset_stats(data, args.label_key)
 
     end_time = time.time()
     # Calculate execution time in seconds

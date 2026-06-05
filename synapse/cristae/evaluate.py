@@ -7,6 +7,7 @@ from scipy.ndimage import binary_erosion, distance_transform_edt
 from tqdm import tqdm
 
 import synapse.io.util as io
+from synapse.evaluation import cut_after_halo as _strip_halo_prefix
 
 
 def _surface(mask):
@@ -104,10 +105,6 @@ def export_scores(score_dict, export_path, ds_name=None):
 
     results.to_csv(export_path, index=False)
     print("Evaluation results saved to:", export_path)
-
-
-def _strip_halo_prefix(s):
-    return re.sub(r"^.*halo_z\d+_y\d+_x\d+_", "", s)
 
 
 def _load_mito_states(label_path):

@@ -1147,13 +1147,22 @@ def find_label_file(raw_path: str, label_paths: list) -> str:
     return None  # No match found
 
 
-def export_to_h5(data, export_path):
-    with h5py.File(export_path, mode='a') as h5f:
+def export_to_h5(data, export_path, compression="gzip", mode="a"):
+    """Write a dict of named arrays to an HDF5 file.
+
+    Args:
+        data: Mapping of dataset key -> array.
+        export_path: Output ``.h5`` path.
+        compression: HDF5 compression filter (e.g. ``"gzip"`` or ``"lzf"``).
+        mode: File mode. ``"a"`` (default) appends and skips datasets that already
+            exist; ``"x"`` fails if the file already exists; ``"w"`` overwrites.
+    """
+    with h5py.File(export_path, mode=mode) as h5f:
         for key in data.keys():
             if key in h5f:
                 print(f"Skipping {key} as it already exists in {export_path}")
                 continue
-            h5f.create_dataset(key, data=data[key], compression="gzip")
+            h5f.create_dataset(key, data=data[key], compression=compression)
     print("exported to", export_path)
 
 
@@ -1294,6 +1303,22 @@ class MaskedDiceLoss(nn.Module):
         num = (p_flat * t_flat).sum(-1)                                   # [C]
         den = (p_flat * p_flat).sum(-1) + (t_flat * t_flat).sum(-1)      # [C]
         return (1.0 - 2.0 * num / den.clamp(min=self.eps)).sum()         # scalar
+
+
+class SigmoidDiceLoss(nn.Module):
+    """DiceLoss that applies sigmoid to the logits first.
+
+    Useful as a metric / loss component alongside ``BCEWithLogitsLoss`` where the
+    network outputs raw logits (no final activation).
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.dice = torch_em.loss.DiceLoss()
+        self.init_kwargs = {}
+
+    def forward(self, input_, target):
+        return self.dice(torch.sigmoid(input_), target)
 
 
 def normalize_percentile_with_channel(raw, lower=1, upper=99, channel=0):

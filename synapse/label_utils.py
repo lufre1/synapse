@@ -11,6 +11,43 @@ from skimage.morphology import binary_closing, ball, binary_dilation, convex_hul
 import torch_em
 
 
+def find_additional_objects(ground_truth, segmentation, matching_threshold=0.5):
+    """Return segmentation objects not sufficiently covered by ground truth.
+
+    Objects whose maximum IoU with any ground-truth object exceeds
+    ``matching_threshold`` are considered matched and removed; the remaining
+    ("additional") objects are returned, relabelled sequentially.
+
+    Args:
+        ground_truth: Ground-truth labeled segmentation.
+        segmentation: Predicted labeled segmentation.
+        matching_threshold: IoU threshold above which an object counts as matched.
+
+    Returns:
+        A labeled array containing only the additional (unmatched) objects.
+    """
+    from skimage.segmentation import relabel_sequential
+    from elf.evaluation.matching import label_overlap, intersection_over_union
+
+    ground_truth = relabel_sequential(ground_truth)[0]
+    segmentation = relabel_sequential(segmentation)[0]
+
+    overlap, _ = label_overlap(segmentation, ground_truth)
+    iou = intersection_over_union(overlap)
+
+    matched_ids = {
+        seg_id
+        for seg_id in np.unique(segmentation)
+        if seg_id != 0 and iou[seg_id, :].max() > matching_threshold
+    }
+
+    additional_objects = segmentation.copy()
+    for matched_id in matched_ids:
+        additional_objects[additional_objects == matched_id] = 0
+
+    return relabel_sequential(additional_objects)[0]
+
+
 class LabelAggregatorSAM:
     def __init__(self, id_groups, out_ids=None, group_transforms=None):
         """

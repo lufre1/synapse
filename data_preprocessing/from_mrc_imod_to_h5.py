@@ -217,9 +217,12 @@ def get_segmentation(imod_path, mrc_path, object_id=None, output_path=None, requ
         return segmentation
 
 
-def _mesh_mod(mod_path, passes=20):
+def _mesh_mod(mod_path, passes=20, object_ids=None):
     """Return path to a meshed copy of mod_path (imodmesh -s fills z-gaps).
 
+    object_ids: list of IMOD object numbers to mesh (1-indexed).
+                Pass only solid objects (e.g. mito); omit surface/membrane
+                objects (e.g. cristae) so their contour positions are preserved.
     passes: imodmesh -P value; must exceed the widest z-gap in the model.
     Falls back to the original path if imodmesh is unavailable or fails.
     """
@@ -230,10 +233,11 @@ def _mesh_mod(mod_path, passes=20):
     fd, meshed_path = tempfile.mkstemp(suffix=".mod")
     os.close(fd)
     shutil.copy2(mod_path, meshed_path)
-    result = run(
-        ["imodmesh", "-s", "-P", str(passes), meshed_path],
-        capture_output=True,
-    )
+    cmd = ["imodmesh", "-s", "-P", str(passes)]
+    if object_ids:
+        cmd += ["-o", ",".join(str(i) for i in object_ids)]
+    cmd.append(meshed_path)
+    result = run(cmd, capture_output=True)
     if result.returncode != 0:
         print(f"  [warn] imodmesh failed:\n{result.stderr.decode()}")
         os.remove(meshed_path)
@@ -244,11 +248,22 @@ def _mesh_mod(mod_path, passes=20):
 def close_mask(labels, structuring_element_shape=(3, 1, 1), iterations=None):
     structuring_element = np.zeros(structuring_element_shape)
     structuring_element[:, 0, 0] = 1
-    #print("labels shape and structuring element shape", labels.shape, structuring_element.shape)
     if iterations is not None:
         return binary_closing(labels, structuring_element, iterations=iterations)
     else:
         return binary_closing(labels, structuring_element)
+
+
+def close_mask_2d(mask, radius=2):
+    """Apply 2D binary closing per z-slice to fill small in-plane gaps."""
+    r = int(radius)
+    yi, xi = np.ogrid[-r:r + 1, -r:r + 1]
+    struct = (xi ** 2 + yi ** 2) <= r ** 2
+    result = mask.copy()
+    for z in range(mask.shape[0]):
+        if np.any(mask[z]):
+            result[z] = binary_closing(mask[z], structure=struct)
+    return result
 
 
 def get_all_keys_from_h5(file_path):
@@ -343,20 +358,24 @@ def get_true_labels(label_dict):
     return true_labels
 
 
-def fill_z_gaps(mask):
-    """Fill empty z-slices using the nearest non-empty slices on each side."""
+def fill_z_gaps(mask, max_gap=None):
+    """Fill empty z-slices between annotated slices by copying from nearest neighbours.
+
+    max_gap: maximum number of consecutive empty slices to fill.
+             None (default) fills all gaps regardless of size.
+    Only fills between two annotated slices; never extends past the first or last.
+    """
     filled = mask.copy()
     for z in range(mask.shape[0]):
         if np.any(mask[z]):
             continue
         before = next((z2 for z2 in range(z - 1, -1, -1) if np.any(mask[z2])), None)
         after = next((z2 for z2 in range(z + 1, mask.shape[0]) if np.any(mask[z2])), None)
-        if before is not None and after is not None:
-            filled[z] = mask[before] | mask[after]
-        elif before is not None:
-            filled[z] = mask[before]
-        elif after is not None:
-            filled[z] = mask[after]
+        if before is None or after is None:
+            continue
+        if max_gap is not None and (after - before - 1) > max_gap:
+            continue
+        filled[z] = mask[before] | mask[after]
     return filled
 
 
@@ -459,7 +478,10 @@ def main():
         if mrc_path is None:
             print("Could not find a mrc or rec file for", mod_path)
             continue
-        meshed_mod_path = _mesh_mod(mod_path)
+        # Only mesh solid objects (mito etc.); cristae are thin membranes whose
+        # contour positions would be distorted by mesh interpolation.
+        mito_ids = [k for k, v in label_dict.items() if "cristae" not in v]
+        meshed_mod_path = _mesh_mod(mod_path, object_ids=mito_ids) if mito_ids else mod_path
         try:
             labels = {}
             for key, val in label_dict.items():
@@ -481,11 +503,29 @@ def main():
         processed = {}
         for k, v in true_labels.items():
             v_bool = v.astype(bool)
-            if "cristae" not in k:
-                v_bool = close_mask(fill_z_gaps(v_bool), structuring_element_shape=(3, 1, 1), iterations=10)
+            if "cristae" in k:
+                # Fill all z-gaps by interpolation, then close small XY gaps (≤3 px).
+                v_bool = close_mask_2d(fill_z_gaps(v_bool), radius=2)
+            else:
+                # Record annotated z-extent BEFORE closing so we can clip the
+                # result back and prevent over-extension past the last contour.
+                z_any = np.any(v_bool, axis=(1, 2))
+                if np.any(z_any):
+                    first_z = int(np.argmax(z_any))
+                    last_z = int(len(z_any) - 1 - np.argmax(z_any[::-1]))
+                    v_bool = close_mask(fill_z_gaps(v_bool, max_gap=5), structuring_element_shape=(3, 1, 1), iterations=10)
+                    v_bool[:first_z] = False
+                    v_bool[last_z + 1:] = False
             processed[k] = v_bool
         true_labels = processed
         del processed
+
+        # Cristae must lie inside mitochondria — mask out any voxels that fall outside
+        mito_key = next((k for k in true_labels if "mito" in k), None)
+        if mito_key is not None:
+            for k in list(true_labels.keys()):
+                if "cristae" in k:
+                    true_labels[k] &= true_labels[mito_key]
 
         # Compute non-zero z-slices from labels without loading raw into RAM
         combined_mask = np.zeros(next(iter(true_labels.values())).shape, dtype=bool)

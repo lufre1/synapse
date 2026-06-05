@@ -26,11 +26,16 @@ def create_directories_if_not_exists(base_path, inter_dirs):
         print(f"\nDirectories already exist: {full_path}")
 
 
-def _write_dataset_chunked(f_in, f_out, key, scale_factors, anti_alias, voxel_size_arr, z_chunk=8):
+def _write_dataset_chunked(f_in, f_out, key, scale_factors, anti_alias, voxel_size_arr,
+                           reinterpret_int8_as_uint8=False, z_chunk=8):
     """Pre-allocate output dataset and fill it z-slab by z-slab to avoid OOM."""
     in_ds = f_in[key]
     in_shape = in_ds.shape
-    orig_dtype = np.uint8 if in_ds.dtype == np.int8 else in_ds.dtype
+    # Shift int8 → uint8 by adding 128, mapping [-128,127] → [0,255].
+    # This preserves the distribution shape for genuine signed EM data (e.g. IMOD cryo-ET).
+    # view() would instead create a bimodal gap that corrupts anti-aliased rescaling.
+    reinterpret = reinterpret_int8_as_uint8 and in_ds.dtype == np.int8
+    orig_dtype = np.dtype(np.uint8) if reinterpret else in_ds.dtype
     sf_z, sf_y, sf_x = int(scale_factors[0]), int(scale_factors[1]), int(scale_factors[2])
     scale = (1.0 / sf_z, 1.0 / sf_y, 1.0 / sf_x)
     # Match skimage's own rounding (np.round) so the pre-allocated shape is consistent
@@ -39,7 +44,7 @@ def _write_dataset_chunked(f_in, f_out, key, scale_factors, anti_alias, voxel_si
         max(1, int(np.round(in_shape[1] * scale[1]))),
         max(1, int(np.round(in_shape[2] * scale[2]))),
     )
-    print(f"  {key}: {in_shape} ({orig_dtype}) -> {out_shape}")
+    print(f"  {key}: {in_shape} ({in_ds.dtype}{' -> uint8' if reinterpret else ''}) -> {out_shape}")
     ds_out = f_out.create_dataset(key, shape=out_shape, dtype=orig_dtype, compression="gzip")
     if voxel_size_arr is not None and "raw" in key:
         ds_out.attrs.create("voxel_size", data=voxel_size_arr)
@@ -49,6 +54,8 @@ def _write_dataset_chunked(f_in, f_out, key, scale_factors, anti_alias, voxel_si
     for z_out in range(0, out_shape[0], z_chunk):
         z_out_end = min(z_out + z_chunk, out_shape[0])
         slab = np.array(in_ds[z_out * sf_z: z_out_end * sf_z])
+        if reinterpret:
+            slab = (slab.astype(np.int16) + 128).astype(np.uint8)
         if anti_alias:
             scaled = rescale(slab.astype(np.float32), scale=scale, order=3,
                              anti_aliasing=True, preserve_range=True).astype(orig_dtype)
@@ -78,6 +85,9 @@ def main():
                         help="Fallback voxel size (z y x) if not in file metadata")
     parser.add_argument("--new_voxel_size", "-nvs", nargs=3, type=float, default=None,
                         help="Override output voxel size (z y x)")
+    parser.add_argument("--reinterpret_int8_as_uint8", action='store_true', default=False,
+                        help="Convert int8 raw data to uint8 by adding 128 (shifts [-128,127] "
+                             "to [0,255], preserving distribution shape for signed cryo-ET data)")
     args = parser.parse_args()
 
     orig_voxel_size = None
@@ -141,7 +151,8 @@ def main():
                 is_raw = "raw" in key
                 anti_alias = is_raw and not args.downsample
                 out_shape = _write_dataset_chunked(
-                    f_in, f_out, key, args.scale_factor, anti_alias, voxel_size_arr
+                    f_in, f_out, key, args.scale_factor, anti_alias, voxel_size_arr,
+                    reinterpret_int8_as_uint8=args.reinterpret_int8_as_uint8,
                 )
                 if is_raw:
                     new_shape = out_shape

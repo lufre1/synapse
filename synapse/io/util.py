@@ -13,15 +13,9 @@ from tqdm import tqdm
 from elf.io import open_file
 from tifffile import imread
 
-
-def get_all_keys_from_h5(file_path):
-    keys = []
-    with h5py.File(file_path, 'r') as h5file:
-        def collect_keys(name, obj):
-            if isinstance(obj, h5py.Dataset):
-                keys.append(name)  # Add each key (path) to the list
-        h5file.visititems(collect_keys)  # Visit all groups and datasets
-    return keys
+# Canonical implementations live in synapse.h5_util; re-exported here so callers can
+# keep importing them from synapse.io.util.
+from synapse.h5_util import get_all_keys_from_h5, extract_data  # noqa: F401
 
 
 def get_all_dataset_keys(file_path):
@@ -287,26 +281,6 @@ def get_file_paths(path, ext=".h5", reverse=False):
 #         viewer.layers.insert(0, raw_layer)
 
 #     napari.run()
-
-
-def extract_data(group: Any, data: Dict[str, Any], prefix: str = "", scale: int = 1):
-    """
-    Recursively extract datasets from a group and store them in a dictionary.
-    """
-    for key, item in group.items():
-        full_key = f"{prefix}/{key}" if prefix else key
-        if isinstance(item, (zarr.Group, h5py.Group, z5py.Group)):
-            # Recursively extract data from subgroups
-            extract_data(item, data, prefix=full_key, scale=scale)
-        else:
-            ndim = item.ndim
-            # Generate a slicing tuple based on the number of dimensions
-            slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-            
-            # Apply downsampling while preserving batch/channel dimensions
-            data[full_key] = item[slicing] if scale > 1 else item[:]
-            # # Store the dataset in the dictionary
-            # data[full_key] = item[:]
 
 
 def upsample_data(data, factor):

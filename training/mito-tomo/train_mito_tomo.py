@@ -21,6 +21,7 @@ from synapse_net.training.supervised_training import supervised_training, get_su
 # Import your util.py for data loading
 import synapse.util as util
 import synapse.label_utils as lutil
+import synapse.training_util as tu
 # import data_classes
 SAVE_DIR = "/mnt/lustre-grete/usr/u12103/mitochondria/tomo"
 # from unet import UNet3D
@@ -63,15 +64,7 @@ def main():
     # label_transform = lutil.CombinedLabelTransform(add_binary_target=True, dilation_footprint=np.ones((3, 3)))
     label_transform = torch_em.transform.BoundaryTransform(add_binary_target=True)
 
-    if os.path.exists(os.path.join(SAVE_DIR, "checkpoints", experiment_name, "best.pt")):
-        # torch_em default is to load "best.pt" (do not include it in path)
-        checkpoint_path = os.path.join(SAVE_DIR, "checkpoints", experiment_name)
-        print("Checkpoint exists, loading model from checkpoint", checkpoint_path)
-    elif args.checkpoint_path:
-        checkpoint_path = args.checkpoint_path
-        print("Loading model from given checkpoint", checkpoint_path)
-    else:
-        checkpoint_path = None
+    checkpoint_path = tu.resolve_checkpoint(SAVE_DIR, experiment_name, args.checkpoint_path)
     # if checkpoint_path:
     #     print("synapse-net supervised training has no checkpoint loading!")
 

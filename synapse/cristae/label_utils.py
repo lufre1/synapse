@@ -1,7 +1,9 @@
 import numpy as np
 from skimage.morphology import binary_erosion, disk
-from skimage.segmentation import relabel_sequential
-from elf.evaluation.matching import label_overlap, intersection_over_union
+
+# Canonical implementation lives in synapse.label_utils; re-exported here for
+# backwards compatibility with existing imports of this module.
+from synapse.label_utils import find_additional_objects  # noqa: F401
 
 
 def binarize_and_erode_xy(mito_labels, radius_xy):
@@ -18,24 +20,3 @@ def binarize_and_erode_xy(mito_labels, radius_xy):
     else:
         eroded = binary_erosion(mito_bin, footprint=fp)
     return eroded.astype(mito_labels.dtype)
-
-
-def find_additional_objects(ground_truth, segmentation, matching_threshold=0.5):
-    """Return segmentation objects that are not sufficiently covered by ground_truth (IoU <= threshold)."""
-    ground_truth = relabel_sequential(ground_truth)[0]
-    segmentation = relabel_sequential(segmentation)[0]
-
-    overlap, _ = label_overlap(segmentation, ground_truth)
-    iou = intersection_over_union(overlap)
-
-    matched_ids = {
-        seg_id
-        for seg_id in np.unique(segmentation)
-        if seg_id != 0 and iou[seg_id, :].max() > matching_threshold
-    }
-
-    additional = segmentation.copy()
-    for mid in matched_ids:
-        additional[additional == mid] = 0
-
-    return relabel_sequential(additional)[0]

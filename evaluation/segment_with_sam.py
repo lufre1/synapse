@@ -15,6 +15,9 @@ from elf.io import open_file
 import numpy as np
 import synapse.io.util as io
 import synapse.label_utils as lutils
+import synapse.util as util
+import synapse.h5_util as h5_util
+import synapse.sam_util as sutil
 # from synapse_net.inference.mitochondria import segment_mitochondria
 # from synapse_net.ground_truth.matching import find_additional_objects
 from elf.evaluation.matching import label_overlap, intersection_over_union
@@ -33,201 +36,6 @@ from micro_sam.instance_segmentation import (
 )
 
 
-def _default_seed_function(
-    center_distances,
-    boundary_distances,
-    fg_mask,
-    tile_shape,
-    n_threads,
-    verbose,
-    **kwargs,
-):
-    seed_map = boundary_distances < kwargs.get("boundary_distance_threshold", 0.5)
-    if center_distances is not None:
-        seed_map = np.logical_and(seed_map, center_distances < kwargs.get("center_distance_threshold", 0.5))
-    if fg_mask is not None:
-        seed_map[~fg_mask] = 0
-
-    seeds = np.zeros(seed_map.shape, dtype="uint64")
-    seeds = parallel.label(
-        seed_map, out=seeds, block_shape=tile_shape, n_threads=n_threads, verbose=verbose,
-    )
-    return seeds
-
-
-def _volumetric_segmentation_impl(
-    center_distances,
-    boundary_distances,
-    foreground,
-    gap_closing=0,
-    min_z_extent=0,
-    verbose=False,
-    **kwargs,
-):
-    tile_shape = (64, 512, 512)
-    halo = (8, 32, 32)
-    n_threads = mp.cpu_count()
-
-    distance_smoothing = kwargs.get("distance_smoothing", 1.6)
-    if center_distances is not None:
-        center_distances = apply_filter(
-            center_distances, "gaussianSmoothing", sigma=distance_smoothing,
-            block_shape=tile_shape, n_threads=n_threads
-        )
-
-    boundary_distances = apply_filter(
-        boundary_distances, "gaussianSmoothing", sigma=distance_smoothing,
-        block_shape=tile_shape, n_threads=n_threads
-    )
-
-    if foreground is None:
-        fg_mask = None
-    else:
-        fg_mask = foreground > kwargs.get("foreground_threshold", 0.5)
-
-    seeds = _default_seed_function(
-        center_distances, boundary_distances, fg_mask, tile_shape, n_threads, verbose, **kwargs,
-    )
-
-    seg = np.zeros_like(seeds, dtype="uint64")
-    seg = parallel.seeded_watershed(
-        boundary_distances, seeds=seeds, out=seg, block_shape=tile_shape,
-        halo=halo, n_threads=n_threads, verbose=verbose, mask=fg_mask,
-    )
-
-    segmentation = np.zeros_like(seg, dtype="uint64")
-    segmentation = parallel.size_filter(
-        seg, out=segmentation, min_size=kwargs.get("min_size", 0),
-        block_shape=tile_shape, n_threads=n_threads, verbose=verbose
-    )
-
-    # Apply post-processing.
-    if gap_closing is not None and gap_closing > 0:
-        mask = segmentation > 0
-        mask = np.logical_or(mask, binary_closing(mask, iterations=gap_closing))
-        segmentation_ = np.zeros_like(segmentation)
-        segmentation_ = parallel.seeded_watershed(
-            boundary_distances, seeds=segmentation, mask=mask,
-            block_shape=tile_shape, halo=halo, n_threads=mp.cpu_count(),
-            verbose=False, out=segmentation_
-        )
-        segmentation = segmentation_
-
-    if min_z_extent is not None and min_z_extent > 0:
-        segmentation = _filter_z_extent(segmentation, min_z_extent)
-
-    return segmentation
-
-
-def volumetric_segmentation(
-    foreground,
-    center_dists,
-    boundary_dists,
-    # volume: np.ndarray,
-    # embedding_path: Optional[str] = None,
-    # tile_shape: Optional[Tuple[int, int]] = None,
-    # halo: Optional[Tuple[int, int]] = None,
-    # batch_size: int = 1,
-    gap_closing: int = 0,
-    min_z_extent: int = 0,
-    verbose: bool = False,
-    use_foreground_mask: bool = True,
-    use_center_distances: bool = True,
-    **kwargs,
-) -> np.ndarray:
-    """Run volumetric segmentation based on outputs from a microSAM segmentation decoder.
-
-    Args:
-        foreground:
-        center_distances:
-        boundary_distances:
-        volume:
-        embedding_path:
-        tile_shape:
-        halo:
-        batch_size:
-        gap_closing:
-        min_z_extent:
-        verbose:
-        use_foreground_mask:
-        use_center_distances:
-        kwargs:
-
-    Returns:
-        The volumetric segmentation.
-    """
-    if not use_foreground_mask:
-        foreground = None
-    if not use_center_distances:
-        center_dists = None
-    segmentation = _volumetric_segmentation_impl(
-        center_dists, boundary_dists, foreground, gap_closing=gap_closing, min_z_extent=min_z_extent, **kwargs,
-    )
-    return segmentation
-
-
-def run_prediction(data, model_type, checkpoint, use_tiling=True):
-    from micro_sam.automatic_segmentation import get_predictor_and_segmenter
-    from synapse.sam_util import get_decoder_outputs
-
-    if use_tiling:
-        tile_shape, halo = (192, 192), (32, 32)  # (384, 384), (64, 64)
-    else:
-        tile_shape, halo = None, None
-
-    predictor, segmenter = get_predictor_and_segmenter(model_type=model_type, checkpoint=checkpoint, is_tiled=use_tiling)
-
-    foreground, center_dists, boundary_dists = get_decoder_outputs(
-        predictor, segmenter, data, tile_shape=tile_shape, halo=halo, batch_size=4, verbose=True,
-    )
-
-    res = {
-        "prediction/foreground": foreground,
-        "prediction/center_dists": center_dists,
-        "prediction/boundary_dists": boundary_dists
-    }
-
-    return res
-    # with open_file(save_path, mode="a") as f:
-    #     g = f.require_group(name)
-    #     ds = g.require_dataset("prediction/foreground", shape=shape, compression="lzf", dtype="float32")
-    #     ds[:] = foreground
-    #     ds = g.require_dataset("prediction/center_dists", shape=shape, compression="lzf", dtype="float32")
-    #     ds[:] = center_dists
-    #     ds = g.require_dataset("prediction/boundary_dists", shape=shape, compression="lzf", dtype="float32")
-    #     ds[:] = boundary_dists
-
-
-def export_to_h5(data, export_path):
-    with h5py.File(export_path, 'x') as h5f:
-        for key in data.keys():
-            h5f.create_dataset(key, data=data[key], compression="lzf")
-    print("exported to", export_path)
-
-
-def _read_h5(path, key, scale_factor, z_offset=None):
-    with h5py.File(path, "r") as f:
-        try:
-            print(f"{key} data shape", f[key].shape)
-            if key == "prediction" or "pred" in key:
-                image = f[key][:, ::scale_factor, ::scale_factor, ::scale_factor]
-                if z_offset:
-                    image = image[z_offset[0]:z_offset[1], :, :]
-            else:
-                image = f[key][::scale_factor, ::scale_factor, ::scale_factor]
-                if z_offset:
-                    image = image[z_offset[0]:z_offset[1], :, :]
-            print(f"{key} data shape after downsampling", image.shape)
-            # if not key == "raw":
-            #     print(np.unique(image))
-
-        except KeyError:
-            print(f"Error: {key} dataset not found in {path}")
-            return None  # Indicate error
-
-        return image
-
-
 def _read_zarr(path, key):
     print("debug", path, key)
     f = zarr.open(store=path, mode="r")
@@ -238,107 +46,6 @@ def _read_zarr(path, key):
         print(f"Error: {key} dataset not found in {path}")
         return None  # Indicate error
     return image
-
-
-def get_all_keys_from_h5(file_path):
-    keys = []
-    with h5py.File(file_path, 'r') as h5file:
-        def collect_keys(name, obj):
-            if isinstance(obj, h5py.Dataset) and ("raw" in name or "all" in name):
-                keys.append(name)  # Add each key (path) to the list
-        h5file.visititems(collect_keys)  # Visit all groups and datasets
-    return keys
-
-
-def get_all_dataset_keys(file_path):
-    """
-    Returns a list of all dataset keys in a file (HDF5, Zarr, or N5).
-    
-    Parameters:
-        file_path (str): Path to the file or directory.
-        
-    Returns:
-        keys (list): List of dataset keys (paths).
-    """
-    keys = []
-
-    if os.path.isfile(file_path) and file_path.endswith(('.h5', '.hdf5')):
-        # HDF5
-        with h5py.File(file_path, 'r') as h5file:
-            def collect_keys(name, obj):
-                if isinstance(obj, h5py.Dataset):
-                    keys.append(name)
-            h5file.visititems(collect_keys)
-
-    else:
-        # Assume Zarr or N5 directory
-        store = zarr.N5Store(file_path) if 'attributes.json' in os.listdir(file_path) else zarr.DirectoryStore(file_path)
-        root = zarr.open(store, mode='r')
-
-        def collect_keys(name, obj):
-            if isinstance(obj, zarr.core.Array):
-                keys.append(name)
-        root.visititems(collect_keys)
-
-    return keys
-
-
-def raw_transform(x):
-    x = x.astype("float32")
-    x -= x.min()
-    x /= x.max()
-    x *= 255
-    return x.astype("uint8")
-
-
-def alt_segmentation(foreground, boundary_distances, verbose=False, **kwargs):
-    """
-    Alternative segmentation algorithm based on foreground and boundary distances only.
-
-    Parameters:
-        foreground (array): foreground probability map
-        boundary_distances (array): boundary distance map
-        verbose (bool): verbosity flag
-        **kwargs: additional keyword arguments
-
-    Returns:
-        segmentation (array): segmentation label array
-    """
-    tile_shape = (64, 512, 512)
-    halo = (8, 32, 32)
-    n_threads = mp.cpu_count()
-
-    if foreground is None:
-        fg_mask = None
-    else:
-        fg_mask = foreground > kwargs.get("foreground_threshold", 0.5)
-    # breakpoint()
-
-    seeds = np.zeros_like(foreground, dtype=int)
-    mask = np.logical_and(foreground > kwargs.get("foreground_threshold", 0.5), foreground - boundary_distances >
-                          kwargs.get("seed_threshold", 0.2))
-    seeds[mask] = True
-    seed_map = boundary_distances < kwargs.get("boundary_distance_threshold", 0.5)
-    if fg_mask is not None:
-        seed_map[~fg_mask] = 0
-
-    seeds = parallel.label(
-        seed_map, out=seeds, block_shape=tile_shape, n_threads=n_threads, verbose=verbose,
-    )
-
-    seg = np.zeros_like(seeds, dtype="uint64")
-    seg = parallel.seeded_watershed(
-        boundary_distances, seeds=seeds, out=seg, block_shape=tile_shape,
-        halo=halo, n_threads=n_threads, verbose=verbose, mask=fg_mask,
-    )
-
-    segmentation = np.zeros_like(seg, dtype="uint64")
-    segmentation = parallel.size_filter(
-        seg, out=segmentation, min_size=kwargs.get("min_size", 0),
-        block_shape=tile_shape, n_threads=n_threads, verbose=verbose
-    )
-
-    return segmentation
 
 
 def main():
@@ -385,38 +92,38 @@ def main():
                 print("overriding", pred_path)
                 os.remove(pred_path)
             if ".h5" in sample_path:
-                raw = _read_h5(sample_path, args.key, 1)
+                raw = h5_util.read_h5(sample_path, args.key, 1)
             else:
                 raw = _read_zarr(sample_path, args.key)
-            res = run_prediction(
-                data=raw_transform(raw),
+            res = sutil.run_decoder_prediction(
+                data=sutil.raw_transform(raw),
                 model_type=args.model_type,
                 checkpoint=checkpoint_path,
                 use_tiling=True if any(dim > 256 for dim in raw.shape) else False,
             )
             out = {
                 "raw": raw,
-                # "label": label_transform(_read_h5(sample_path, args.label_key, 1))
+                # "label": label_transform(h5_util.read_h5(sample_path, args.label_key, 1))
             }
-            num_channels = label_transform(_read_h5(sample_path, args.label_key, 1)).shape[0]
+            num_channels = label_transform(h5_util.read_h5(sample_path, args.label_key, 1)).shape[0]
 
             # Dynamically add all channels to the out dictionary
             for i in range(num_channels):
-                out[f"label_{i}"] = label_transform(_read_h5(sample_path, args.label_key, 1))[i, :, :, :]
+                out[f"label_{i}"] = label_transform(h5_util.read_h5(sample_path, args.label_key, 1))[i, :, :, :]
             out.update(res)
-            seg = volumetric_segmentation(
+            seg = sutil.volumetric_segmentation(
                 foreground=out["prediction/foreground"],
                 center_dists=out["prediction/center_dists"],
                 boundary_dists=out["prediction/boundary_dists"],
             )
-            # seg2 = alt_segmentation(
+            # seg2 = sutil.alt_segmentation(
             #     foreground=out["prediction/foreground"],
             #     boundary_distances=out["prediction/boundary_dists"],
             # )
             out["segmentation"] = seg
             # out["segmentation2"] = seg2
 
-            export_to_h5(out, pred_path)
+            util.export_to_h5(out, pred_path, compression="lzf", mode="x")
     else:
         raise NotImplementedError
 

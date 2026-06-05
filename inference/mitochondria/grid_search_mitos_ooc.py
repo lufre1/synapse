@@ -18,6 +18,7 @@ from elf.io import open_file
 from synapse_net.inference.util import get_prediction
 import synapse.io.util as io
 import synapse.util as util
+import synapse.prediction as pred_util
 
 
 DEFAULT_SEED_DISTANCES     = [1, 2, 3]
@@ -36,38 +37,18 @@ def _ensure_prediction(path, key, tile_shape, model_path, preprocess_volem):
     """Return the on-disk zarr prediction array, computing it if not already present."""
     pred_name = os.path.basename(path) + "_pred.zarr"
     pred_path = os.path.join(os.path.dirname(path), pred_name)
-    done_marker = os.path.join(pred_path, ".pred_complete")
 
-    ts = {"z": tile_shape[0], "y": tile_shape[1], "x": tile_shape[2]}
-    halo = {k: int(ts[k] * 0.125) for k in ts}
-    tiling = {"tile": ts, "halo": halo}
-    inner_ts = {k: ts[k] - 2 * halo[k] for k in ts}
+    tiling = pred_util.make_tiling(tile_shape)
+    inner = pred_util.inner_tile_shape(tiling)
 
     with open_file(path, "r") as f:
         spatial_shape = f[key].shape
 
-    n_out = 2
-    expected_shape = (n_out,) + tuple(spatial_shape)
-    chunks = (n_out, inner_ts["z"], inner_ts["y"], inner_ts["x"])
-
-    root = zarr.open(pred_path, mode="a")
-    pred = root.get("pred")
-    pred_ready = (
-        pred is not None
-        and pred.shape == expected_shape
-        and os.path.exists(done_marker)
+    pred, ready = pred_util.open_disk_prediction(
+        pred_path, spatial_shape, inner, n_out=2, use_done_marker=True,
     )
-    print(f"Prediction already on disk: {pred_ready}  ({pred_path})")
 
-    if not pred_ready:
-        pred = root.require_dataset(
-            "pred",
-            shape=expected_shape,
-            chunks=chunks,
-            dtype="float32",
-            compressor=zarr.Blosc(cname="zstd", clevel=3, shuffle=2),
-            overwrite=True,
-        )
+    if not ready:
         # Open zarr inputs lazily so predict_with_halo reads tiles on demand
         # instead of loading the full volume (~37 GB) into RAM at once.
         # For h5/other formats we still load fully (they tend to be smaller).
@@ -88,7 +69,7 @@ def _ensure_prediction(path, key, tile_shape, model_path, preprocess_volem):
             preprocess=torch_em.transform.raw.normalize_percentile,
             prediction=pred,
         )
-        open(done_marker, "w").close()
+        pred_util.mark_disk_prediction_complete(pred_path)
         print(f"Prediction written to {pred_path}")
 
     return pred, pred_path
@@ -100,17 +81,6 @@ def _is_done(out_dir):
         return False
     root = zarr.open(out_dir, mode="r")
     return "seg" in root and "dist" not in root
-
-
-def _delete_intermediates(out_dir):
-    """Remove dist and seeds from the zarr store, keeping only seg."""
-    root = zarr.open(out_dir, mode="a")
-    for key in ("dist", "seeds"):
-        if key in root:
-            del root[key]
-        key_dir = os.path.join(out_dir, key)
-        if os.path.isdir(key_dir):
-            shutil.rmtree(key_dir)
 
 
 def main():
@@ -194,7 +164,7 @@ def main():
             )
 
             # Keep only the final segmentation — remove intermediates
-            _delete_intermediates(out_dir)
+            pred_util.delete_zarr_intermediates(out_dir)
 
             elapsed = time.time() - t0
             print(f"  [{tag}] done in {elapsed:.0f}s  →  {out_dir}")

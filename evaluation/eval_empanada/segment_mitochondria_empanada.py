@@ -6,7 +6,7 @@ from glob import glob
 import argparse
 import os
 from synapse.empanada_util import get_empanada_config
-from skimage.transform import rescale, resize
+import synapse.util as util
 
 # import synapse.io.util as util
 # from elf.io import open_file
@@ -63,59 +63,6 @@ def _get_file_paths():
     return input_files
 
 
-def adjust_size(input_volume, scale=None, is_segmentation=False, orig_shape=None):
-    """
-    Rescale or resize a 2D/3D volume, using interpolation appropriate for images vs. label maps.
-
-    This function has two modes:
-
-    1) Rescaling (when ``orig_shape is None``):
-       - Uses ``skimage.transform.rescale`` with the provided ``scale``.
-
-    2) Resizing to a target shape (when ``orig_shape is not None``):
-       - Uses ``skimage.transform.resize`` to match ``orig_shape``.
-
-    For segmentation/label volumes (``is_segmentation=True``), nearest-neighbor interpolation
-    is used (``order=0`` and ``anti_aliasing=False``) to avoid creating non-integer labels.
-    For intensity images (``is_segmentation=False``), default interpolation is used.
-
-    Parameters
-    ----------
-    input_volume : np.ndarray
-        Input image/volume (2D or 3D). The output is cast back to ``input_volume.dtype``.
-    scale : float or sequence of float, optional
-        Scale factor(s) passed to ``rescale``. Required when ``orig_shape`` is None.
-        Examples: ``0.5`` to downsample by 2, or ``(1, 0.5, 0.5)`` for anisotropic scaling.
-    is_segmentation : bool, default=False
-        If True, treat ``input_volume`` as a label map and use nearest-neighbor interpolation.
-    orig_shape : tuple of int, optional
-        Target output shape passed to ``resize``. If provided, ``scale`` is ignored.
-
-    Returns
-    -------
-    np.ndarray
-        Rescaled/resized volume with the same dtype as the input.
-
-    Notes
-    -----
-    - ``preserve_range=True`` is used to avoid normalization to [0, 1] by scikit-image.
-    - For segmentation resizing, nearest-neighbor interpolation preserves label identities.
-    """
-    if orig_shape is None:
-        if is_segmentation:
-            input_volume = rescale(
-                input_volume, scale, preserve_range=True, order=0, anti_aliasing=False,
-            ).astype(input_volume.dtype)
-        else:
-            input_volume = rescale(input_volume, scale, preserve_range=True).astype(input_volume.dtype)
-    else:
-        if is_segmentation:
-            input_volume = resize(input_volume, orig_shape, preserve_range=True, order=0, anti_aliasing=False).astype(input_volume.dtype)
-        else:
-            input_volume = resize(input_volume, orig_shape, preserve_range=True).astype(input_volume.dtype)
-    return input_volume
-
-
 def segment_mitochondria(path, visualize=False, scale=1, z_slice=None, args=None) -> dict:
     from empanada_napari.inference import Engine3d, Engine2d
     scaler = args.scaler
@@ -158,7 +105,7 @@ def segment_mitochondria(path, visualize=False, scale=1, z_slice=None, args=None
             if data is not None:
                 if scaler is not None:
                     original_shape = data.shape
-                    data = adjust_size(data, scaler, is_segmentation=False)
+                    data = util.adjust_size(data, scaler, is_segmentation=False)
 
     volume = data.astype(np.uint8)
 
@@ -184,7 +131,7 @@ def segment_mitochondria(path, visualize=False, scale=1, z_slice=None, args=None
 
     if scaler is not None:
         original_shape = data.shape
-        stack = adjust_size(stack, scaler, is_segmentation=False, orig_shape=original_shape)
+        stack = util.adjust_size(stack, scaler, is_segmentation=False, orig_shape=original_shape)
 
     if visualize:
         import napari
@@ -202,7 +149,7 @@ def segment_mitochondria(path, visualize=False, scale=1, z_slice=None, args=None
             }
         else:
             # adjust mito shape
-            mitos = adjust_size(
+            mitos = util.adjust_size(
                 mitos.astype(np.uint8),
                 scale=1,
                 is_segmentation=True,

@@ -13,6 +13,7 @@ from elf.io import open_file
 import numpy as np
 import synapse.io.util as io
 import synapse.util as util
+import synapse.prediction as pred_util
 from synapse_net.inference.mitochondria import segment_mitochondria
 from synapse_net.inference.util import get_prediction
 # from synapse_net.ground_truth.matching import find_additional_objects
@@ -72,114 +73,19 @@ def parse_args():
 
     return args
 
-def export_to_h5(data, export_path):
-    with h5py.File(export_path, 'x') as h5f:
-        for key in data.keys():
-            h5f.create_dataset(key, data=data[key], compression="gzip")
-    print("exported to", export_path)
-
-
-def _read_h5(path, key, scale_factor, z_offset=None):
-    with h5py.File(path, "r") as f:
-        try:
-            print(f"{key} data shape", f[key].shape)
-            if key == "prediction" or "pred" in key:
-                image = f[key][:, ::scale_factor, ::scale_factor, ::scale_factor]
-                if z_offset:
-                    image = image[z_offset[0]:z_offset[1], :, :]
-            else:
-                image = f[key][::scale_factor, ::scale_factor, ::scale_factor]
-                if z_offset:
-                    image = image[z_offset[0]:z_offset[1], :, :]
-            print(f"{key} data shape after downsampling", image.shape)
-            # if not key == "raw":
-            #     print(np.unique(image))
-
-        except KeyError:
-            print(f"Error: {key} dataset not found in {path}")
-            return None  # Indicate error
-
-        return image
-
-def _get_raw_transform(x):
-    x = util.convert_white_patches_to_black(x, min_patch_size=100)
-    x = torch_em.transform.raw.normalize_percentile(x)
-    return x
-
-
-def get_all_keys_from_h5(file_path):
-    keys = []
-    with h5py.File(file_path, 'r') as h5file:
-        def collect_keys(name, obj):
-            if isinstance(obj, h5py.Dataset):
-                keys.append(name)  # Add each key (path) to the list
-        h5file.visititems(collect_keys)  # Visit all groups and datasets
-    return keys
-
-
-def get_all_dataset_keys(file_path):
-    """
-    Returns a list of all dataset keys in a file (HDF5, Zarr, or N5).
-    
-    Parameters:
-        file_path (str): Path to the file or directory.
-        
-    Returns:
-        keys (list): List of dataset keys (paths).
-    """
-    keys = []
-
-    if os.path.isfile(file_path) and file_path.endswith(('.h5', '.hdf5')):
-        # HDF5
-        with h5py.File(file_path, 'r') as h5file:
-            def collect_keys(name, obj):
-                if isinstance(obj, h5py.Dataset):
-                    keys.append(name)
-            h5file.visititems(collect_keys)
-
-    else:
-        # Assume Zarr or N5 directory
-        store = zarr.N5Store(file_path) if 'attributes.json' in os.listdir(file_path) else zarr.DirectoryStore(file_path)
-        root = zarr.open(store, mode='r')
-
-        def collect_keys(name, obj):
-            if isinstance(obj, zarr.core.Array):
-                keys.append(name)
-        root.visititems(collect_keys)
-
-    return keys
-
-
 def main():
     args = parse_args()
     exp_scale = args.downscale_export
     print(args.base_path)
     print("\nUsing model", args.model_path)
     # tile_shape
-    z, y, x = args.tile_shape
-    ts = {
-        "z": z,
-        "y": y,
-        "x": x
-        }
-    halo = {
-        "z": int(ts["z"] * 0.125),
-        "y": int(ts["y"] * 0.125),
-        "x": int(ts["x"] * 0.125)
-        }
-    # if args.use_custom_segment:
-    #     # adjust for blocking in torch_em 
-    #     ts = {
-    #         "z": int(z - 2 * halo["z"]),
-    #         "y": int(y - 2 * halo["y"]),
-    #         "x": int(x - 2 * halo["x"])
-    #         }
-    # halo = {'z': 12, 'y': 128, 'x': 128}
-    # ts = {'z': ts["z"]+2*halo["z"], 'y': ts["y"]+2*halo["y"], 'x': ts["x"]+2*halo["x"]}
+    tiling = pred_util.make_tiling(args.tile_shape)
+    ts = tiling["tile"]
+    halo = tiling["halo"]
     h5_paths = io.load_file_paths(args.base_path, args.file_extension)
 
     print("len(h5_paths)", len(h5_paths))
-    tiling = {"tile": ts, "halo": halo}  # prediction function automatically subtracts the 2*halo from tile
+    # prediction function automatically subtracts the 2*halo from tile
     print("tiling:", tiling)
     scale = None
     bt_string = str(args.boundary_threshold).replace(".", "")
@@ -196,7 +102,7 @@ def main():
         else:
             os.makedirs(args.export_path, exist_ok=True)
             output_path = os.path.join(args.export_path, (os.path.basename(args.model_path)).replace(".pt", "") +
-                                    f"_sd{args.seed_distance}_bt{bt_string}_ft{ft_string}_with_pred_ts_z{ts['z']}_y{ts['y']}_x{ts['x']}_halo_z{halo['z']}_y{halo['y']}_x{halo['x']}_",
+                                    f"_sd{args.seed_distance}_bt{bt_string}_ft{ft_string}_with_pred_ts_z{ts['z']}_y{ts['y']}_x{ts['x']}_halo_z{halo['z']}_y{halo['y']}_x{halo['x']}_" +
                                     os.path.basename(path))
             output_path = output_path.replace(".zarr", ".h5")
         if os.path.exists(output_path) and not args.force_overwrite:
@@ -206,9 +112,9 @@ def main():
             print("Overwriting... output path exists", output_path)
             os.remove(output_path)
         if path.endswith(".h5"):
-            keys = get_all_keys_from_h5(path)
+            keys = io.get_all_keys_from_h5(path)
         else:
-            keys = get_all_dataset_keys(path)
+            keys = io.get_all_dataset_keys(path)
         data = {}
         scale_factor = 1
         with open_file(path, "r") as f:
@@ -261,10 +167,10 @@ def main():
             if args.disk_based_prediction:
                 pred_name = os.path.basename(path) + "_axons_pred.zarr"
                 pred_path = os.path.join(os.path.dirname(path), pred_name)
-                spatial_shape = image.shape  
+                spatial_shape = image.shape
                 expected_shape = tuple(spatial_shape)
                 # chunk by the *inner* block shape used for writing
-                inner_ts = {k: ts[k] - 2 * halo[k] for k in ("z", "y", "x")}
+                inner_ts = pred_util.inner_tile_shape(tiling)
                 chunks = (inner_ts["z"], inner_ts["y"], inner_ts["x"])
                 root = zarr.open(pred_path, mode="a")
                 pred = root.get("pred", None)

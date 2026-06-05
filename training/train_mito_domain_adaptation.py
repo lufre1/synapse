@@ -7,6 +7,7 @@ import torch
 from sklearn.model_selection import train_test_split
 from synapse_net.training.domain_adaptation import mean_teacher_adaptation
 
+import synapse.training_util as tu
 from config import SAVE_DIR
 
 
@@ -19,23 +20,13 @@ def _get_paths(root):
     return paths
 
 
-def sampler_func(pseudo_labels, label_filter, threshold=0.75, min_fraction=0.1, p=0.95):
-    sampled_labels = pseudo_labels[label_filter.to(torch.bool)]
-    foreground_prediction = (sampled_labels > threshold).sum()
-    foreground_fraction = foreground_prediction / label_filter.sum() 
-    if foreground_fraction > min_fraction:
-        return True
-    else:
-        return random.random() > p
-        
-
 def run_structure_domain_adaptation(args):
     paths = _get_paths(args.data_dir)
     train_paths, val_paths = train_test_split(paths, test_size=0.15, random_state=42)
     train_paths, test_paths = train_test_split(train_paths, test_size=0.10, random_state=42)
     print(f"train_paths {len(train_paths)} val_paths {len(val_paths)} test_paths {len(test_paths)}")
     print(f"all test_paths {test_paths}")
-    sampler = sampler_func
+    sampler = tu.foreground_fraction_sampler
     print(f"\n {args.experiment_name} \n")
     mean_teacher_adaptation(
         name=args.experiment_name,
