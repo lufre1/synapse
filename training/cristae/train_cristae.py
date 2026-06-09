@@ -121,14 +121,34 @@ def main():
     parser.add_argument("--state_channel", type=int, default=None, help="Use this channel as state channel")
     parser.add_argument("--test_split", type=str, default=None, choices=list(NAMED_TEST_SPLITS.keys()),
                         help="Pin a named test split (e.g. synapsenetv1-testsplit) and exclude those files from training")
+    parser.add_argument("--loss_variant", type=str, default="new", choices=["new", "legacy"],
+                        help="Masked-Dice reduction: 'new' = current pooled-per-channel "
+                             "MaskedDiceLoss; 'legacy' = pre-ed2c08d torch_em-DiceLoss wrapper. "
+                             "NOTE: verified numerically identical (ed2c08d was a refactor), so "
+                             "this is INERT as an A/B variable; kept for reference.")
+    parser.add_argument("--seed", type=int, default=42,
+                        help="Seed for torch/numpy/python RNG (identical across A/B arms -> identical init).")
 
     # Parse --config first, apply as defaults, then re-parse so CLI overrides YAML
-    cfg_args, remaining = parser.parse_known_args()
+    cfg_args, _ = parser.parse_known_args()
     if cfg_args.config is not None:
         with open(cfg_args.config, "r") as f:
             cfg = yaml.safe_load(f) or {}
         parser.set_defaults(**cfg)
-    args = parser.parse_args(remaining)
+    # re-parse the FULL argv so explicit CLI flags override the config defaults
+    args = parser.parse_args()
+
+    # Deterministic, identical initialization for the loss-isolation A/B: both arms
+    # seed the RNGs the same way so the initial UNet weights are byte-identical.
+    # (Residual nondeterminism from multi-worker loaders / cuDNN may remain.)
+    seed = args.seed
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.benchmark = False
+
     checkpoint_path = args.checkpoint_path
     n_iterations = args.n_iterations
     learning_rate = args.learning_rate
@@ -153,8 +173,16 @@ def main():
     # (unannotated mitochondria, label 2); background and annotated mitochondria
     # both stay active. MitoStateMaskTransform appends this mask as extra label
     # channels; MaskedDiceLoss peels them off before computing Dice.
-    loss_function = util.MaskedDiceLoss()
-    metric_function = util.MaskedDiceLoss()
+    # Loss-isolation A/B: this is the ONLY thing that differs between the two arms.
+    if args.loss_variant == "legacy":
+        loss_function = util.MaskedDiceLossLegacy()   # pre-ed2c08d reduction
+    else:  # "new" = current pooled-per-channel reduction
+        loss_function = util.MaskedDiceLoss()
+    # Fixed reference metric (SAME for both arms) so val curves / best.pt selection
+    # stay comparable across runs regardless of which loss is being trained.
+    metric_function = util.MaskedDiceLossLegacy()
+    print(f"[loss A/B] loss_variant={args.loss_variant} -> "
+          f"loss={type(loss_function).__name__}, metric={type(metric_function).__name__} (fixed)")
     gain = 2
     in_channels, out_channels = 2, 2
     scale_factors = [

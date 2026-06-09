@@ -1305,6 +1305,35 @@ class MaskedDiceLoss(nn.Module):
         return (1.0 - 2.0 * num / den.clamp(min=self.eps)).sum()         # scalar
 
 
+class MaskedDiceLossLegacy(nn.Module):
+    """Pre-ed2c08d masked Dice loss, restored for the loss-reduction A/B.
+
+    Delegates the Dice reduction to ``torch_em.loss.DiceLoss()`` (default args)
+    instead of the inline per-channel-pooled form in ``MaskedDiceLoss``.
+
+    NOTE (verified 2026-06-09): these two are **numerically identical in every
+    tested case** (random/full/empty/all-masked/perfect inputs). ``ed2c08d`` only
+    re-implemented inline exactly what ``torch_em.loss.DiceLoss`` already computes
+    (flatten ``[B,C,...]->[C,N]``, ``num/den.clamp(min=eps)``, ``reduce_channel="sum"``,
+    no numerator smoothing). So this class is **NOT a meaningful A/B variable** —
+    the ed2c08d "loss fix" was a refactor, not a behavioral change, and is not the
+    cause of the cristae 06-04 test regression. Kept for reference only.
+    """
+
+    def __init__(self, **dice_kwargs):
+        super().__init__()
+        self._dice = torch_em.loss.DiceLoss(**dice_kwargs)
+
+    def forward(self, prediction: torch.Tensor, target: torch.Tensor, **kwargs) -> torch.Tensor:
+        n_pred_ch = prediction.size(1)
+        assert target.size(1) == 2 * n_pred_ch, (
+            f"MaskedDiceLossLegacy expects target with {2 * n_pred_ch} channels, got {target.size(1)}"
+        )
+        mask = target[:, n_pred_ch:]   # [B, n_ch, ...]
+        target = target[:, :n_pred_ch] # [B, n_ch, ...]
+        return self._dice(prediction * mask, target * mask)
+
+
 class SigmoidDiceLoss(nn.Module):
     """DiceLoss that applies sigmoid to the logits first.
 
