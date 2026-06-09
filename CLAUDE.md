@@ -19,6 +19,10 @@ default environement for this repository is "synapse"
 activate with:
 `mamba activate synapse`
 
+> **IMPORTANT — altering Python environments:**
+> - Only alter a Python environment if it is genuinely necessary, AND contact me first. Never install, uninstall, upgrade, or downgrade packages on your own — diagnose, propose the exact commands, and wait for my approval.
+> - All actual library/dependency changes must go through `env.yaml` (not ad-hoc `pip`/`conda`/`micromamba install`) so the environment stays reproducible. Edit `env.yaml` and let me re-create/update the env from it.
+
 **Training:**
 ```bash
 python main.py --data_dir <path> --experiment_name <name> [--checkpoint_path <ckpt>]
