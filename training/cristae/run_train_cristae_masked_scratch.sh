@@ -14,7 +14,7 @@ BS=8
 LR=1e-4
 ITER=125000
 read -r PZ PY PX <<< "$PATCH_SHAPE"
-EXPNAME="cristae-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-masked-scratch"
+EXPNAME="cristae-net32-lr${LR}-bs${BS}-ps${PZ}x${PY}x${PX}-norm"
 
 DD1="/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2"
 DD2="/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae"
