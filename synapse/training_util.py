@@ -31,22 +31,29 @@ def resolve_checkpoint(
 ) -> Optional[str]:
     """Resolve which checkpoint a trainer should resume from.
 
-    Priority: an existing ``<save_dir>/checkpoints/<experiment_name>/best.pt`` (resume),
-    then ``cli_checkpoint`` if given, otherwise ``None`` (train from scratch).
+    Priority (highest first):
+    1. ``cli_checkpoint`` if explicitly given — always honoured, even if a
+       ``best.pt`` already exists for this experiment.  This lets you start a
+       new A/B arm from a specific seed checkpoint without being silently
+       redirected to a stale run.
+    2. An existing ``<save_dir>/checkpoints/<experiment_name>/best.pt`` — the
+       normal resume-in-place path when no explicit checkpoint is given.
+    3. ``None`` — train from scratch.
 
-    Returns the directory ``<save_dir>/checkpoints/<experiment_name>`` when resuming
-    (torch-em loads ``best.pt`` from there), the raw ``cli_checkpoint`` value otherwise.
+    Returns the directory ``<save_dir>/checkpoints/<experiment_name>`` when
+    resuming in-place (torch-em loads ``best.pt`` from there), or the raw
+    ``cli_checkpoint`` path otherwise.
     """
-    best = os.path.join(save_dir, "checkpoints", experiment_name, "best.pt")
-    if os.path.exists(best):
-        checkpoint_path = os.path.join(save_dir, "checkpoints", experiment_name)
-        if verbose:
-            print("Checkpoint exists, loading model from checkpoint", checkpoint_path)
-        return checkpoint_path
     if cli_checkpoint:
         if verbose:
             print("Loading model from given checkpoint", cli_checkpoint)
         return cli_checkpoint
+    best = os.path.join(save_dir, "checkpoints", experiment_name, "best.pt")
+    if os.path.exists(best):
+        checkpoint_path = os.path.join(save_dir, "checkpoints", experiment_name)
+        if verbose:
+            print("Checkpoint exists, resuming from", checkpoint_path)
+        return checkpoint_path
     return None
 
 

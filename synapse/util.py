@@ -1241,6 +1241,20 @@ def standardize_channel(raw, channel=0):
     return raw_norm
 
 
+def normalize_channel(raw, channel=0, lower=1.0, upper=99.0):
+
+    if raw.ndim != 4:
+        raise ValueError(f"Expected a 4D input (C, Z, Y, X), got shape {raw.shape}")
+
+    if not (0 <= channel < raw.shape[0]):
+        raise ValueError(f"Invalid channel index {channel}, must be in range [0, {raw.shape[0]-1}]")
+
+    raw_norm = np.float32(raw)
+    raw_norm[channel] = torch_em.transform.raw.normalize_percentile(raw[channel], lower=lower, upper=upper)
+
+    return raw_norm
+
+
 class MitoStateMaskTransform:
     """Joint (raw, label) transform for cristae training.
 

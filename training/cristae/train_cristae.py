@@ -122,12 +122,13 @@ def main():
     parser.add_argument("--test_split", type=str, default=None, choices=list(NAMED_TEST_SPLITS.keys()),
                         help="Pin a named test split (e.g. synapsenetv1-testsplit) and exclude those files from training")
     parser.add_argument("--loss_variant", type=str, default="new", choices=["new", "legacy"],
-                        help="Masked-Dice reduction: 'new' = current pooled-per-channel "
-                             "MaskedDiceLoss; 'legacy' = pre-ed2c08d torch_em-DiceLoss wrapper. "
-                             "NOTE: verified numerically identical (ed2c08d was a refactor), so "
-                             "this is INERT as an A/B variable; kept for reference.")
+                        help="Loss function to use during training. "
+                             "'new' (default): MaskedDiceLoss — excludes unannotated mito (state=2) from Dice. "
+                             "'legacy': MaskedDiceLossLegacy wrapper (numerically identical to 'new').")
     parser.add_argument("--seed", type=int, default=42,
                         help="Seed for torch/numpy/python RNG (identical across A/B arms -> identical init).")
+    parser.add_argument("--normalize", action="store_true", default=False,
+                        help="Train with normalization instead of standardization.")
 
     # Parse --config first, apply as defaults, then re-parse so CLI overrides YAML
     cfg_args, _ = parser.parse_known_args()
@@ -169,20 +170,13 @@ def main():
 
     ndim = 3
 
-    # Compute loss everywhere except voxels with mito state == ignore_state_value
-    # (unannotated mitochondria, label 2); background and annotated mitochondria
-    # both stay active. MitoStateMaskTransform appends this mask as extra label
-    # channels; MaskedDiceLoss peels them off before computing Dice.
-    # Loss-isolation A/B: this is the ONLY thing that differs between the two arms.
     if args.loss_variant == "legacy":
-        loss_function = util.MaskedDiceLossLegacy()   # pre-ed2c08d reduction
-    else:  # "new" = current pooled-per-channel reduction
+        loss_function = util.MaskedDiceLossLegacy()
+    else:  # "new"
         loss_function = util.MaskedDiceLoss()
-    # Fixed reference metric (SAME for both arms) so val curves / best.pt selection
-    # stay comparable across runs regardless of which loss is being trained.
     metric_function = util.MaskedDiceLossLegacy()
-    print(f"[loss A/B] loss_variant={args.loss_variant} -> "
-          f"loss={type(loss_function).__name__}, metric={type(metric_function).__name__} (fixed)")
+    print(f"[loss] loss_variant={args.loss_variant} -> "
+          f"loss={type(loss_function).__name__}, metric={type(metric_function).__name__}")
     gain = 2
     in_channels, out_channels = 2, 2
     scale_factors = [
@@ -271,8 +265,9 @@ def main():
     with_label_channels = False
     sampler = MinInstanceSampler(p_reject=0.95)
     mito_mask_transform = util.MitoStateMaskTransform(
-        mito_channel=1, exclude_state_value=float(args.ignore_state_value)
+        mito_channel=args.state_channel, exclude_state_value=float(args.ignore_state_value)
     )
+    raw_transform = util.standardize_channel if not args.normalize else util.normalize_channel
     print("Path for this model", os.path.join(SAVE_DIR, experiment_name))
     print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
     print("data['train']", data["train"])
@@ -310,7 +305,7 @@ def main():
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
             sampler=sampler,
-            raw_transform=util.standardize_channel,
+            raw_transform=raw_transform,
             transform=mito_mask_transform,
         )
         val_loader = torch_em.default_segmentation_loader(
@@ -320,7 +315,7 @@ def main():
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
             sampler=sampler,
-            raw_transform=util.standardize_channel,
+            raw_transform=raw_transform,
             transform=mito_mask_transform,
         ) if (torch.cuda.is_available() and data["val"]) else None
 
