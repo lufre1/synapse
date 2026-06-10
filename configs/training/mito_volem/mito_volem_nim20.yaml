@@ -1,0 +1,22 @@
+# Mito training with generic trainer
+# Replaces run_train_mito_volem_nim20.sh
+
+slurm_profile: grete_shared_80gb
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u15205/micromamba/envs/synapse
+
+script: "training/mito-volem/train_mito_generic.py"
+args:
+  experiment_name: "volume-em-mito-net32-lr1e-4-bs4-ps32x512x512-final_v2"
+  n_iterations: 50000
+  patch_shape: [32, 512, 512]
+  batch_size: 4
+  learning_rate: 1.0e-4
+  data_dir: "/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_hdf5/all_cutouts_s0"
+  second_data_dir: "/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4009_hdf5/cutouts_segmented/"
+  early_stopping: 20
+  raw_key: "raw"
+  label_key: "labels/mitochondria"
+  use_synapse_training: true

@@ -3,7 +3,7 @@ checkpoints/
 logs/
 config.py
 slurm/
-slurm*
+slurm-*
 *.egg-info/
 .claude/*
 AGENTS.md

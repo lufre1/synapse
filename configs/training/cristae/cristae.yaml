@@ -1,0 +1,21 @@
+# Cristae training
+# Replaces run_train_cristae.sh
+
+slurm_profile: grete_shared
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+script: "training/cristae/train_cristae.py"
+args:
+  experiment_name: "cristae-net32-lr1e-4-bs8-ps32x256x256-2026-06-01"
+  patch_shape: [32, 256, 256]
+  n_iterations: 750000
+  batch_size: 8
+  learning_rate: 1.0e-4
+  data_dir: "/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2"
+  data_dir2: "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae"
+  data_dir3: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/"
+  ignore_state_value: 2
+  state_channel: 1

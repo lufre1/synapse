@@ -1,0 +1,22 @@
+# Axon training for 4009 dataset
+# Replaces run_training_axons_4009.sh
+
+slurm_profile: grete_shared_80gb
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u15205/micromamba/envs/synapse
+
+script: "training/axons/train_axons_volem.py"
+args:
+  experiment_name: "volume-em-axons-net32-lr5e-4-bs4-ps32x512x512-s2-4009"
+  n_iterations: 50000
+  patch_shape: [32, 512, 512]
+  batch_size: 4
+  learning_rate: 5.0e-4
+  data_dir: "/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4009_hdf5/cutouts_segmented_s2_new/"
+  data_dir2: "/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/test_split_s2_new/4009"
+  early_stopping: 25
+  raw_key: "raw"
+  label_key: "labels/axons"
+  save_dir: "/mnt/lustre-grete/usr/u15205/volume-em/models/"

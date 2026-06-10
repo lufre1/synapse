@@ -1,0 +1,6 @@
+# 10GB GPU — fast segmentation, quick eval
+partition: "grete:interactive"
+gpu: 1g.10gb:1
+time: "06:00:00"
+cpus: 8
+mem: "32G"

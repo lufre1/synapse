@@ -1,0 +1,6 @@
+# Standard A100 training/inference
+partition: "grete:shared"
+gpu: A100:1
+time: "12:00:00"
+cpus: 8
+mem: "64G"

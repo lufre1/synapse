@@ -1,0 +1,24 @@
+# Mito training with aniso2lvl model (final version)
+# Replaces run_train_mito_volem_nim20_aniso2lvl_final.sh
+
+slurm_profile: grete_shared_80gb
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u15205/micromamba/envs/synapse
+
+script: "training/mito-volem/train_mito_generic.py"
+args:
+  experiment_name: "volume-em-mito-aniso2lvl-lr1e-4-bs4-ps32x512x512-blacked-final"
+  n_iterations: 50000
+  patch_shape: [32, 512, 512]
+  batch_size: 4
+  learning_rate: 1.0e-4
+  data_dir: "/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_hdf5/all_cutouts_s0/"
+  second_data_dir: "/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4009_hdf5/cutouts_segmented/"
+  early_stopping: 20
+  raw_key: "raw"
+  label_key: "labels/mitochondria"
+  scale_factors: [1, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2]
+  use_synapse_training: true
+  fix_white_patches: true

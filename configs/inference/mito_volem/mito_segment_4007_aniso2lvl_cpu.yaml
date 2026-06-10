@@ -1,0 +1,12 @@
+# CPU-based mito segmentation of 4007 — replaces run_segment_mitos_4007_aniso2lvl_cpu.sh
+
+slurm_profile: grete_large_mem
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u15205/micromamba/envs/synapse
+
+# Already uses --config internally, so script+args just passes the config path
+script: "inference/mitochondria/segment_mitochondria_ooc.py"
+args:
+  config: "inference/mitochondria/segment_mitos_4007_aniso2lvl_cpu.yaml"

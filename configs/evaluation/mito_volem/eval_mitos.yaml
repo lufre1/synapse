@@ -1,0 +1,18 @@
+# Evaluate mitochondria segmentations
+# Replaces run_eval_mitos.sh
+
+slurm_profile: grete_shared
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+script: "evaluation/evaluate_mitos.py"
+args:
+  l: "/mnt/lustre-grete/usr/u12103/mitochondria/synapse-net-eval-data/eval_data_h5_s4_final"
+  k: "labels/mitochondria"
+  s: "/mnt/lustre-grete/usr/u12103/mitochondria/synapse-net-eval-data/eval_data_h5_s4_final"
+  sk: "seg"
+  o: "/mnt/lustre-grete/usr/u12103/mitochondria/synapse-net-eval-data/eval_data_h5_s4_final"
+  le: ".h5"
+  se: ".h5"

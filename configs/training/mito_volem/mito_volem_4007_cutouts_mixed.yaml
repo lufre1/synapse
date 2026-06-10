@@ -1,0 +1,22 @@
+# Mito training with 4007 cutouts mixed
+# Replaces run_train_mito_volem_4007_cutouts_mixed.sh
+
+slurm_profile: grete_shared_80gb
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+script: "training/mito-volem/train_mito_generic.py"
+args:
+  experiment_name: "volume-em-mito-net32-lr1e-4-bs8-ps32x256x256-thinboundary-cutout1and2"
+  n_iterations: 25000
+  patch_shape: [32, 256, 256]
+  batch_size: 8
+  learning_rate: 1.0e-4
+  data_dir: "/scratch-grete/projects/nim00007/data/mitochondria/embl/cutout_1/images/ome-zarr/raw.ome.zarr"
+  second_data_dir: "/scratch-grete/projects/nim00007/data/mitochondria/embl/cutout_2/images/ome-zarr/raw.ome.zarr"
+  second_label_dir: "/scratch-grete/projects/nim00007/data/mitochondria/embl/cutout_2/images/cutout_2_luca.tif"
+  third_data_dir: "/mnt/ceph-ssd/workspaces/ws/nim00007/u12103-mitopaper/4007_split/final_h5/"
+  early_stopping: 10
+  raw_key: "0"

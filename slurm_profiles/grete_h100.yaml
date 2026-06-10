@@ -1,0 +1,6 @@
+# H100 for anisotropic UNet training (mixed_precision, scale_factors)
+partition: "grete-h100:shared"
+gpu: H100:1
+time: "1d12:00:00"
+cpus: 8
+mem: "64G"

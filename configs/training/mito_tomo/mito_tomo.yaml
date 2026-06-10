@@ -1,0 +1,20 @@
+# Mito training for tomography data (Wichmann)
+# Replaces train_mito_tomo.sh
+
+slurm_profile: grete_shared_80gb
+
+env:
+  type: conda
+  name: synapse
+
+script: "training/mito-tomo/train_mito_tomo.py"
+args:
+  experiment_name: "mitotomo-net32-bs2-ps48512-lr1e-4-wichmann-more-fully-annotated"
+  data_dir: "/scratch-grete/projects/nim00007/data/mitochondria/wichmann/more_fully_annotated_mitos"
+  n_iterations: 100000
+  patch_shape: [48, 512, 512]
+  batch_size: 2
+  learning_rate: 1.0e-4
+  feature_size: 32
+  without_rois: true
+  early_stopping: 15

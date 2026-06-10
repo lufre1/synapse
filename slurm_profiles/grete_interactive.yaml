@@ -1,0 +1,6 @@
+# 20GB GPU — long inference, SAM embeddings (up to 12h)
+partition: "grete:interactive"
+gpu: 1g.20gb:1
+time: "06:00:00"
+cpus: 8
+mem: "64G"

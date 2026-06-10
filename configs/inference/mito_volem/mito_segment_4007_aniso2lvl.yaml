@@ -1,0 +1,12 @@
+# Segment mitochondria for 4007 volume (aniso2lvl)
+# Replaces run_segment_mitos_4007_aniso2lvl.sh
+
+slurm_profile: grete_h100
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u15205/micromamba/envs/synapse
+
+script: "inference/mitochondria/segment_mitochondria_ooc.py"
+args:
+  config: "/mnt/vast-nhr/home/freckmann15/u15205/synapse/inference/mitochondria/segment_mitos_4007_aniso2lvl.yaml"

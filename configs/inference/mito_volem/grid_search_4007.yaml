@@ -1,0 +1,15 @@
+# Grid search over segmentation parameters — replaces run_grid_search_4007.sh
+
+slurm_profile: grete_large_mem
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u15205/micromamba/envs/synapse
+
+script: "inference/mitochondria/grid_search_mitos_ooc.py"
+args:
+  config: "${REPO}/inference/mitochondria/grid_search_4007.yaml"
+  seed_distance: [1, 2, 3]
+  bg_penalty: [1.0, 1.5, 2.5]
+  foreground_threshold: [0.5, 0.6, 0.7]
+  boundary_threshold: [0.05, 0.08, 0.12]

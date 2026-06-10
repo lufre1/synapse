@@ -1,0 +1,12 @@
+# Cristae training with synetv1 config
+# Replaces run_train_cristae_synetv1.sh
+
+slurm_profile: grete_shared
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+script: "training/cristae/train_cristae.py"
+args:
+  config: "/user/freckmann15/u12103/synapse/training/cristae/cristae_net_synetv1.yaml"

@@ -1,0 +1,27 @@
+# Axon inference for volume EM test split
+# Replaces run_segment_axons.sh
+
+slurm_profile: grete_interactive
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u15205/micromamba/envs/synapse
+
+script: "inference/axons/segment_axons.py"
+args:
+  base_path: "/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/test_split_s1/"
+  key: "raw"
+  export_path: "/mnt/lustre-grete/usr/u15205/volume-em/test_split_segmentations_axons_only-foreground-s1"
+  file_extension: ".h5"
+  ts: [32, 512, 512]
+  model_path: "/mnt/lustre-grete/usr/u15205/volume-em/models/checkpoints/volume-em-axons-net32-lr1e-4-bs4-ps32x512x512-s1"
+  ak: true
+  seed_distance: 6
+  ft: 0.4
+  bt: 0.1
+  at: 500
+  uc: true
+  post_iter3d: 4
+  only_foreground: true
+  preprocess_volem: true
+  force_overwrite: true

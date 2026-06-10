@@ -1,0 +1,22 @@
+# Mito training with volume-em 4007 cutouts
+# Replaces run_train_mito_volumeem_4007_cutouts.sh
+
+slurm_profile: grete_shared_80gb
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+script: "training/mito-volem/train_mito_generic.py"
+args:
+  experiment_name: "volume-em-mito-net32-lr1e-4-bs4-ps32x256x256-thinboundary-all_cutouts_luca"
+  n_iterations: 20000
+  patch_shape: [32, 256, 256]
+  batch_size: 4
+  learning_rate: 1.0e-4
+  data_dir: "/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/cutouts_h5"
+  second_data_dir: "/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/cutout_1_hdf5"
+  third_data_dir: "/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/cutout_2_hdf5"
+  early_stopping: 10
+  raw_key: "0"
+  label_key: "labels/mitochondria"

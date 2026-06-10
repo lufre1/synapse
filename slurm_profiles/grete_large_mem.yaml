@@ -1,0 +1,5 @@
+# Large-memory CPU — grid search, large inference (srun: -c 32 --mem 256gb)
+partition: "large96s"
+time: "24:00:00"
+cpus: 32
+mem: "256G"

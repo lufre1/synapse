@@ -1,0 +1,5 @@
+# Standard CPU — evaluation, metrics (srun: -c 16 --mem 128gb)
+partition: "standard96s:shared"
+time: "03:00:00"
+cpus: 16
+mem: "128G"

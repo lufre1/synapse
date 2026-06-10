@@ -1,0 +1,23 @@
+# Axon training for volume EM
+# Replaces run_training_axons.sh
+
+slurm_profile: grete_h100
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u15205/micromamba/envs/synapse
+
+script: "training/axons/train_axons_volem.py"
+args:
+  experiment_name: "volume-em-axons-net32-lr1e-4-bs8-ps64x256x256-s2-wowhite-dicebcewl-iaug"
+  n_iterations: 50000
+  patch_shape: [64, 256, 256]
+  batch_size: 8
+  learning_rate: 1.0e-4
+  data_dir: "/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4007_hdf5/all_cutouts_s2_new"
+  data_dir2: "/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/4009_hdf5/cutouts_segmented_s2_new_white_removed/"
+  data_dir3: "/mnt/lustre-grete/projects/nim00020/data/volume-em/moebius/test_split_s2_new/"
+  early_stopping: 10
+  raw_key: "raw"
+  label_key: "labels/axons"
+  save_dir: "/mnt/lustre-grete/usr/u15205/volume-em/models/"
