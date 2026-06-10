@@ -34,7 +34,9 @@ from torch_em.model import AnisotropicUNet
 # used for combined_datasets
 from typing import Dict, List, Union, Tuple, Optional, Any
 from numpy.typing import ArrayLike
-import nifty.tools as _nt
+# DEPRECATED: nifty is no longer a dependency (dropped in bioimage-cpp migration).
+# This import is unused and will be removed.
+# import nifty.tools as _nt
 from itertools import product
 
 # Define the data path and filename
