@@ -255,10 +255,25 @@ def main():
     # load model from checkpoint if exists
     checkpoint_path = tu.resolve_checkpoint(save_dir, experiment_name, args.checkpoint_path)
     if checkpoint_path:
-        model = torch_em.util.load_model(checkpoint=checkpoint_path, device=device)
-        # state_dict = torch.load(checkpoint_path, map_location=torch.device("cpu"))["model_state"]
-        # model.load_state_dict(state_dict)
-        
+        # Load model weights directly into the freshly-built model. We avoid
+        # torch_em.util.load_model here because it reconstructs the FULL trainer
+        # (incl. the serialized loss); older cristae checkpoints stored a
+        # DiceLoss(ignore_label=..., ignore_state_value=..., state_channel=...)
+        # that the current torch_em DiceLoss rejects, which would crash a
+        # warm-start. The trainer below builds a fresh optimizer regardless, so
+        # only the model weights are needed here.
+        ckpt_file = checkpoint_path
+        if os.path.isdir(ckpt_file):
+            ckpt_file = os.path.join(checkpoint_path, "best.pt")
+            if not os.path.exists(ckpt_file):
+                ckpt_file = os.path.join(checkpoint_path, "latest.pt")
+        ck = torch.load(ckpt_file, map_location="cpu", weights_only=False)
+        # Rebuild the model to match the checkpoint architecture exactly (the repo's
+        # get_3d_model has drifted from what these checkpoints were trained with —
+        # e.g. norm layers), then load weights. This guarantees a clean warm-start.
+        model = AnisotropicUNet(**ck["init"]["model_kwargs"])
+        model.load_state_dict(ck["model_state"])
+        print(f"Warm-started model from {ckpt_file} (arch rebuilt from checkpoint model_kwargs)")
         model.to(device)
 
     with_channels = True

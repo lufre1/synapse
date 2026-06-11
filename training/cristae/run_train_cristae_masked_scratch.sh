@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --partition=grete:shared
-#SBATCH -G A100:1
+#SBATCH --partition=grete-h100:shared
+#SBATCH -G H100:1
 #SBATCH --time=1-16:00:00
 #SBATCH --job-name=cristae-masked-ab
 #SBATCH -c 8
