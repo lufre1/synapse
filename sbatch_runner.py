@@ -95,22 +95,28 @@ def _sub_vars(text):
 
 
 def _render_args(script_path, args, resolved_cfg_path):
-    """Convert yaml args dict to 'python script --flag value' string variables."""
+    """Convert yaml args dict to 'python script --flag value' string variables.
+
+    Arg keys are used verbatim as ``--<key>`` (NO '_'->'-' conversion): the target
+    scripts use argparse with underscore option strings (e.g. ``--experiment_name``)
+    and reject the hyphenated form. If a target script genuinely uses a hyphenated
+    option, write that arg key with a leading '-' (e.g. ``-foo-bar: value``).
+    """
     _VARS["${SELF}"] = resolved_cfg_path
     parts = [f"python {script_path}"]
     for k, v in args.items():
         if isinstance(v, bool):
             if v:
-                parts.append(f"--{k.replace('_', '-')}")
+                parts.append(f"--{k}")
         elif v is None or v is False:
             continue
         elif isinstance(v, list):
-            parts.append(f"--{k.replace('_', '-')}")
+            parts.append(f"--{k}")
             for item in v:
                 s = str(item)
                 parts.append("'" + s + "'" if any(c in s for c in " ,(") else str(item))
         else:
-            flag = f"--{k.replace('_', '-')}" if not k.startswith("-") else k
+            flag = f"--{k}" if not k.startswith("-") else k
             val = _sub_vars(str(v))
             parts.append(f"{flag} {val}")
     return " ".join(parts)

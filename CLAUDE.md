@@ -23,7 +23,18 @@ activate with:
 > - Only alter a Python environment if it is genuinely necessary, AND contact me first. Never install, uninstall, upgrade, or downgrade packages on your own — diagnose, propose the exact commands, and wait for my approval.
 > - All actual library/dependency changes must go through `env.yaml` (not ad-hoc `pip`/`conda`/`micromamba install`) so the environment stays reproducible. Edit `env.yaml` and let me re-create/update the env from it.
 
-**Training:**
+**Running jobs (SLURM) — `configs/` + `sbatch_runner.py`:**
+Training/inference/evaluation runs are launched from job-manifest YAMLs under `configs/{training,inference,evaluation}/<organelle>/`, submitted via:
+```bash
+python sbatch_runner.py configs/training/cristae/cristae_net_v2.yaml            # submit
+python sbatch_runner.py configs/training/cristae/cristae_net_v2.yaml --dry-run  # print only
+```
+A manifest has `slurm_profile` (→ `slurm_profiles/<name>.yaml`), `env`, and either `script`+`args`
+(→ `python script --flag value`; arg keys are passed verbatim, so use underscores to match argparse)
+or `commands` (a list of bash steps, with `${SELF}`/`${REPO}` substitution — `${SELF}` is the manifest
+path, handy for config-driven scripts via `-c ${SELF}`). This replaces the old hand-written `run_*.sh`.
+
+**Training (direct invocation; usually wrapped by a manifest above):**
 ```bash
 python main.py --data_dir <path> --experiment_name <name> [--checkpoint_path <ckpt>]
 # Key flags: --patch_shape 32 256 256, --n_iterations 10000, --batch_size 1, --feature_size 32

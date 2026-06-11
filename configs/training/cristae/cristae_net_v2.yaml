@@ -1,0 +1,37 @@
+# Cristae training v2 — leakage-safe + stratified validation split.
+# Run: python sbatch_runner.py configs/training/cristae/cristae_net_v2.yaml
+# split_strategy=grouped_stratified groups whole specimens (no sibling-crop leakage between
+# train and val) and stratifies val across source x genotype so rare groups (KO, Otof-KO,
+# cooper) are represented — see synapse/cristae/splits.py and the DIAGNOSIS report.
+
+slurm_profile: grete_shared
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+script: "training/cristae/train_cristae.py"
+args:
+  experiment_name: "cristae-net32-lr1e-4-bs8-ps32x256x256-groupedsplit-2026-06-10"
+  split_strategy: "grouped_stratified"
+  data_dir: "/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2"
+  data_dir2: "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae"
+  data_dir3: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/"
+  patch_shape: [32, 256, 256]
+  n_iterations: 100000
+  batch_size: 8
+  learning_rate: 1.0e-4
+  feature_size: 32
+  ignore_state_value: 2
+  state_channel: 1
+  test_split: "synapsenetv1-testsplit"
+  early_stopping: 15
+  seed: 42
+  # holdout_test_siblings: true   # opt-in leakage-safe test (drops ~43% of files; see splits.py)
+  # checkpoint_path: "/mnt/lustre-grete/usr/u12103/cristae/checkpoints/cristae-net32-lr1e-4-bs8-ps32x256x256-2026-06-01"  # warm-start instead of from-scratch
+
+# DECISIONS to confirm before launching (see DIAGNOSIS_cristae_06-01_vs_06-04.md):
+#  1. Regime: from-scratch (default) vs warm-start (uncomment checkpoint_path). 06-04's over-fit
+#     came from warm-starting 06-01 + long continued training, so from-scratch is the cleaner default.
+#  2. Architecture: from-scratch builds via util.get_3d_model (currently NO norm layers), whereas
+#     06-01/06-04 used a norm'd block; warm-start rebuilds the norm'd arch from the checkpoint.

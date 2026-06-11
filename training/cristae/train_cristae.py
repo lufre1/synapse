@@ -129,6 +129,13 @@ def main():
                         help="Seed for torch/numpy/python RNG (identical across A/B arms -> identical init).")
     parser.add_argument("--normalize", action="store_true", default=False,
                         help="Train with normalization instead of standardization.")
+    parser.add_argument("--split_strategy", type=str, default="legacy", choices=["legacy", "grouped_stratified"],
+                        help="Train/val split strategy. 'legacy': flat random shuffle + ensure_strings. "
+                             "'grouped_stratified': group whole specimens (no sibling-crop leakage) and "
+                             "stratify val across source x genotype (see synapse.cristae.splits).")
+    parser.add_argument("--holdout_test_siblings", action="store_true", default=False,
+                        help="Only with grouped_stratified: also drop sibling crops of the pinned-test "
+                             "specimens from train/val (leakage-safe test; costly in data).")
 
     # Parse --config first, apply as defaults, then re-parse so CLI overrides YAML
     cfg_args, _ = parser.parse_known_args()
@@ -212,30 +219,40 @@ def main():
         for s in exclude_strings:
             data_paths = explude_string(data_paths, s)
         print("len data paths", len(data_paths))
-        pinned_test = None
-        if args.test_split is not None:
-            pinned_test = NAMED_TEST_SPLITS[args.test_split]
-            pinned_test_set = set(pinned_test)
-            data_paths = [p for p in data_paths if p not in pinned_test_set]
-            print(f"Using pinned test split '{args.test_split}' ({len(pinned_test)} files); {len(data_paths)} remain for train/val")
-        random.seed(42)
-        random.shuffle(data_paths)
-        ensure_strs = ["wichmann", "cooper"] if torch.cuda.is_available() else None
-        if pinned_test is not None:
-            data = util.split_data_paths_to_dict_with_ensure(
-                data_paths, train_ratio=0.9, val_ratio=0.1, test_ratio=0.0,
-                ensure_strings=ensure_strs
-                )
-            data["test"] = pinned_test
+
+        if args.split_strategy == "grouped_stratified":
+            from synapse.cristae.splits import grouped_stratified_split, summarize_split
+            pinned_test = NAMED_TEST_SPLITS[args.test_split] if args.test_split is not None else None
+            data = grouped_stratified_split(
+                data_paths, val_ratio=0.1, seed=args.seed,
+                pinned_test=pinned_test, holdout_test_siblings=args.holdout_test_siblings,
+            )
+            summarize_split(data, strict_test=args.holdout_test_siblings)
         else:
-            train_ratio = 0.8
-            val_ratio = 0.1
-            test_ratio = 0.1
-            data = util.split_data_paths_to_dict_with_ensure(
-                data_paths, train_ratio=train_ratio, val_ratio=val_ratio, test_ratio=test_ratio,
-                ensure_strings=ensure_strs
-                )
-            print(f"Using dynamic train/val/test ratios: {train_ratio}/{val_ratio}/{test_ratio}")
+            pinned_test = None
+            if args.test_split is not None:
+                pinned_test = NAMED_TEST_SPLITS[args.test_split]
+                pinned_test_set = set(pinned_test)
+                data_paths = [p for p in data_paths if p not in pinned_test_set]
+                print(f"Using pinned test split '{args.test_split}' ({len(pinned_test)} files); {len(data_paths)} remain for train/val")
+            random.seed(42)
+            random.shuffle(data_paths)
+            ensure_strs = ["wichmann", "cooper"] if torch.cuda.is_available() else None
+            if pinned_test is not None:
+                data = util.split_data_paths_to_dict_with_ensure(
+                    data_paths, train_ratio=0.9, val_ratio=0.1, test_ratio=0.0,
+                    ensure_strings=ensure_strs
+                    )
+                data["test"] = pinned_test
+            else:
+                train_ratio = 0.8
+                val_ratio = 0.1
+                test_ratio = 0.1
+                data = util.split_data_paths_to_dict_with_ensure(
+                    data_paths, train_ratio=train_ratio, val_ratio=val_ratio, test_ratio=test_ratio,
+                    ensure_strings=ensure_strs
+                    )
+                print(f"Using dynamic train/val/test ratios: {train_ratio}/{val_ratio}/{test_ratio}")
 
     end_time = time.time()
     # Calculate execution time in seconds
@@ -288,6 +305,7 @@ def main():
     print("data['train']", data["train"])
     print("data['val']", data["val"])
     print("data['test']", data["test"])
+    print("Raw transform:", raw_transform)
 
     for split in ("train", "val", "test"):
         if data[split]:
