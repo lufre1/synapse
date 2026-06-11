@@ -3,7 +3,7 @@
 
 Usage:
     python sbatch_runner.py submit configs/training/my_job.yaml --dry-run
-    python sbatch_runner.py submit configs/training/my_job.yaml --keep
+    python sbatch_runner.py submit configs/training/my_job.yaml --delete
 
 Each experiment YAML has:
     slurm_profile: <key>       # selects slurm_profiles/<key>.yaml
@@ -11,13 +11,16 @@ Each experiment YAML has:
     commands:                  # OR a list of bash cmds (use ${SELF}, ${REPO})
     env:                       # conda/micromamba settings
     args:                      # command-line arguments (only with 'script')
+
+By default, all job files (scripts, logs, errors) are kept in logs/sbatch_jobs/
+to make them easy to find and manage. Use --delete to remove files after job
+completion.
 """
 import argparse
 import os
 import shutil
 import subprocess
 import sys
-import tempfile
 from datetime import datetime
 
 import yaml
@@ -27,6 +30,7 @@ import yaml
 
 REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
 PROFILES_DIR = os.path.join(REPO_ROOT, "slurm_profiles")
+SBATCH_LOGS_DIR = os.path.join(REPO_ROOT, "logs", "sbatch_jobs")
 
 
 # ── Loading ────────────────────────────────────────────────────────────
@@ -214,12 +218,12 @@ def generate_script(cfg, dry_run, cfg_path=""):
         return None
 
     # ── Submit ─────────────────────────────────────────────────────
-    tmpdir = tempfile.mkdtemp(prefix="sbatch_")
+    # Use a stable directory for all job files
     script_name = os.path.splitext(os.path.split(cfg_path)[1])[0] if cfg_path else "job"
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    sh = os.path.join(tmpdir, f"{script_name}_{ts}.sh")
-    log = os.path.join(tmpdir, f"{script_name}_{ts}.log")
-    err = os.path.join(tmpdir, f"{script_name}_{ts}.err")
+    sh = os.path.join(SBATCH_LOGS_DIR, f"{script_name}_{ts}.sh")
+    log = os.path.join(SBATCH_LOGS_DIR, f"{script_name}_{ts}.log")
+    err = os.path.join(SBATCH_LOGS_DIR, f"{script_name}_{ts}.err")
 
     with open(sh, "w") as f:
         f.write(script_text)
@@ -233,14 +237,30 @@ def generate_script(cfg, dry_run, cfg_path=""):
     if result.returncode != 0:
         print(f"ERROR: sbatch failed (exit {result.returncode})")
         print(result.stderr.strip())
-        if not cfg.get("keep_tmp"):
-            shutil.rmtree(tmpdir, ignore_errors=True)
+        # Delete files if requested (reverse of default behavior)
+        if cfg.get("keep_tmp"):
+            print(f"Keeping job files: {SBATCH_LOGS_DIR}")
+        else:
+            # Clean up files if delete flag was set
+            try:
+                os.remove(sh)
+                os.remove(log) 
+                os.remove(err)
+            except OSError:
+                pass
         sys.exit(1)
 
-    if not cfg.get("keep_tmp"):
-        shutil.rmtree(tmpdir, ignore_errors=True)
+    # Delete files if requested (reverse of default behavior)
+    if cfg.get("keep_tmp"):
+        print(f"Keeping job files: {SBATCH_LOGS_DIR}")
     else:
-        print(f"Jobs files kept: {tmpdir}")
+        # Clean up files if delete flag was set
+        try:
+            os.remove(sh)
+            os.remove(log) 
+            os.remove(err)
+        except OSError:
+            pass
 
     return sh, log, err
 
@@ -257,6 +277,7 @@ Commands can use ${SELF} (path to this config) and ${REPO} (repo root).
 Examples:
   python sbatch_runner.py configs/training/mito_volem.yaml
   python sbatch_runner.py configs/evaluation/cristae/eval_0601.yaml --dry-run
+  python sbatch_runner.py configs/training/mito_volem.yaml --delete  # delete files after completion
 """,
     )
     
@@ -268,14 +289,16 @@ Examples:
         sub_req.add_argument("config", help="Path to experiment YAML config")
         sub_req.add_argument("--dry-run", action="store_true",
                              help="Print the generated script without submitting")
-        sub_req.add_argument("--keep", action="store_true",
-                             help="Keep temporary sbatch files instead of deleting")
+        sub_req.add_argument("--delete", action="store_true",
+                             help="Delete temporary sbatch files after job completion (default is to keep them)")
         
         args = parser.parse_args()
         if args.command == "submit":
             cfg = load_experiment(args.config)
             cfg_merged = merge_slurm_profile(cfg)
-            if getattr(args, "keep"):
+            if getattr(args, "delete"):
+                cfg_merged["keep_tmp"] = False
+            else:
                 cfg_merged["keep_tmp"] = True
             generate_script(cfg_merged, dry_run=getattr(args, "dry_run"), cfg_path=args.config)
         else:
@@ -285,13 +308,15 @@ Examples:
         parser.add_argument("config", help="Path to experiment YAML config")
         parser.add_argument("--dry-run", action="store_true",
                             help="Print the generated script without submitting")
-        parser.add_argument("--keep", action="store_true",
-                            help="Keep temporary sbatch files instead of deleting")
+        parser.add_argument("--delete", action="store_true",
+                            help="Delete temporary sbatch files after job completion (default is to keep them)")
         
         args = parser.parse_args()
         cfg = load_experiment(args.config)
         cfg_merged = merge_slurm_profile(cfg)
-        if getattr(args, "keep"):
+        if getattr(args, "delete"):
+            cfg_merged["keep_tmp"] = False
+        else:
             cfg_merged["keep_tmp"] = True
         generate_script(cfg_merged, dry_run=getattr(args, "dry_run"), cfg_path=args.config)
 
