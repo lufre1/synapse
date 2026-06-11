@@ -1252,7 +1252,7 @@ def normalize_channel(raw, channel=0, lower=1.0, upper=99.0):
         raise ValueError(f"Invalid channel index {channel}, must be in range [0, {raw.shape[0]-1}]")
 
     raw_norm = np.float32(raw)
-    raw_norm[channel] = torch_em.transform.raw.normalize_percentile(raw[channel], lower=lower, upper=upper)
+    raw_norm[channel] = np.clip(torch_em.transform.raw.normalize_percentile(raw[channel], lower=lower, upper=upper), 0, 1)
 
     return raw_norm
 
