@@ -18,7 +18,6 @@ completion.
 """
 import argparse
 import os
-import shutil
 import subprocess
 import sys
 from datetime import datetime
@@ -225,6 +224,7 @@ def generate_script(cfg, dry_run, cfg_path=""):
     log = os.path.join(SBATCH_LOGS_DIR, f"{script_name}_{ts}.log")
     err = os.path.join(SBATCH_LOGS_DIR, f"{script_name}_{ts}.err")
 
+    os.makedirs(SBATCH_LOGS_DIR, exist_ok=True)
     with open(sh, "w") as f:
         f.write(script_text)
     os.chmod(sh, 0o755)
