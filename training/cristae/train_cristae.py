@@ -308,7 +308,7 @@ def main():
             from synapse.cristae.splits import grouped_stratified_split, summarize_split
             pinned_test = NAMED_TEST_SPLITS[args.test_split] if args.test_split is not None else None
             data = grouped_stratified_split(
-                data_paths, val_ratio=0.1, seed=args.seed,
+                data_paths, val_ratio=0.2, seed=args.seed,
                 pinned_test=pinned_test, holdout_test_siblings=args.holdout_test_siblings,
             )
             summarize_split(data, strict_test=args.holdout_test_siblings)

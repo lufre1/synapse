@@ -75,7 +75,7 @@ def _env_lines(env_cfg):
         lines.append("source ~/.bashrc")
         lines.append(f"conda activate {env_name}")
     elif env_type == "micromamba" and env_path:
-        lines.append(f"source {env_path}/etc/profile.d/conda.sh")
+        lines.append("source ~/.bashrc")
         lines.append(f"micromamba activate {env_path}")
     elif env_type == "micromamba" and env_name and not env_path:
         lines.append("source ~/.bashrc")
