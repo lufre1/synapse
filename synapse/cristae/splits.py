@@ -60,7 +60,9 @@ def grouped_stratified_split(
     - Whole specimens are assigned to a single split (no sibling-crop leakage).
     - Validation is stratified: every (source, genotype) stratum that has >= 2
       specimens contributes >= 1 specimen to val, targeting ~`val_ratio` of that
-      stratum's files. Singleton strata stay in train (reported as unvalidated).
+      stratum's files, while always keeping its largest specimen in train (so a
+      represented stratum is never left with an empty train side). Singleton strata
+      stay in train (reported as unvalidated).
     - `pinned_test`: an explicit list of test files. When `holdout_test_siblings`
       is True, *all* sibling crops of the test specimens are removed from the
       train/val pool so the test set is genuinely specimen-disjoint.
@@ -112,8 +114,12 @@ def grouped_stratified_split(
         else:
             target_val = max(1, round(val_ratio * n_files))
         v = 0
-        for k in keys:
-            if v < target_val:
+        n_keys = len(keys)
+        for i, k in enumerate(keys):
+            # keep the largest specimen (last, ascending sort) in train so a
+            # multi-specimen stratum is never left with an empty train side.
+            is_last = i == n_keys - 1
+            if v < target_val and not is_last:
                 val_files.extend(groups[k])
                 v += len(groups[k])
             else:
@@ -173,6 +179,10 @@ def summarize_split(split, strict_test=True):
     missing = sorted(s for s in rows if s not in val_strata)
     if missing:
         print(f"  [strata with NO val coverage: {missing}]")
+
+    no_train = sorted(s for s in rows if rows[s]["train"][0] == 0 and rows[s]["val"][0] > 0)
+    if no_train:
+        print(f"  [strata with NO train coverage: {no_train}]")
 
 
 # Default data roots (mirror training/cristae/train_cristae.py) for the dry-run audit.

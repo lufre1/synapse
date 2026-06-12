@@ -12,7 +12,7 @@ env:
 
 script: "training/cristae/train_cristae.py"
 args:
-  experiment_name: "cristae-net32-lr1e-4-bs8-ps32x256x256-groupedsplit-2026-06-11"
+  experiment_name: "cristae-net32-lr1e-4-bs8-ps32x256x256-groupedsplit-2026-06-11-corrected"
   split_strategy: "grouped_stratified"
   data_dir: "/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2"
   data_dir2: "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae"
