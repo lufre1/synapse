@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import torch_em
 from elf.io import open_file
 from skimage.measure import label as skimage_label
 from tqdm import tqdm
@@ -22,6 +23,7 @@ def run_cristae_segmentation(
     save_predictions=False,
     base_path=None,
     force=False,
+    normalize=False,
 ):
     """Run cristae segmentation on a list of multi-channel H5 files.
 
@@ -38,6 +40,9 @@ def run_cristae_segmentation(
         save_predictions: If True, also write pred/foreground and pred/boundary to the output.
         base_path: If given, preserve relative directory structure in the output.
         force: If True, overwrite existing output files instead of skipping.
+        normalize: If True, percentile-normalize the raw channel (matching training with
+            `util.normalize_channel`) instead of standardizing it. Must match how the model
+            was trained (`--normalize` in train_cristae.py).
     """
     os.makedirs(export_path, exist_ok=True)
     z, y, x = tile_shape
@@ -68,13 +73,26 @@ def run_cristae_segmentation(
         mito = image[1]
         mito_proc = binarize_and_erode_xy(mito, radius_xy=5) if erode_mitos else (mito > 0).astype(np.uint8)
 
+        # Match the raw transform the model was trained with: percentile-normalize (normalize=True,
+        # mirrors util.normalize_channel) or standardize (default). The mito channel is never
+        # transformed, so we pre-normalize the raw channel here and disable standardization.
+        if normalize:
+            raw_in = np.clip(
+                torch_em.transform.raw.normalize_percentile(image[0].astype(np.float32), lower=1.0, upper=99.0),
+                0.0, 1.0,
+            )
+            channels_to_standardize = []
+        else:
+            raw_in = image[0]
+            channels_to_standardize = [0]
+
         seg, pred = _segment_cristae(
-            image[0], model_path,
+            raw_in, model_path,
             scale=None,
             tiling=tiling,
             return_predictions=True,
             extra_segmentation=mito_proc,
-            channels_to_standardize=[0],
+            channels_to_standardize=channels_to_standardize,
             with_channels=True,
         )
 

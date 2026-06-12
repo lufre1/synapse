@@ -17,6 +17,10 @@ model_path: /mnt/lustre-grete/usr/u12103/cristae/checkpoints/cristae-net32-lr1e-
 export_path: &export_path /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-norm
 tile_shape: [32, 256, 256]
 
+# This model was trained with --normalize (percentile-normalize raw), so inference must match.
+normalize: true
+force: true   # overwrite the earlier all-zero (standardize-mismatched) outputs
+
 h5_paths:  # pinned test split (SYNAPSENETV1_TEST_SPLIT, 15 files)
   - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT22_eb5_model2_combined.h5
   - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT40_eb10_model_combined.h5

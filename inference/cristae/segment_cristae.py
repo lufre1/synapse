@@ -30,6 +30,9 @@ def build_parser():
                         help="Also write pred/foreground and pred/boundary to the output")
     parser.add_argument("--force", "-f", action="store_true", default=False,
                         help="Overwrite existing output files instead of skipping")
+    parser.add_argument("--normalize", "-nz", action="store_true", default=False,
+                        help="Percentile-normalize the raw channel instead of standardizing it "
+                             "(must match how the model was trained, i.e. train_cristae.py --normalize)")
     return parser
 
 
@@ -80,6 +83,7 @@ def main():
         save_predictions=args.save_predictions,
         base_path=args.base_path,
         force=args.force,
+        normalize=args.normalize,
     )
 
 
