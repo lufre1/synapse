@@ -19,6 +19,7 @@ from skimage.morphology import binary_closing, remove_small_objects, label
 from tifffile import imread
 import zarr
 import synapse.util as util
+from synapse.segment import refine_seg
 
 
 def rename_h5_key(file_path, old_key, new_key):
@@ -219,7 +220,7 @@ def main():
         seg = tifffile.imread(path)
         seg = seg.astype(np.uint8)
         # print("seg ndim and dtype:", seg.ndim, seg.dtype)
-        seg = util.refine_seg(seg)
+        seg = refine_seg(seg)
         # print("seg ndim and dtype:", seg.ndim, seg.dtype)
         util.export_data(output_path, seg)
 

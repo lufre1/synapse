@@ -31,6 +31,7 @@ from skimage.measure import label
 # ----------------------------------------------------------------------
 import elf.parallel as parallel
 from synapse_net.inference.util import apply_size_filter, _postprocess_seg_3d
+from synapse.segment import segment_mitos
 import synapse.util as util
 
 # ----------------------------------------------------------------------
@@ -639,7 +640,7 @@ def run_correction(input_path: str, output_path: str, fname: str, downsample: in
         # ------------------------------------------------------------------
         # 3️⃣  Call the real segmentation routine
         # ------------------------------------------------------------------
-        seg_dict = util.segment_mitos(
+        seg_dict = segment_mitos(
             foreground=foreground,
             boundary=boundary,
             block_shape=block_shape,

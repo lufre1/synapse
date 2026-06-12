@@ -19,6 +19,7 @@ from synapse_net.inference.util import get_prediction
 import synapse.io.util as io
 import synapse.util as util
 import synapse.prediction as pred_util
+from synapse.segment import segment_mitos_ooc_wrapped
 
 
 DEFAULT_SEED_DISTANCES     = [1, 2, 3]
@@ -150,7 +151,7 @@ def main():
             print(f"\n  [{tag}]  sd={sd}  bp={bp}  ft={ft}  bt={bt}")
             t0 = time.time()
 
-            util.segment_mitos_ooc_wrapped(
+            segment_mitos_ooc_wrapped(
                 pred=pred,
                 foreground_threshold=ft,
                 boundary_threshold=bt,

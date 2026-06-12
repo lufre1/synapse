@@ -9,6 +9,7 @@ import numpy as np
 import synapse.io.util as io
 import synapse.util as util
 import synapse.label_utils as lutil
+from synapse.segment import segment_mitos
 from synapse_net.inference.mitochondria import segment_mitochondria
 from synapse_net.inference.util import get_prediction
 from skimage.measure import label
@@ -175,7 +176,7 @@ def main(visualize=False):
                 avg_boundary = np.mean(boundary_preds, axis=0)
                 # Combine back into the same format as your prediction function output
                 final_pred = (avg_foreground, avg_boundary)
-            seg = util.segment_mitos(
+            seg = segment_mitos(
                 foreground=final_pred[0],
                 boundary=final_pred[1],
                 foreground_threshold=args.foreground_threshold,
