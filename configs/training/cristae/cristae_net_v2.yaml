@@ -12,7 +12,7 @@ env:
 
 script: "training/cristae/train_cristae.py"
 args:
-  experiment_name: "cristae-net32-lr1e-4-bs8-ps32x256x256-groupedsplit-2026-06-10"
+  experiment_name: "cristae-net32-lr1e-4-bs8-ps32x256x256-groupedsplit-2026-06-11"
   split_strategy: "grouped_stratified"
   data_dir: "/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2"
   data_dir2: "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae"
@@ -27,6 +27,13 @@ args:
   test_split: "synapsenetv1-testsplit"
   early_stopping: 15
   seed: 42
+  # ---- dataloader knobs (P1b). Profiling on a 2-core/20GB slice showed steady-state is
+  #      COMPUTE-bound (~370 ms/patch AMP) and data is page-cached (≈480GB RAM), so these
+  #      mainly help the FIRST epoch / cold cache and only when the job truly gets the CPUs
+  #      (ensure cpus≈num_workers and correct affinity). Harmless defaults: ----
+  num_workers: 8
+  persistent_workers: true
+  prefetch_factor: 4
   # holdout_test_siblings: true   # opt-in leakage-safe test (drops ~43% of files; see splits.py)
   # checkpoint_path: "/mnt/lustre-grete/usr/u12103/cristae/checkpoints/cristae-net32-lr1e-4-bs8-ps32x256x256-2026-06-01"  # warm-start instead of from-scratch
 

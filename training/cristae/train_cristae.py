@@ -100,6 +100,75 @@ def log_dataset_stats(paths, split_name):
     print()
 
 
+def _profile_loader(train_loader, model, loss_function, device, n_iters, warmup=3):
+    """Two-phase profiler to settle data-bound vs compute-bound (no training, no checkpoint).
+
+    Phase D (data-only): iterate the real loader, timing next() with NO compute -> the rate the
+    input pipeline can sustain (this is what dataloader knobs / rechunking change).
+    Phase C (compute-only): repeat a mixed-precision (AMP) train step on ONE fixed batch -> the
+    GPU compute time per iter, matching the real trainer's `mixed_precision=True`.
+    With prefetch, real per-iter wall ~= max(data, compute); the larger is the bottleneck.
+    """
+    import time
+    import statistics as _st
+    use_cuda = (device == "cuda")
+    model = model.to(device)
+    model.train()
+
+    # ---- Phase D: data-only loader throughput ----
+    it = iter(train_loader)
+    dts, last = [], None
+    for i in range(n_iters + warmup):
+        t0 = time.perf_counter()
+        try:
+            last = next(it)
+        except StopIteration:
+            it = iter(train_loader); last = next(it)
+        dt = time.perf_counter() - t0
+        if i >= warmup:
+            dts.append(dt)
+    data_ms, data_med = 1e3 * _st.mean(dts), 1e3 * _st.median(dts)
+
+    # ---- Phase C: compute-only (AMP step on a fixed batch) ----
+    x, y = last
+    bs = x.shape[0]
+    x = x.to(device, non_blocking=True); y = y.to(device, non_blocking=True)
+    opt = torch.optim.AdamW(model.parameters(), lr=1e-4)
+    amp = use_cuda
+    scaler = torch.cuda.amp.GradScaler(enabled=use_cuda)
+    if use_cuda:
+        torch.cuda.reset_peak_memory_stats()
+    cts = []
+    for i in range(n_iters + warmup):
+        t0 = time.perf_counter()
+        opt.zero_grad(set_to_none=True)
+        try:
+            with torch.autocast("cuda", enabled=amp):
+                loss = loss_function(model(x), y)
+            scaler.scale(loss).backward(); scaler.step(opt); scaler.update()
+        except RuntimeError as e:  # AMP dtype issue -> fall back to fp32 (compute is then an overestimate)
+            if i == 0:
+                print(f"[profile] AMP step failed ({e}); falling back to fp32 compute", flush=True)
+            amp = False
+            opt.zero_grad(set_to_none=True)
+            loss = loss_function(model(x), y); loss.backward(); opt.step()
+        if use_cuda:
+            torch.cuda.synchronize()
+        if i >= warmup:
+            cts.append(time.perf_counter() - t0)
+    comp_ms, comp_med = 1e3 * _st.mean(cts), 1e3 * _st.median(cts)
+
+    bottleneck = "COMPUTE" if comp_ms >= data_ms else "DATA"
+    print("\n========== PROFILE SUMMARY ==========")
+    print(f"batch_size={bs}  patch={tuple(x.shape[-3:])}  workers/loader as configured  AMP={amp}")
+    print(f"DATA-only    : {data_ms:8.1f} ms/batch (median {data_med:.1f})  = {data_ms/bs:5.1f} ms/patch")
+    print(f"COMPUTE-only : {comp_ms:8.1f} ms/iter  (median {comp_med:.1f})  = {comp_ms/bs:5.1f} ms/patch")
+    print(f"-> bottleneck = {bottleneck}; overlapped per-iter wall ~= max = {max(data_ms, comp_ms):.0f} ms")
+    if use_cuda:
+        print(f"peak GPU mem (compute, bs={bs}): {torch.cuda.max_memory_allocated()/1e9:.2f} GB")
+    print("=====================================", flush=True)
+
+
 def setup_env():
     cuda_version = torch.version.cuda
     cuda_include = f"/usr/local/cuda-{cuda_version}/targets/x86_64-linux/include"
@@ -145,6 +214,15 @@ def main():
     parser.add_argument("--holdout_test_siblings", action="store_true", default=False,
                         help="Only with grouped_stratified: also drop sibling crops of the pinned-test "
                              "specimens from train/val (leakage-safe test; costly in data).")
+    # ---- dataloader throughput knobs (P1b) ----
+    parser.add_argument("--num_workers", type=int, default=None,
+                        help="DataLoader workers (default: 4 if CUDA else 1).")
+    parser.add_argument("--persistent_workers", action="store_true", default=False,
+                        help="Keep DataLoader workers alive between epochs (avoids per-epoch H5 re-open).")
+    parser.add_argument("--prefetch_factor", type=int, default=None,
+                        help="Batches prefetched per worker (torch default 2). Only used when workers>0.")
+    parser.add_argument("--profile_iters", type=int, default=0,
+                        help="If >0, time data-wait vs compute for this many iters and exit (no training).")
     parser.add_argument("--use_flashoptim", action="store_true", default=False,
                         help="Use FlashOptimTrainer (FlashAdamW optimizer + bf16 casting) for memory-efficient training.")
 
@@ -180,10 +258,16 @@ def main():
     initial_features = args.feature_size
     with_rois = args.with_rois
 
-    n_workers = 4 if torch.cuda.is_available() else 1
+    n_workers = args.num_workers if args.num_workers is not None else (4 if torch.cuda.is_available() else 1)
+    # Extra DataLoader kwargs (forwarded by default_segmentation_loader -> torch DataLoader).
+    loader_extra = {}
+    if n_workers > 0:
+        loader_extra["persistent_workers"] = args.persistent_workers
+        if args.prefetch_factor is not None:
+            loader_extra["prefetch_factor"] = args.prefetch_factor
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"\n Experiment: {experiment_name}\n")
-    print(f"Using {device} with {n_workers} workers.")
+    print(f"Using {device} with {n_workers} workers. loader_extra={loader_extra}")
     label_transform = torch_em.transform.label.BoundaryTransform(add_binary_target=True)
 
     ndim = 3
@@ -235,7 +319,7 @@ def main():
             from synapse.cristae.splits import grouped_stratified_split, summarize_split
             pinned_test = NAMED_TEST_SPLITS[args.test_split] if args.test_split is not None else None
             data = grouped_stratified_split(
-                data_paths, val_ratio=0.1, seed=args.seed,
+                data_paths, val_ratio=0.2, seed=args.seed,
                 pinned_test=pinned_test, holdout_test_siblings=args.holdout_test_siblings,
             )
             summarize_split(data, strict_test=args.holdout_test_siblings)
@@ -318,9 +402,10 @@ def main():
     print("data['test']", data["test"])
     print("Raw transform:", raw_transform)
 
-    for split in ("train", "val", "test"):
-        if data[split]:
-            log_dataset_stats(data[split], split)
+    if not args.profile_iters:  # skip the (slow) full-volume stats read when only profiling the loader
+        for split in ("train", "val", "test"):
+            if data[split]:
+                log_dataset_stats(data[split], split)
 
     if with_rois:
         train_loader = torch_em.default_segmentation_loader(
@@ -331,6 +416,7 @@ def main():
             with_channels=with_channels, with_label_channels=with_label_channels,
             rois=rois_dict["train"],
             transform=mito_mask_transform,
+            **loader_extra,
         )
         val_loader = torch_em.default_segmentation_loader(
             raw_paths=data["val"], raw_key="raw_mitos_combined",
@@ -340,6 +426,7 @@ def main():
             with_channels=with_channels, with_label_channels=with_label_channels,
             rois=rois_dict["val"],
             transform=mito_mask_transform,
+            **loader_extra,
         )
     else:
         train_loader = torch_em.default_segmentation_loader(
@@ -351,6 +438,7 @@ def main():
             sampler=sampler,
             raw_transform=raw_transform,
             transform=mito_mask_transform,
+            **loader_extra,
         )
         val_loader = torch_em.default_segmentation_loader(
             raw_paths=data["val"], raw_key="raw_mitos_combined",
@@ -361,6 +449,7 @@ def main():
             sampler=sampler,
             raw_transform=raw_transform,
             transform=mito_mask_transform,
+            **loader_extra,
         ) if (torch.cuda.is_available() and data["val"]) else None
 
     if args.use_flashoptim:
@@ -395,6 +484,11 @@ def main():
             early_stopping=args.early_stopping
             # logger=None
         )
+
+    if args.profile_iters and args.profile_iters > 0:
+        _profile_loader(train_loader, model, loss_function, device, args.profile_iters)
+        return
+
     if not torch.cuda.is_available():
         if args.use_flashoptim:
             raise RuntimeError("--use_flashoptim requires CUDA (no GPU detected)")
