@@ -100,6 +100,15 @@ def log_dataset_stats(paths, split_name):
     print()
 
 
+def setup_env():
+    cuda_version = torch.version.cuda
+    cuda_include = f"/usr/local/cuda-{cuda_version}/targets/x86_64-linux/include"
+    if not os.path.isdir(cuda_include):
+        cuda_include = "/usr/local/cuda/targets/x86_64-linux/include"
+    os.environ["LIBRARY_PATH"] = "/usr/lib64:" + os.environ.get("LIBRARY_PATH", "")
+    os.environ["CPATH"] = cuda_include + ":" + os.environ.get("CPATH", "")
+
+
 def main():
     parser = argparse.ArgumentParser(description="3D UNet for mitochondrial segmentation")
     parser.add_argument("--config", "-c", type=str, default=None, help="Path to YAML config file")
@@ -136,6 +145,8 @@ def main():
     parser.add_argument("--holdout_test_siblings", action="store_true", default=False,
                         help="Only with grouped_stratified: also drop sibling crops of the pinned-test "
                              "specimens from train/val (leakage-safe test; costly in data).")
+    parser.add_argument("--use_flashoptim", action="store_true", default=False,
+                        help="Use FlashOptimTrainer (FlashAdamW optimizer + bf16 casting) for memory-efficient training.")
 
     # Parse --config first, apply as defaults, then re-parse so CLI overrides YAML
     cfg_args, _ = parser.parse_known_args()
@@ -352,20 +363,41 @@ def main():
             transform=mito_mask_transform,
         ) if (torch.cuda.is_available() and data["val"]) else None
 
-    trainer = torch_em.default_segmentation_trainer(
-        name=experiment_name, model=model,
-        train_loader=train_loader, val_loader=val_loader,
-        loss=loss_function, metric=metric_function,
-        learning_rate=learning_rate,
-        mixed_precision=True,
-        log_image_interval=50,
-        device=device,
-        compile_model=False,
-        save_root=SAVE_DIR,
-        early_stopping=args.early_stopping
-        # logger=None
-    )
+    if args.use_flashoptim:
+        if not torch.cuda.is_available():
+            raise RuntimeError("--use_flashoptim requires CUDA (no GPU detected)")
+
+        setup_env()
+
+        from torch_em.trainer.flashoptim_trainer import FlashOptimTrainer
+        trainer = torch_em.default_segmentation_trainer(
+            name=experiment_name, model=model,
+            train_loader=train_loader, val_loader=val_loader,
+            loss=loss_function, metric=metric_function,
+            learning_rate=learning_rate,
+            log_image_interval=50,
+            device=device,
+            save_root=SAVE_DIR,
+            early_stopping=args.early_stopping,
+            trainer_class=FlashOptimTrainer,
+        )
+    else:
+        trainer = torch_em.default_segmentation_trainer(
+            name=experiment_name, model=model,
+            train_loader=train_loader, val_loader=val_loader,
+            loss=loss_function, metric=metric_function,
+            learning_rate=learning_rate,
+            mixed_precision=True,
+            log_image_interval=50,
+            device=device,
+            compile_model=False,
+            save_root=SAVE_DIR,
+            early_stopping=args.early_stopping
+            # logger=None
+        )
     if not torch.cuda.is_available():
+        if args.use_flashoptim:
+            raise RuntimeError("--use_flashoptim requires CUDA (no GPU detected)")
         import napari
         print("CUDA is not available, debugging instead.")
         # check_loader(train_loader, n_samples=5)
@@ -406,6 +438,8 @@ def main():
             viewer.grid.enabled = True
             napari.run()
     else:
+        if args.use_flashoptim:
+            print("Using FlashOptimTrainer (bf16 + FlashAdamW)")
         trainer.fit(n_iterations)
 
 
