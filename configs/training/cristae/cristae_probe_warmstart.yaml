@@ -1,0 +1,30 @@
+# Tier-2 attribution probe (DIRECTIONAL, reduced settings): does continuing the 06-01
+# weights under the current recipe reproduce the hard-file discrimination loss seen in 06-04?
+# Run: python sbatch_runner.py configs/training/cristae/cristae_probe_warmstart.yaml
+# NOTE: the pipeline is data-loading-bound (~2 s/iter); 12k iters ≈ hours. A no-drop
+# result is inconclusive (shorter + smaller patch/batch than the real run). See DIAGNOSIS.
+
+slurm_profile: grete_shared
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+script: "training/cristae/train_cristae.py"
+args:
+  experiment_name: "cristae-probe-warmstart-2026-06-10"
+  loss_variant: "new"
+  seed: 42
+  checkpoint_path: "/mnt/lustre-grete/usr/u12103/cristae/checkpoints/cristae-net32-lr1e-4-bs8-ps32x256x256-2026-06-01"
+  data_dir: "/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2"
+  data_dir2: "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae"
+  data_dir3: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/"
+  patch_shape: [24, 192, 192]
+  batch_size: 4
+  learning_rate: 1.0e-4
+  feature_size: 32
+  ignore_state_value: 2
+  state_channel: 1
+  test_split: "synapsenetv1-testsplit"
+  n_iterations: 12000
+  early_stopping: 9999   # effectively disabled (fixed budget); manifest args can't pass null

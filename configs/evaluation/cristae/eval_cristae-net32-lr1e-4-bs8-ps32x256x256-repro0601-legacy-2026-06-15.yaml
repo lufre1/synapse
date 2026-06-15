@@ -1,0 +1,39 @@
+# Eval for the 06-01-reproduction (legacy split) model: segment test split, then evaluate.
+# Run AFTER training finishes:
+#   python sbatch_runner.py configs/evaluation/cristae/eval_cristae-net32-lr1e-4-bs8-ps32x256x256-repro0601-legacy-2026-06-15.yaml
+# (trained with standardize, so NO normalize flag here.)
+
+slurm_profile: grete_interactive
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+commands:
+  - python ${REPO}/inference/cristae/segment_cristae.py -c ${SELF}
+  - python ${REPO}/evaluation/cristae/evaluate_cristae.py -c ${SELF}
+
+model_path: /mnt/lustre-grete/usr/u12103/cristae/checkpoints/cristae-net32-lr1e-4-bs8-ps32x256x256-repro0601-legacy-2026-06-15
+export_path: &export_path /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-repro0601-legacy-2026-06-15
+tile_shape: [32, 256, 256]
+
+h5_paths:  # pinned test split (SYNAPSENETV1_TEST_SPLIT, 15 files)
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT22_eb5_model2_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT40_eb10_model_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M5_eb1_model_combined.h5
+  - /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined.h5
+  - /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36194_B4_66K_TS_SC_22_rec_crop_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT21_eb5_model2_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/KO8_eb4_model_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/2026-05-26-dataset/2026-05-26_corrected_combined/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M8_eb6_model_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT20_eb5_model2_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M1_eb6_model_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M2_eb5_model_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined.h5
+  - /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36194_B4_66K_TS_R01A_SC_01_rec_crop_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT21_syn4_model2_combined.h5
+
+key: labels/cristae
+segmentations_key: seg
+output_path: *export_path   # directory; evaluate_cristae.py writes cristae_eval_results.csv inside

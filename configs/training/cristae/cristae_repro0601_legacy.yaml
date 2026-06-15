@@ -1,0 +1,43 @@
+# Cristae training — REPRODUCE the 2026-06-01 recipe on current code.
+# Run: python sbatch_runner.py configs/training/cristae/cristae_repro0601_legacy.yaml
+#
+# Purpose (see evaluation/cristae/DIAGNOSIS_why_0601_wins_WIP.md): 06-01 beats every post-refactor
+# model on threshold-free AP (0.837). Architecture, inference threshold, early-stopping, and the
+# loss/masking mechanism are all RULED OUT (the old DiceLoss(ignore_state_value=2) and the current
+# MaskedDiceLoss + MitoStateMaskTransform are algebraically identical). The remaining cause is the
+# training data/recipe. This run replicates 06-01's recipe as closely as the current code allows:
+#   - split_strategy: legacy   (06-01 used the legacy random split, NOT grouped_stratified)
+#   - loss: MaskedDiceLoss (loss_variant=new) — proven == 06-01's old masked DiceLoss
+#   - n_iterations: 75000      (06-01 trained 74676 iters / 41 epochs)
+#   - same 3 data dirs, bs8, lr1e-4, feat32, patch 32x256x256, state masking (ignore state==2)
+#   - pinned test split so eval is directly comparable to all other models
+# Decision rule: reaches ~0.84 AP -> the newer configs' RECIPE (grouped split etc.) was the cause;
+#                stuck ~0.78 AP  -> the cause is the refactored data pipeline / regenerated H5s.
+
+slurm_profile: grete_shared
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+script: "training/cristae/train_cristae.py"
+args:
+  experiment_name: "cristae-net32-lr1e-4-bs8-ps32x256x256-repro0601-legacy-2026-06-15"
+  split_strategy: "legacy"          # <-- the single intended change vs cristae_net_v2 (grouped_stratified)
+  loss_variant: "new"               # MaskedDiceLoss; proven numerically identical to 06-01's old loss
+  data_dir: "/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2"
+  data_dir2: "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae"
+  data_dir3: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/"
+  patch_shape: [32, 256, 256]
+  n_iterations: 75000               # match 06-01's iteration budget (it ran 74676)
+  batch_size: 8
+  learning_rate: 1.0e-4
+  feature_size: 32
+  ignore_state_value: 2
+  state_channel: 1
+  test_split: "synapsenetv1-testsplit"
+  early_stopping: 25                # generous so the run reaches ~41 epochs like 06-01 (not cut early)
+  seed: 42
+  num_workers: 8
+  persistent_workers: true
+  prefetch_factor: 4

@@ -1,0 +1,30 @@
+# Loss-isolation A/B — LEGACY arm (pre-ed2c08d MaskedDiceLoss reduction).
+# Run: python sbatch_runner.py configs/training/cristae/cristae_lossAB_legacy.yaml
+#
+# ⚠️  INERT: verified 2026-06-09 that the legacy and new reductions are numerically
+# identical (ed2c08d was a refactor). Running this A/B compares two identical models.
+# Kept for reference only — do not launch expecting a difference.
+
+slurm_profile: grete_shared
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+script: "training/cristae/train_cristae.py"
+args:
+  experiment_name: "cristae-lossAB-legacy-2026-06-09"
+  loss_variant: "legacy"
+  seed: 42
+  data_dir: "/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2"
+  data_dir2: "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae"
+  data_dir3: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/"
+  patch_shape: [32, 256, 256]
+  batch_size: 8
+  learning_rate: 1.0e-4
+  feature_size: 32
+  ignore_state_value: 2
+  state_channel: 1
+  test_split: "synapsenetv1-testsplit"
+  n_iterations: 95000
+  early_stopping: 9999   # effectively disabled (fixed budget); manifest args can't pass null
