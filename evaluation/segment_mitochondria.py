@@ -9,6 +9,7 @@ import numpy as np
 import synapse.io.util as io
 import synapse.util as util
 import synapse.label_utils as lutil
+from synapse.segment import segment_mitos
 from synapse_net.inference.mitochondria import segment_mitochondria
 from synapse_net.inference.util import get_prediction
 from skimage.measure import label
@@ -150,7 +151,7 @@ def main(visualize=False):
                 tiling=tiling,
                 preprocess=torch_em.transform.raw.normalize_percentile
             )
-            seg = util.segment_mitos(
+            seg = segment_mitos(
                 foreground=pred[0],
                 boundary=pred[1],
                 foreground_threshold=args.foreground_threshold,

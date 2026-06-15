@@ -14,6 +14,7 @@ import numpy as np
 import synapse.io.util as io
 import synapse.util as util
 import synapse.prediction as pred_util
+from synapse.segment import segment_mitos, segment_axons, segment_axons_ooc
 from synapse_net.inference.mitochondria import segment_mitochondria
 from synapse_net.inference.util import get_prediction
 # from synapse_net.ground_truth.matching import find_additional_objects
@@ -193,7 +194,7 @@ def main():
                     # preprocess=_get_raw_transform
                 )
             if not args.only_foreground:
-                seg = util.segment_mitos(
+                seg = segment_mitos(
                     foreground=pred[0],
                     boundary=pred[1],
                     foreground_threshold=args.foreground_threshold,
@@ -211,7 +212,7 @@ def main():
                     out_key = "s1"
                     if ".zarr" in args.export_path:
                         out_path = args.export_path
-                    seg = util.segment_axons_ooc(
+                    seg = segment_axons_ooc(
                         foreground=pred,
                         out_path=out_path,
                         foreground_threshold=args.foreground_threshold,
@@ -220,7 +221,7 @@ def main():
                     )
                 else:
                     #  in memory
-                    seg = util.segment_axons(
+                    seg = segment_axons(
                         foreground=np.squeeze(pred) if pred.ndim > 3 and pred.shape[0] == 1 else pred,
                         foreground_threshold=args.foreground_threshold,
                         seed_distance=args.seed_distance,

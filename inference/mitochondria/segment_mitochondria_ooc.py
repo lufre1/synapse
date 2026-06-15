@@ -13,6 +13,7 @@ import synapse.io.util as io
 import synapse.util as util
 import synapse.label_utils as lutil
 import synapse.prediction as pred_util
+from synapse.segment import segment_mitos, segment_mitos_ooc_wrapped
 from synapse_net.inference.mitochondria import segment_mitochondria
 from synapse_net.inference.util import get_prediction
 # from synapse_net.ground_truth.matching import find_additional_objects
@@ -211,7 +212,7 @@ def main(visualize=False):
                 occ_path = os.path.join(os.path.dirname(path), occ_filename)
                 if ".zarr" in output_path:
                     occ_path = output_path
-                seg = util.segment_mitos_ooc_wrapped(
+                seg = segment_mitos_ooc_wrapped(
                     pred=pred,
                     foreground_threshold=args.foreground_threshold,
                     boundary_threshold=args.boundary_threshold,
@@ -227,7 +228,7 @@ def main(visualize=False):
                     pred_util.delete_zarr_intermediates(occ_path)
             else:
                 occ_path = None
-                seg = util.segment_mitos(
+                seg = segment_mitos(
                     foreground=pred[0],
                     boundary=pred[1],
                     foreground_threshold=args.foreground_threshold,

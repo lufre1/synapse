@@ -13,6 +13,7 @@ import synapse.io.util as io
 import synapse.util as util
 import synapse.label_utils as lutil
 import synapse.prediction as pred_util
+from synapse.segment import segment_mitos, segment_mitos_ooc_optimized
 from synapse_net.inference.mitochondria import segment_mitochondria
 from synapse_net.inference.util import get_prediction
 # from synapse_net.ground_truth.matching import find_additional_objects
@@ -188,7 +189,7 @@ def main(visualize=False):
             if args.disk_based_prediction:
                 occ_filename = os.path.basename(path) + "_tmp_optim.zarr"
                 occ_path = os.path.join(os.path.dirname(path), occ_filename)
-                seg = util.segment_mitos_ooc_optimized(  #segment_mitos_cc_ooc(
+                seg = segment_mitos_ooc_optimized(  #segment_mitos_cc_ooc(
                     # foreground=pred[0],
                     # boundary=pred[1],
                     pred=pred,
@@ -204,7 +205,7 @@ def main(visualize=False):
                 )["segmentation"]
             else:
                 occ_path = None
-                seg = util.segment_mitos(
+                seg = segment_mitos(
                     foreground=pred[0],
                     boundary=pred[1],
                     foreground_threshold=args.foreground_threshold,
