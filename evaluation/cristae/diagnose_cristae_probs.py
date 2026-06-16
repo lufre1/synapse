@@ -103,11 +103,11 @@ def predict_fg(raw, state, model, tile, device):
     mito_proc = (state > 0).astype(np.uint8)
     # mirror run_cristae_segmentation exactly
     seg, pred = _segment_cristae(
-        raw, model=model, scale=None, tiling=tiling, return_predictions=True,
+        raw, voxel_size=1.44, model=model, scale=None, tiling=tiling, return_predictions=True,
         extra_segmentation=mito_proc, channels_to_standardize=[0], with_channels=True,
         verbose=False,
     )
-    return pred[0].astype(np.float32)  # foreground probability
+    return pred[0].astype(np.float32)  # foreground probability (independent of voxel_size/erosion)
 
 
 def _subsample(gt_bool, fg, cap):

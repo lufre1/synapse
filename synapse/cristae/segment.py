@@ -24,6 +24,7 @@ def run_cristae_segmentation(
     base_path=None,
     force=False,
     normalize=False,
+    voxel_size=1.44,
 ):
     """Run cristae segmentation on a list of multi-channel H5 files.
 
@@ -87,8 +88,10 @@ def run_cristae_segmentation(
             channels_to_standardize = [0]
 
         seg, pred = _segment_cristae(
-            raw_in, model_path,
-            scale=None,
+            raw_in,
+            voxel_size=voxel_size,   # synapse_net 0.5.0 requires this (2nd positional); 1.44 nm = cristae
+            model_path=model_path,   # model training resolution (synapse_net inference.py). Pass as kwargs
+            scale=None,              # so it is NOT misread as voxel_size.
             tiling=tiling,
             return_predictions=True,
             extra_segmentation=mito_proc,
