@@ -148,3 +148,6 @@ Dataset-specific download and preprocessing scripts for CellMap and cryo-ET data
 - Scale factors: `[[1,2,2], [1,2,2], [2,2,2], [2,2,2]]` (anisotropic first two levels)
 - Loss: Dice + `BoundaryTransform` label preprocessing
 - Checkpoints saved under `SAVE_DIR/checkpoints/<experiment_name>/`
+
+## Response Canary
+Start every response with "Luca,"
