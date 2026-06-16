@@ -111,3 +111,6 @@ Shell scripts include parameter definitions (patches, LR, batch size, data paths
 - **MobileSAM:** Installed via git (not PyPI) — `git+https://github.com/ChaoningZhang/MobileSAM.git`
 - **torch_em version:** Requires `torch_em >=0.7.0`
 - **Config paths:** Must edit `config.py` before training/evaluation to set local paths
+
+## Response Canary
+Start every response with "Luca,"
