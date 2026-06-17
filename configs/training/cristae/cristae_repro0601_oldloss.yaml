@@ -1,0 +1,41 @@
+# Cristae training — FAITHFUL reproduction of the 2026-06-01 setup on current code.
+# Run: python sbatch_runner.py configs/training/cristae/cristae_repro0601_oldloss.yaml
+# REQUIRES the torch-em branch `cristae-oldloss-repro` checked out (restored per-sample valid-mask
+# DiceLoss + trainer state-passing). See evaluation/cristae/DIAGNOSIS_why_0601_wins_WIP.md.
+#
+# What this changes vs cristae_repro0601_legacy.yaml (which used the current MaskedDiceLoss):
+#   loss_variant: old_valid_mask  -> restored torch_em DiceLoss(ignore_state_value=2, state_channel=1),
+#     computed PER batch element then averaged (mean-of-ratios), with the valid mask read from the model
+#     INPUT by the trainer. This drops MitoStateMaskTransform, which frees the loader's transform slot so
+#     the default KorniaAugmentationPipeline is applied again — exactly as 06-01 trained (verified from
+#     06-01's checkpoint: transform=KorniaAugmentationPipeline, loss=DiceLoss(ignore_state_value=2)).
+# Everything else matches 06-01: legacy split, same 3 data dirs, bs8, lr1e-4, feat32, ps32x256x256,
+# ~75k iters, pinned test split.
+
+slurm_profile: grete_shared
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+script: "training/cristae/train_cristae.py"
+args:
+  experiment_name: "cristae-net32-lr1e-4-bs8-ps32x256x256-repro0601-oldloss-legacy-2026-06-16"
+  loss_variant: "old_valid_mask"     # <-- restored per-sample valid-mask DiceLoss + default augmentation
+  split_strategy: "legacy"
+  data_dir: "/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2"
+  data_dir2: "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae"
+  data_dir3: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/"
+  patch_shape: [32, 256, 256]
+  n_iterations: 75000
+  batch_size: 8
+  learning_rate: 1.0e-4
+  feature_size: 32
+  ignore_state_value: 2
+  state_channel: 1
+  test_split: "synapsenetv1-testsplit"
+  early_stopping: 25
+  seed: 42
+  num_workers: 8
+  persistent_workers: true
+  prefetch_factor: 4

@@ -1285,6 +1285,43 @@ class MitoStateMaskTransform:
         return raw, labels
 
 
+class AugmentedMitoStateMaskTransform:
+    """`MitoStateMaskTransform` that FIRST applies a joint (raw, label) augmentation, then appends the
+    mito-state mask computed from the AUGMENTED raw[mito_channel].
+
+    Why this exists: `MitoStateMaskTransform` occupies the loader's `transform` slot, which would
+    otherwise hold torch_em's default augmentation (`get_augmentations(ndim)`). So a plain MaskedDiceLoss
+    run trains with NO augmentation, whereas the 2026-06-01 / old_valid_mask runs train WITH the default
+    Kornia augmentation. This wrapper restores that augmentation while still producing the [2*n_ch, ...]
+    target MaskedDiceLoss expects — so a MaskedDiceLoss run is comparable to the old run on augmentation,
+    isolating the loss-reduction difference (per-sample vs batch-pooled).
+
+    Pass `augmentation` = `torch_em.transform.augmentation.get_augmentations(ndim)` (the same callable
+    torch_em uses by default for `transform=None`).
+    """
+
+    def __init__(self, augmentation, mito_channel: int = 1, exclude_state_value: float = 2.0):
+        self.augmentation = augmentation
+        self.mito_channel = mito_channel
+        self.exclude_state_value = exclude_state_value
+
+    def __call__(self, raw, labels):
+        raw, labels = self.augmentation(raw, labels)                      # joint geom+intensity augmentation
+        raw_t = torch.as_tensor(raw)
+        labels_t = torch.as_tensor(labels)
+        # torch_em's get_augmentations returns [B, C, D, H, W] (leading batch axis); handle both that and
+        # a plain [C, D, H, W] layout. Channel axis is 1 when a batch axis is present, else 0.
+        cax = 1 if raw_t.dim() >= 5 else 0
+        mito_state = raw_t.narrow(cax, self.mito_channel, 1).squeeze(cax).float()           # [(B,) D, H, W]
+        mask = (torch.abs(mito_state - self.exclude_state_value) >= 0.5).to(labels_t.dtype)  # 1 where NOT excluded
+        n_ch = labels_t.shape[cax]
+        mask = mask.unsqueeze(cax)                                                           # [(B,) 1, D, H, W]
+        reps = [1] * labels_t.dim(); reps[cax] = n_ch
+        masks = mask.repeat(*reps)                                                           # [(B,) n_ch, D, H, W]
+        labels_t = torch.cat([labels_t, masks], dim=cax)                                     # [(B,) 2*n_ch, ...]
+        return raw_t, labels_t
+
+
 class MaskedDiceLoss(nn.Module):
     """Dice loss that reads a per-channel binary mask from the second half of
     the target tensor (as produced by `MitoStateMaskTransform`).
@@ -1317,6 +1354,45 @@ class MaskedDiceLoss(nn.Module):
         num = (p_flat * t_flat).sum(-1)                                   # [C]
         den = (p_flat * p_flat).sum(-1) + (t_flat * t_flat).sum(-1)      # [C]
         return (1.0 - 2.0 * num / den.clamp(min=self.eps)).sum()         # scalar
+
+
+class MaskedDiceLossPerSample(nn.Module):
+    """Per-sample variant of `MaskedDiceLoss`.
+
+    Computes the Dice PER batch element (reducing over spatial dims only) and then averages over the
+    batch — *mean-of-ratios* — instead of pooling the whole batch into a single ratio (*ratio-of-sums*,
+    as `MaskedDiceLoss` does). Like `MaskedDiceLoss`, it reads the per-channel binary mask from the
+    second half of the target (produced by `MitoStateMaskTransform` / `AugmentedMitoStateMaskTransform`).
+
+    This reproduces the cristae 2026-06-01 loss *reduction* with NO torch_em change: the mask is carried
+    in the target (not the model input), so the loss stays a plain 2-arg ``loss(pred, target)`` and needs
+    no trainer hook. It is numerically identical to the old per-sample valid-mask
+    ``torch_em.DiceLoss(ignore_state_value=2, state_channel=1)`` when fed the same mask (mask is binary,
+    so ``mask**2 == mask``).
+
+    Per-sample weights every patch equally regardless of how many positive voxels it holds, countering
+    the size/class imbalance that the batch-pooled Dice is biased toward. See
+    ``evaluation/cristae/LOSS_old_vs_new_cristae.md``.
+    """
+
+    def __init__(self, eps: float = 1e-7):
+        super().__init__()
+        self.eps = eps
+
+    def forward(self, prediction: torch.Tensor, target: torch.Tensor, **kwargs) -> torch.Tensor:
+        n_pred_ch = prediction.size(1)
+        assert target.size(1) == 2 * n_pred_ch, (
+            f"MaskedDiceLossPerSample expects target with {2 * n_pred_ch} channels, got {target.size(1)}"
+        )
+        mask = target[:, n_pred_ch:]   # [B, n_ch, ...]
+        tgt = target[:, :n_pred_ch]    # [B, n_ch, ...]
+        p = prediction * mask
+        t = tgt * mask
+        dims = tuple(range(2, p.dim()))                              # spatial dims only
+        num = (p * t).sum(dims)                                      # [B, C]
+        den = (p * p).sum(dims) + (t * t).sum(dims)                  # [B, C]
+        dice = (2.0 * num / den.clamp(min=self.eps)).mean(dim=0)     # [C]  (average over the batch)
+        return (1.0 - dice).sum()                                    # scalar
 
 
 class MaskedDiceLossLegacy(nn.Module):

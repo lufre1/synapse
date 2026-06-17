@@ -1,0 +1,43 @@
+# Cristae training — NEW loss (batch-pooled MaskedDiceLoss) WITH augmentation restored.
+# Run: python sbatch_runner.py configs/training/cristae/cristae_repro0601_newloss_aug.yaml
+#
+# Purpose: make the production (MaskedDiceLoss) training comparable to the old_valid_mask / 06-01 runs by
+# restoring the default Kornia augmentation that MitoStateMaskTransform otherwise displaces from the
+# loader transform slot (--augmentations -> AugmentedMitoStateMaskTransform: augment THEN append mask).
+# Paired A/B with cristae_repro0601_oldloss.yaml: SAME augmentation, SAME legacy split, SAME data/iters —
+# the ONLY difference is the loss reduction (NEW = batch-pooled vs OLD = per-sample). Isolates whether the
+# per-sample reduction is what made 06-01 better. Compare on held-out AP.
+#
+# NOTE: runs on the torch-em branch `cristae-oldloss-repro`. The loss (MaskedDiceLoss) is the inline
+# batch-pooled implementation in synapse/util.py (branch-independent). The metric (MaskedDiceLossLegacy)
+# wraps torch_em.DiceLoss, which is per-sample on this branch — fine, it just means both A/B arms select
+# checkpoints on the same per-sample masked-dice metric.
+
+slurm_profile: grete_shared
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+script: "training/cristae/train_cristae.py"
+args:
+  experiment_name: "cristae-net32-lr1e-4-bs8-ps32x256x256-newloss-aug-legacy-2026-06-16"
+  loss_variant: "new"               # batch-pooled MaskedDiceLoss
+  augmentations: true               # <-- restore default Kornia augmentation (AugmentedMitoStateMaskTransform)
+  split_strategy: "legacy"
+  data_dir: "/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2"
+  data_dir2: "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae"
+  data_dir3: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/"
+  patch_shape: [32, 256, 256]
+  n_iterations: 75000
+  batch_size: 8
+  learning_rate: 1.0e-4
+  feature_size: 32
+  ignore_state_value: 2
+  state_channel: 1
+  test_split: "synapsenetv1-testsplit"
+  early_stopping: 25
+  seed: 42
+  num_workers: 8
+  persistent_workers: true
+  prefetch_factor: 4

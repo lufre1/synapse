@@ -199,10 +199,26 @@ def main():
     parser.add_argument("--state_channel", type=int, default=None, help="Use this channel as state channel")
     parser.add_argument("--test_split", type=str, default=None, choices=list(NAMED_TEST_SPLITS.keys()),
                         help="Pin a named test split (e.g. synapsenetv1-testsplit) and exclude those files from training")
-    parser.add_argument("--loss_variant", type=str, default="new", choices=["new", "legacy"],
+    parser.add_argument("--loss_variant", type=str, default="new",
+                        choices=["new", "legacy", "persample", "old_valid_mask"],
                         help="Loss function to use during training. "
-                             "'new' (default): MaskedDiceLoss — excludes unannotated mito (state=2) from Dice. "
-                             "'legacy': MaskedDiceLossLegacy wrapper (numerically identical to 'new').")
+                             "'new' (default): MaskedDiceLoss — batch-pooled, excludes unannotated mito "
+                             "(state=2) from Dice. "
+                             "'legacy': MaskedDiceLossLegacy wrapper (numerically identical to 'new'). "
+                             "'persample': MaskedDiceLossPerSample — same masking as 'new' (mask carried in "
+                             "the target) but PER-SAMPLE reduction (mean-of-ratios) = the 2026-06-01 loss "
+                             "reduction, with NO torch_em change. Combine with --augmentations for the full "
+                             "06-01 recipe on upstream torch_em. "
+                             "'old_valid_mask': reproduces 06-01 via the restored per-sample valid-mask "
+                             "torch_em DiceLoss reading the mito state from the model INPUT — REQUIRES the "
+                             "torch-em 'cristae-oldloss-repro' branch. Prefer 'persample' instead.")
+    parser.add_argument("--augmentations", action="store_true", default=False,
+                        help="For the masked-loss variants ('new'/'legacy'): also apply torch_em's default "
+                             "augmentation (get_augmentations(ndim)) BEFORE appending the mito-state mask "
+                             "(via AugmentedMitoStateMaskTransform). Without this the MitoStateMaskTransform "
+                             "occupies the transform slot and the run has NO augmentation. Use this to make a "
+                             "MaskedDiceLoss run comparable to the augmented 'old_valid_mask'/06-01 runs. "
+                             "Ignored for 'old_valid_mask' (which already gets the default augmentation).")
     parser.add_argument("--seed", type=int, default=42,
                         help="Seed for torch/numpy/python RNG (identical across A/B arms -> identical init).")
     parser.add_argument("--normalize", action="store_true", default=False,
@@ -272,11 +288,30 @@ def main():
 
     ndim = 3
 
-    if args.loss_variant == "legacy":
+    if args.loss_variant == "old_valid_mask":
+        # Reproduce cristae 2026-06-01: restored per-sample valid-mask torch_em DiceLoss that reads the
+        # mito state from the model INPUT (passed by DefaultTrainer as `state`). No MitoStateMaskTransform.
+        from torch_em.loss.dice import DiceLoss as _ValidMaskDiceLoss
+        loss_function = _ValidMaskDiceLoss(
+            channelwise=True, reduce_channel="sum",
+            ignore_state_value=int(args.ignore_state_value), state_channel=int(args.state_channel),
+        )
+        metric_function = _ValidMaskDiceLoss(
+            channelwise=True, reduce_channel="sum",
+            ignore_state_value=int(args.ignore_state_value), state_channel=int(args.state_channel),
+        )
+    elif args.loss_variant == "persample":
+        # Per-sample masked Dice (mean-of-ratios) — the 2026-06-01 loss REDUCTION, but mask carried in the
+        # target (no torch_em patch / trainer hook needed). Drop-in with MitoStateMaskTransform /
+        # AugmentedMitoStateMaskTransform; runs on upstream torch_em.
+        loss_function = util.MaskedDiceLossPerSample()
+        metric_function = util.MaskedDiceLossPerSample()
+    elif args.loss_variant == "legacy":
         loss_function = util.MaskedDiceLossLegacy()
+        metric_function = util.MaskedDiceLossLegacy()
     else:  # "new"
         loss_function = util.MaskedDiceLoss()
-    metric_function = util.MaskedDiceLossLegacy()
+        metric_function = util.MaskedDiceLossLegacy()
     print(f"[loss] loss_variant={args.loss_variant} -> "
           f"loss={type(loss_function).__name__}, metric={type(metric_function).__name__}")
     gain = 2
@@ -394,7 +429,26 @@ def main():
     mito_mask_transform = util.MitoStateMaskTransform(
         mito_channel=args.state_channel, exclude_state_value=float(args.ignore_state_value)
     )
+    # The joint (raw, label) transform slot. For the masked-loss variants it holds MitoStateMaskTransform
+    # (which appends the mask to the target and thereby REPLACES torch_em's default augmentation). For the
+    # 'old_valid_mask' reproduction the mask comes from the input via the loss, so we leave this None — and
+    # torch_em then applies its default KorniaAugmentationPipeline, matching the 2026-06-01 training.
+    # With --augmentations, the masked-loss variants instead apply that same default augmentation FIRST and
+    # then append the mask (AugmentedMitoStateMaskTransform), so a MaskedDiceLoss run is comparable to the
+    # augmented old run (isolating per-sample vs batch-pooled reduction).
+    if args.loss_variant == "old_valid_mask":
+        joint_transform = None
+    elif args.augmentations:
+        from torch_em.transform.augmentation import get_augmentations
+        default_aug = get_augmentations(ndim=ndim)
+        joint_transform = util.AugmentedMitoStateMaskTransform(
+            default_aug, mito_channel=args.state_channel, exclude_state_value=float(args.ignore_state_value)
+        )
+    else:
+        joint_transform = mito_mask_transform
     raw_transform = util.standardize_channel if not args.normalize else util.normalize_channel
+    print(f"[transform] loss_variant={args.loss_variant} augmentations={args.augmentations} -> joint transform="
+          f"{type(joint_transform).__name__ if joint_transform is not None else 'None (default Kornia augmentation)'}")
     print("Path for this model", os.path.join(SAVE_DIR, experiment_name))
     print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
     print("data['train']", data["train"])
@@ -415,7 +469,7 @@ def main():
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
             rois=rois_dict["train"],
-            transform=mito_mask_transform,
+            transform=joint_transform,
             **loader_extra,
         )
         val_loader = torch_em.default_segmentation_loader(
@@ -425,7 +479,7 @@ def main():
             label_transform=label_transform, num_workers=n_workers,
             with_channels=with_channels, with_label_channels=with_label_channels,
             rois=rois_dict["val"],
-            transform=mito_mask_transform,
+            transform=joint_transform,
             **loader_extra,
         )
     else:
@@ -437,7 +491,7 @@ def main():
             with_channels=with_channels, with_label_channels=with_label_channels,
             sampler=sampler,
             raw_transform=raw_transform,
-            transform=mito_mask_transform,
+            transform=joint_transform,
             **loader_extra,
         )
         val_loader = torch_em.default_segmentation_loader(
@@ -448,7 +502,7 @@ def main():
             with_channels=with_channels, with_label_channels=with_label_channels,
             sampler=sampler,
             raw_transform=raw_transform,
-            transform=mito_mask_transform,
+            transform=joint_transform,
             **loader_extra,
         ) if (torch.cuda.is_available() and data["val"]) else None
 
