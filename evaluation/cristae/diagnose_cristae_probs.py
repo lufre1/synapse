@@ -48,7 +48,7 @@ ALL_FILES = [
     "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36194_B4_66K_TS_SC_22_rec_crop_combined.h5",
     "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT21_eb5_model2_combined.h5",
     "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/KO8_eb4_model_combined.h5",
-    "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/2026-05-26-dataset/2026-05-26_corrected_combined/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5",
+    "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann_needs_corrections/2026-05-26-dataset/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5",
     "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M8_eb6_model_combined.h5",
     "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT20_eb5_model2_combined.h5",
     "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M1_eb6_model_combined.h5",
@@ -59,7 +59,7 @@ ALL_FILES = [
 ]
 # Representative subset for a fast first pass: worst collapse, a stable one, two mid.
 SUBSET = [
-    "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/2026-05-26-dataset/2026-05-26_corrected_combined/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5",  # 0.737->0.494
+    "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann_needs_corrections/2026-05-26-dataset/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5",  # 0.737->0.494
     "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36194_B4_66K_TS_R01A_SC_01_rec_crop_combined.h5",  # ~0.913 (stable)
     "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M8_eb6_model_combined.h5",  # 0.599->0.542
     "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT21_eb5_model2_combined.h5",  # 0.773->0.713

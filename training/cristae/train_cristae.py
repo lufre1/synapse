@@ -223,6 +223,10 @@ def main():
                         help="Seed for torch/numpy/python RNG (identical across A/B arms -> identical init).")
     parser.add_argument("--normalize", action="store_true", default=False,
                         help="Train with normalization instead of standardization.")
+    parser.add_argument("--split_file", type=str, default=None,
+                        help="Path to a JSON with explicit {train:[...], val:[...], test:[...]} h5 lists. "
+                             "If set, these are used verbatim (bypassing path discovery + split_strategy) — "
+                             "e.g. to reproduce a prior run's EXACT split.")
     parser.add_argument("--split_strategy", type=str, default="legacy", choices=["legacy", "grouped_stratified"],
                         help="Train/val split strategy. 'legacy': flat random shuffle + ensure_strings. "
                              "'grouped_stratified': group whole specimens (no sibling-crop leakage) and "
@@ -330,7 +334,18 @@ def main():
     print(f"Start time {time.ctime()}")
     print(f"Loading Data paths and ROIs if with_rois={with_rois}...")
 
-    if with_rois:
+    if args.split_file is not None:
+        # Explicit pinned split: load train/val/test file lists verbatim from a JSON, bypassing path
+        # discovery + the legacy/grouped split. Used to reproduce a previous run's EXACT split
+        # (e.g. the 2026-06-01 split extracted from its checkpoint).
+        import json
+        with open(args.split_file) as f:
+            data = json.load(f)
+        for k in ("train", "val", "test"):
+            data.setdefault(k, [])
+        print(f"Using explicit split_file '{args.split_file}': "
+              f"train {len(data['train'])} val {len(data['val'])} test {len(data['test'])}")
+    elif with_rois:
         data_paths, rois_dict = util.get_data_paths_and_rois(data_dir, min_shape=patch_shape, with_thresholds=True)
         data, rois_dict = util.split_data_paths_to_dict(data_paths, rois_dict, train_ratio=.8, val_ratio=0.2, test_ratio=0)
     else:
