@@ -14,11 +14,13 @@ env:
 commands:
   - python ${REPO}/inference/cristae/segment_cristae.py -c ${SELF}
   - python ${REPO}/evaluation/cristae/evaluate_cristae.py -c ${SELF}
+  - python ${REPO}/evaluation/cristae/evaluate_cristae_ap.py -c ${SELF}
 
 # ---- Algorithm config (consumed by both scripts via -c) ----
 model_path: /mnt/lustre-grete/usr/u12103/cristae/checkpoints/cristae-lossAB-legacy-2026-06-09
 export_path: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-lossAB-legacy-2026-06-09
 tile_shape: [32, 512, 512]
+save_predictions: true   # save pred/foreground so evaluate_cristae_ap.py can reuse it
 
 h5_paths:
   - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT22_eb5_model2_combined.h5

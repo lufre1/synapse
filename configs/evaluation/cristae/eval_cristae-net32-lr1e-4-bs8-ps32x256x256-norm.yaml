@@ -11,11 +11,13 @@ env:
 commands:
   - python ${REPO}/inference/cristae/segment_cristae.py -c ${SELF}
   - python ${REPO}/evaluation/cristae/evaluate_cristae.py -c ${SELF}
+  - python ${REPO}/evaluation/cristae/evaluate_cristae_ap.py -c ${SELF}
 
 # ---- Algorithm config (consumed by both scripts via -c) ----
 model_path: /mnt/lustre-grete/usr/u12103/cristae/checkpoints/cristae-net32-lr1e-4-bs8-ps32x256x256-norm
 export_path: &export_path /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-norm
 tile_shape: [32, 256, 256]
+save_predictions: true   # save pred/foreground so evaluate_cristae_ap.py can reuse it
 
 # This model was trained with --normalize (percentile-normalize raw), so inference must match.
 normalize: true
