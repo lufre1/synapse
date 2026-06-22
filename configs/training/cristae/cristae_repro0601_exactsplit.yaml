@@ -24,7 +24,7 @@ args:
   augmentations: true
   split_file: "/mnt/vast-nhr/home/freckmann15/u12103/synapse/configs/training/cristae/splits/cristae_0601_exact_split.json"
   patch_shape: [32, 256, 256]
-  n_iterations: 75000
+  n_iterations: 100000
   batch_size: 8
   learning_rate: 1.0e-4
   feature_size: 32

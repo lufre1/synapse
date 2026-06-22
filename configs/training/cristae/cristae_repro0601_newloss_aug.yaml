@@ -29,7 +29,7 @@ args:
   data_dir2: "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae"
   data_dir3: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/"
   patch_shape: [32, 256, 256]
-  n_iterations: 75000
+  n_iterations: 100000
   batch_size: 8
   learning_rate: 1.0e-4
   feature_size: 32

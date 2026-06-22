@@ -127,7 +127,7 @@ def _render_args(script_path, args, resolved_cfg_path):
 
 # ── Script generation ──────────────────────────────────────────────────
 
-def generate_script(cfg, dry_run, cfg_path=""):
+def generate_script(cfg, dry_run, cfg_path="", dependency=None):
     slurm = cfg.get("slurm", {})
     env_cfg = cfg.get("env", {})
 
@@ -229,8 +229,16 @@ def generate_script(cfg, dry_run, cfg_path=""):
         f.write(script_text)
     os.chmod(sh, 0o755)
 
+    sbatch_cmd = ["sbatch", "-o", log, "-e", err]
+    if dependency:
+        # e.g. "afterok:14338943" — SLURM holds this job until the named job(s)
+        # finish (afterok => only on success). Makes follow-up jobs (eval after
+        # training) launch independently of this login session.
+        sbatch_cmd.append(f"--dependency={dependency}")
+        sbatch_cmd.append("--kill-on-invalid-dep=yes")
+    sbatch_cmd.append(sh)
     result = subprocess.run(
-        ["sbatch", "-o", log, "-e", err, sh],
+        sbatch_cmd,
         capture_output=True, text=True,
     )
     print(result.stdout.strip())
@@ -291,16 +299,23 @@ Examples:
                              help="Print the generated script without submitting")
         sub_req.add_argument("--delete", action="store_true",
                              help="Delete temporary sbatch files after job completion (default is to keep them)")
-        
+        sub_req.add_argument("--dependency", default=None,
+                             help="Pass through to sbatch --dependency, e.g. afterok:JOBID (hold until that job succeeds)")
+        sub_req.add_argument("--profile", default=None,
+                             help="Override the config's slurm_profile for this submission only (e.g. grete_shared)")
+
         args = parser.parse_args()
         if args.command == "submit":
             cfg = load_experiment(args.config)
+            if getattr(args, "profile", None):
+                cfg["slurm_profile"] = args.profile
             cfg_merged = merge_slurm_profile(cfg)
             if getattr(args, "delete"):
                 cfg_merged["keep_tmp"] = False
             else:
                 cfg_merged["keep_tmp"] = True
-            generate_script(cfg_merged, dry_run=getattr(args, "dry_run"), cfg_path=args.config)
+            generate_script(cfg_merged, dry_run=getattr(args, "dry_run"), cfg_path=args.config,
+                            dependency=getattr(args, "dependency", None))
         else:
             parser.print_help()
     else:
@@ -310,15 +325,22 @@ Examples:
                             help="Print the generated script without submitting")
         parser.add_argument("--delete", action="store_true",
                             help="Delete temporary sbatch files after job completion (default is to keep them)")
-        
+        parser.add_argument("--dependency", default=None,
+                            help="Pass through to sbatch --dependency, e.g. afterok:JOBID (hold until that job succeeds)")
+        parser.add_argument("--profile", default=None,
+                            help="Override the config's slurm_profile for this submission only (e.g. grete_shared)")
+
         args = parser.parse_args()
         cfg = load_experiment(args.config)
+        if getattr(args, "profile", None):
+            cfg["slurm_profile"] = args.profile
         cfg_merged = merge_slurm_profile(cfg)
         if getattr(args, "delete"):
             cfg_merged["keep_tmp"] = False
         else:
             cfg_merged["keep_tmp"] = True
-        generate_script(cfg_merged, dry_run=getattr(args, "dry_run"), cfg_path=args.config)
+        generate_script(cfg_merged, dry_run=getattr(args, "dry_run"), cfg_path=args.config,
+                        dependency=getattr(args, "dependency", None))
 
 
 if __name__ == "__main__":

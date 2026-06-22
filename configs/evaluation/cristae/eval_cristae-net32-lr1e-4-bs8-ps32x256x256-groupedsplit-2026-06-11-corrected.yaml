@@ -1,3 +1,6 @@
+# ⚠️ CHECKPOINT REMOVED — inferior model (deleted 2026-06-19): AP 0.776 / Dice 0.681 vs 06-01 AP 0.837.
+#    See evaluation/cristae/DIAGNOSIS_why_0601_wins_WIP.md. Config kept for provenance; re-running
+#    retrains/re-evaluates from scratch (the checkpoint no longer exists).
 # Cristae eval: grouped-stratified-split model (2026-06-11 corrected run)
 # Run: python sbatch_runner.py configs/evaluation/cristae/eval_cristae-net32-lr1e-4-bs8-ps32x256x256-groupedsplit-2026-06-11-corrected.yaml
 

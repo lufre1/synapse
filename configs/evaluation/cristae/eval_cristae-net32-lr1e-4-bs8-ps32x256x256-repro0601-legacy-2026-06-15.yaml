@@ -1,3 +1,6 @@
+# ⚠️ CHECKPOINT REMOVED — inferior model (deleted 2026-06-19): AP 0.767 / Dice 0.699 vs 06-01 AP 0.837.
+#    See evaluation/cristae/DIAGNOSIS_why_0601_wins_WIP.md. Config kept for provenance; re-running
+#    retrains/re-evaluates from scratch (the checkpoint no longer exists).
 # Eval for the 06-01-reproduction (legacy split) model: segment test split, then evaluate.
 # Run AFTER training finishes:
 #   python sbatch_runner.py configs/evaluation/cristae/eval_cristae-net32-lr1e-4-bs8-ps32x256x256-repro0601-legacy-2026-06-15.yaml

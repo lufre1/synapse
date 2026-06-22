@@ -1,3 +1,6 @@
+# ⚠️ CHECKPOINT REMOVED — inferior model (deleted 2026-06-19): Dice 0.707 (normalize) vs 06-01 AP 0.837.
+#    See evaluation/cristae/DIAGNOSIS_why_0601_wins_WIP.md. Config kept for provenance; re-running
+#    retrains/re-evaluates from scratch (the checkpoint no longer exists).
 # Cristae training from scratch with masked loss
 # Replaces run_train_cristae_masked_scratch.sh
 

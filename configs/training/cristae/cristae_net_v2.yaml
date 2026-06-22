@@ -1,3 +1,6 @@
+# ⚠️ CHECKPOINT REMOVED — inferior model (deleted 2026-06-19): AP 0.776 / Dice 0.681 vs 06-01 AP 0.837.
+#    See evaluation/cristae/DIAGNOSIS_why_0601_wins_WIP.md. Config kept for provenance; re-running
+#    retrains/re-evaluates from scratch (the checkpoint no longer exists).
 # Cristae training v2 — leakage-safe + stratified validation split.
 # Run: python sbatch_runner.py configs/training/cristae/cristae_net_v2.yaml
 # split_strategy=grouped_stratified groups whole specimens (no sibling-crop leakage between
