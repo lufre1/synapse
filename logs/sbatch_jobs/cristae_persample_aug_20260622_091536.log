@@ -174,3 +174,6 @@ Raw transform: <function standardize_channel at 0x14f4fe7c8b80>
 Start fitting for 100000 iterations /  63 epochs
 with 1596 iterations per epoch
 Training with mixed precision
+Finished training after 63 epochs / 100000 iterations.
+The best epoch is number 56.
+Done.

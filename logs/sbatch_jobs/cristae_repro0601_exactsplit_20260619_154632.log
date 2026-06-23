@@ -182,3 +182,4 @@ with 1778 iterations per epoch
 Training with mixed precision
 Finished training after 57 epochs / 100000 iterations.
 The best epoch is number 51.
+Done.

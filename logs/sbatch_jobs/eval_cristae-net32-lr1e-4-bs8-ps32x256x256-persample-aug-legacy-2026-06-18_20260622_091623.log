@@ -1,0 +1,230 @@
+Found 15 files
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT22_eb5_model2_combined.h5
+Segmenting cristae in volume of shape (101, 1336, 1336)
+Run prediction with mask.
+Prediction time in 11.025241374969482 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 18.29 s
+Compute connected components in 1.1493568420410156 s
+Size filter in 1.5534844398498535 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT22_eb5_model2_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT22_eb5_model2_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT40_eb10_model_combined.h5
+Segmenting cristae in volume of shape (97, 1336, 1336)
+Run prediction with mask.
+Prediction time in 8.022233247756958 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 17.98 s
+Compute connected components in 0.8712520599365234 s
+Size filter in 1.4802372455596924 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT40_eb10_model_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT40_eb10_model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M5_eb1_model_combined.h5
+Segmenting cristae in volume of shape (107, 1336, 1336)
+Run prediction with mask.
+Prediction time in 5.218848705291748 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 8.10 s
+Compute connected components in 0.936126708984375 s
+Size filter in 1.5983517169952393 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/M5_eb1_model_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/M5_eb1_model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined.h5
+Segmenting cristae in volume of shape (282, 911, 911)
+Run prediction with mask.
+Prediction time in 11.600717782974243 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 14.86 s
+Compute connected components in 1.1539876461029053 s
+Size filter in 1.9828245639801025 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36194_B4_66K_TS_SC_22_rec_crop_combined.h5
+Segmenting cristae in volume of shape (246, 901, 902)
+Run prediction with mask.
+Prediction time in 4.548417568206787 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 3.72 s
+Compute connected components in 0.9743194580078125 s
+Size filter in 1.684417963027954 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/36194_B4_66K_TS_SC_22_rec_crop_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/36194_B4_66K_TS_SC_22_rec_crop_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT21_eb5_model2_combined.h5
+Segmenting cristae in volume of shape (100, 1336, 1336)
+Run prediction with mask.
+Prediction time in 8.220376968383789 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 11.65 s
+Compute connected components in 0.8773226737976074 s
+Size filter in 1.497730016708374 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT21_eb5_model2_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT21_eb5_model2_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/KO8_eb4_model_combined.h5
+Segmenting cristae in volume of shape (91, 1336, 1336)
+Run prediction with mask.
+Prediction time in 6.135033845901489 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 8.90 s
+Compute connected components in 0.8155539035797119 s
+Size filter in 1.3721635341644287 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/KO8_eb4_model_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/KO8_eb4_model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann_needs_corrections/2026-05-26-dataset/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5
+Segmenting cristae in volume of shape (100, 1920, 1920)
+Run prediction with mask.
+Prediction time in 3.061734199523926 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 2.74 s
+Compute connected components in 1.713365077972412 s
+Size filter in 3.0085644721984863 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M8_eb6_model_combined.h5
+Segmenting cristae in volume of shape (79, 1336, 1336)
+Run prediction with mask.
+Prediction time in 5.082495450973511 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 4.95 s
+Compute connected components in 0.6723177433013916 s
+Size filter in 1.1331117153167725 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/M8_eb6_model_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/M8_eb6_model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT20_eb5_model2_combined.h5
+Segmenting cristae in volume of shape (137, 1336, 1336)
+Run prediction with mask.
+Prediction time in 15.717328786849976 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 27.84 s
+Compute connected components in 1.270024299621582 s
+Size filter in 2.0615036487579346 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT20_eb5_model2_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT20_eb5_model2_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M1_eb6_model_combined.h5
+Segmenting cristae in volume of shape (124, 1336, 1336)
+Run prediction with mask.
+Prediction time in 3.043447971343994 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 4.51 s
+Compute connected components in 1.055330514907837 s
+Size filter in 1.8445730209350586 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/M1_eb6_model_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/M1_eb6_model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M2_eb5_model_combined.h5
+Segmenting cristae in volume of shape (111, 1336, 1336)
+Run prediction with mask.
+Prediction time in 6.608656644821167 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 10.71 s
+Compute connected components in 0.9868874549865723 s
+Size filter in 1.7057363986968994 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/M2_eb5_model_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/M2_eb5_model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined.h5
+Segmenting cristae in volume of shape (87, 1920, 2560)
+Run prediction with mask.
+Prediction time in 7.594815731048584 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 14.38 s
+Compute connected components in 2.0039420127868652 s
+Size filter in 3.3887085914611816 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36194_B4_66K_TS_R01A_SC_01_rec_crop_combined.h5
+Segmenting cristae in volume of shape (236, 1024, 1024)
+Run prediction with mask.
+Prediction time in 7.8751020431518555 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 9.62 s
+Compute connected components in 1.2190139293670654 s
+Size filter in 2.083458423614502 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/36194_B4_66K_TS_R01A_SC_01_rec_crop_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/36194_B4_66K_TS_R01A_SC_01_rec_crop_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT21_syn4_model2_combined.h5
+Segmenting cristae in volume of shape (99, 1336, 1336)
+Run prediction with mask.
+Prediction time in 5.014894485473633 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 6.90 s
+Compute connected components in 0.8475041389465332 s
+Size filter in 1.4101734161376953 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT21_syn4_model2_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT21_syn4_model2_combined.h5
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/36194_B4_66K_TS_R01A_SC_01_rec_crop_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/36194_B4_66K_TS_R01A_SC_01_rec_crop_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/36194_B4_66K_TS_SC_22_rec_crop_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/36194_B4_66K_TS_SC_22_rec_crop_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/KO8_eb4_model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/KO8_eb4_model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/M1_eb6_model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/M1_eb6_model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/M2_eb5_model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/M2_eb5_model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/M5_eb1_model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/M5_eb1_model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/M8_eb6_model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/M8_eb6_model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT20_eb5_model2_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT20_eb5_model2_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT21_eb5_model2_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT21_eb5_model2_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT21_syn4_model2_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT21_syn4_model2_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT22_eb5_model2_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT22_eb5_model2_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT40_eb10_model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/WT40_eb10_model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/cristae_eval_results.csv
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/cristae_eval_results.csv
+  36194_B4_66K_TS_R01A_SC_01_rec_crop_combined: AP=0.9644 AUC=0.9947
+  36194_B4_66K_TS_SC_22_rec_crop_combined: AP=0.9759 AUC=0.9963
+  36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined: AP=0.9305 AUC=0.9901
+  KO8_eb4_model_combined: AP=0.8090 AUC=0.9242
+  M1_eb6_model_combined: AP=0.8363 AUC=0.9702
+  M2_eb5_model_combined: AP=0.8267 AUC=0.9501
+  M5_eb1_model_combined: AP=0.8858 AUC=0.9601
+  M8_eb6_model_combined: AP=0.6247 AUC=0.8803
+  Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined: AP=0.5337 AUC=0.9268
+  Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined: AP=0.7796 AUC=0.9601
+  WT20_eb5_model2_combined: AP=0.8915 AUC=0.9714
+  WT21_eb5_model2_combined: AP=0.8591 AUC=0.9273
+  WT21_syn4_model2_combined: AP=0.8551 AUC=0.9341
+  WT22_eb5_model2_combined: AP=0.8443 AUC=0.9408
+  WT40_eb10_model_combined: AP=0.8357 AUC=0.9658
+
+[AP] cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18: macro AP=0.8302  AUC=0.9528  (n=15 files)  ->  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-legacy-2026-06-18/cristae_ap_summary.csv
+Done.
