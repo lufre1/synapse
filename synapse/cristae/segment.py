@@ -24,7 +24,7 @@ def run_cristae_segmentation(
     base_path=None,
     force=False,
     normalize=False,
-    voxel_size=1.44,
+    voxel_size=1.74,
 ):
     """Run cristae segmentation on a list of multi-channel H5 files.
 
