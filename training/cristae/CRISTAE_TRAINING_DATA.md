@@ -11,11 +11,12 @@ splits the rest into train/val:
 | role | path | files |
 |---|---|---|
 | `data_dir`  | `/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2` | 4 (cooper, s2-binned) |
-| `data_dir2` | `/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae` | 13 (cooper) |
+| `data_dir2` | `/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae` | 18 (cooper; incl. 5 new in `for_Luca_2026/`) |
 | `data_dir3` | `/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/` | 128 (wichmann) |
 
-- ≈**145** cristae-labeled candidates total. After pinning 15 test and dropping ~2 (fail `min_shape`),
-  the last run (`persample-aug`, 2026-06-22) used **train 116 / val 12 / test 15 = 143**.
+- ≈**150** cristae-labeled candidates total (+5 new cooper 2026-06-24). After pinning 15 test and
+  dropping ~2 (fail `min_shape`), the last run (`persample-aug`, 2026-06-22) used **train 116 / val 12 /
+  test 15 = 143** (on the 145-file set; next run will have ~148 train/val candidates).
 - Every file has keys `raw_mitos_combined` + `labels/cristae` (+ `labels/mitochondria`).
 - **Input is 2-channel** (raw EM + mitochondria mask); model is 2-in / 2-out.
 - Poor-quality files moved out on 2026-06-17 live in the sibling dir
@@ -34,11 +35,11 @@ splits the rest into train/val:
 **Wichmann (128):** WT **77** · KO **22** · unspecified **29** (the `M#_eb*` mouse lines — genotype not
 encoded in the filename). Otof subset alone: KO 13 / WT 10.
 
-**Cooper (17):** mostly unspecified numeric IDs (`36194`, `36859`); `37371` splits into
-**O4 = M13DKO** (double-knockout) and **O5 = CTRL** (≈ wild-type).
+**Cooper (22):** `36194_B4` and `36859_J1/J2` are all **WT** (confirmed via `cooper_data_overview.csv.bak`);
+`37371_O4` = **M13DKO** (1 file), `37371_O5` = **CTRL/WT** (2 files). No unknowns in cooper.
 
-Net labeled balance ≈ **WT/CTRL ~88 vs KO/DKO ~37**, with ~29 wichmann + most cooper files carrying no
-genotype label. Coverage is WT-skewed.
+Net labeled balance ≈ **WT/CTRL ~98 vs KO/DKO ~23**, with 29 wichmann `M#_eb*` files carrying no
+genotype label (mouse number only). Coverage is strongly WT-skewed (~81% WT among labeled files).
 
 ## Voxel size — uniform ~1.74 nm isotropic (verified from MRC headers)
 
