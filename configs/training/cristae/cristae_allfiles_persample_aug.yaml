@@ -1,0 +1,45 @@
+# Cristae training — best recipe (persample masked Dice + Kornia aug, legacy split) on ALL files,
+# INCLUDING the poor-quality `wichmann_needs_corrections/` set (added via data_dir4).
+# Run: python sbatch_runner.py configs/training/cristae/cristae_allfiles_persample_aug.yaml
+#
+# Identical recipe to cristae_persample_aug.yaml (the 2026-06-01 reproduction, AP 0.830 / gold 0.837),
+# only the data inputs + experiment_name change. Pinned 15-file test split is kept so AP stays
+# comparable to prior runs.
+#
+# data_dir4 -> +13 KO Otof tomograms Luca had set aside on 2026-06-17 as needing corrections. Goal:
+# test whether more data helps even at lower annotation quality (Luca's hypothesis).
+# NOTE caveats (see plan velvety-finding-fairy.md): specimen 455L has its test crop B3_2 pinned in the
+# test set while 5 sibling crops enter training under the legacy split -> mild leakage on that 1 test
+# file; and all 13 added files are KO, partly correcting the corpus WT-skew.
+# The 3 files dropped by the hardcoded exclude_strings in train_cristae.py stay EXCLUDED (Luca
+# inspected them 2026-06-25: unusable).
+
+slurm_profile: grete_shared
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+script: "training/cristae/train_cristae.py"
+args:
+  experiment_name: "cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-allfiles-2026-06-25"
+  loss_variant: "persample"         # MaskedDiceLossPerSample (torch_em-free per-sample reduction)
+  augmentations: true               # default Kornia augmentation via AugmentedMitoStateMaskTransform
+  split_strategy: "legacy"
+  data_dir: "/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2"
+  data_dir2: "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae"
+  data_dir3: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/"
+  data_dir4: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann_needs_corrections/"
+  patch_shape: [32, 256, 256]
+  n_iterations: 100000
+  batch_size: 8
+  learning_rate: 1.0e-4
+  feature_size: 32
+  ignore_state_value: 2
+  state_channel: 1
+  test_split: "synapsenetv1-testsplit"
+  early_stopping: 25
+  seed: 42
+  num_workers: 8
+  persistent_workers: true
+  prefetch_factor: 4
