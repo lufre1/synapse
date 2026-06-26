@@ -184,6 +184,7 @@ def main():
     parser.add_argument("--data_dir", type=str, default=None, help="Path to the data directory")
     parser.add_argument("--data_dir2", type=str, default=None, help="Path to the second data directory")
     parser.add_argument("--data_dir3", type=str, default=None, help="Path to the third data directory")
+    parser.add_argument("--data_dir4", type=str, default=None, help="Path to the fourth data directory")
     parser.add_argument("--patch_shape", type=int, nargs=3, default=(32, 256, 256), help="Patch shape for data loading (3D tuple)")
     parser.add_argument("--n_iterations", type=int, default=10000, help="Number of training iterations")
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate")
@@ -354,6 +355,8 @@ def main():
             data_paths.extend(util.get_data_paths(args.data_dir2))
         if args.data_dir3 is not None:
             data_paths.extend(util.get_data_paths(args.data_dir3))
+        if args.data_dir4 is not None:
+            data_paths.extend(util.get_data_paths(args.data_dir4))
         substring = "_combined.h5"
         data_paths = [s for s in data_paths if substring in s]
         exclude_strings = [

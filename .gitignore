@@ -1,6 +1,7 @@
 __pycache__/
 checkpoints/
 logs/sam_model/
+logs/sbatch_jobs/*.err
 config.py
 slurm/
 slurm-*

@@ -35,8 +35,17 @@ splits the rest into train/val:
 **Wichmann (128):** WT **77** · KO **22** · unspecified **29** (the `M#_eb*` mouse lines — genotype not
 encoded in the filename). Otof subset alone: KO 13 / WT 10.
 
-**Cooper (22):** `36194_B4` and `36859_J1/J2` are all **WT** (confirmed via `cooper_data_overview.csv.bak`);
-`37371_O4` = **M13DKO** (1 file), `37371_O5` = **CTRL/WT** (2 files). No unknowns in cooper.
+**Cooper (22):** `36194_B4` (5) and `36859_J1/J2` (J1 7, J2 4) are all **WT** (per
+`cooper_data_overview.csv.bak`). The **37371** experiment is a clean DKO-vs-CTRL pair — confirmed by the
+cooper lab tomo listing below (matches the CSV genotype column exactly):
+
+- **DKO (M13DKO) — `37371_O4`, 5 tomos:** `SC_50`, `SC_52`, `SC_54`, `SC_57`, `SC_59`
+- **CTRL (WT) — `37371_O5`, 5 tomos:** `SP_34-01`, `SP_35`, `SP_38-01`, `SP_67`, `mod_…SP_34-02`
+
+Only **3 of those 10** carry cristae labels and reach the corpus: **1 DKO** (`O4_SC_52`, data_dir2) +
+**2 CTRL** (`O5_SP_34-01` data_dir2; `O5_SP_35` in `raw_mito_combined_s2`). `O5_SP_35`'s `labels/cristae`
+was verified non-empty on 2026-06-25 (305,713 voxels, instance-labeled) — the CSV's blank `cristae` field
+for it is incomplete, not correct. No unknowns in cooper.
 
 Net labeled balance ≈ **WT/CTRL ~98 vs KO/DKO ~23**, with 29 wichmann `M#_eb*` files carrying no
 genotype label (mouse number only). Coverage is strongly WT-skewed (~81% WT among labeled files).
