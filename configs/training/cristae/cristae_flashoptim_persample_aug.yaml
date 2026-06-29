@@ -1,14 +1,16 @@
 # Cristae training — proven best recipe (persample masked Dice + Kornia aug, legacy split, ALL files)
-# run through FlashOptim to SPEND the freed memory on a 2x batch.
-# Built from cristae_allfiles_persample_aug.yaml (AP 0.830); the ONLY deltas are:
-#   use_flashoptim: true, batch_size 8->16, learning_rate 1e-4->1.4e-4 (sqrt-scaled for 2x batch).
-# Rationale: the original flashoptim run (2026-06-12) kept bs=8, so it paid FlashAdamW's fp32-compute
-# cost for no benefit. FlashAdamW's value is memory headroom for a LARGER batch -> use it here.
+# run through FlashOptim (FlashAdamW + bf16) on an 80 GB A100.
+# Built from cristae_allfiles_persample_aug.yaml (AP 0.830); deltas: use_flashoptim,
+#   batch_size 8->12, learning_rate 1e-4->1.2e-4 (sqrt(1.5)-scaled), grete_shared_80gb profile.
+# Batch size: the 2026-06-26 memory probe (cristae_probe_maxbatch.yaml) showed flashoptim runs fp32
+# ("single precision") and caps at bs16 (74.9/85 GB, tight); bs12 (59.5 GB) is the safe point.
+# NOTE: the probe also showed the STANDARD AMP trainer fits bs28 at lower memory + faster, so this
+# flashoptim run is the dominated arm of the A/B vs cristae_persample_aug_bs24_80gb.yaml.
 # Run: python sbatch_runner.py configs/training/cristae/cristae_flashoptim_persample_aug.yaml
 # Dry-run first to confirm the submitted command:
 #   python sbatch_runner.py configs/training/cristae/cristae_flashoptim_persample_aug.yaml --dry-run
 
-slurm_profile: grete_shared
+slurm_profile: grete_shared_80gb
 
 env:
   type: micromamba
@@ -16,10 +18,10 @@ env:
 
 script: "training/cristae/train_cristae.py"
 args:
-  experiment_name: "cristae-net32-lr1.4e-4-bs16-ps32x256x256-flashoptim-persample-aug-allfiles-2026-06-26"
-  use_flashoptim: true              # <-- FlashAdamW + bf16 (the memory headroom)
-  batch_size: 16                    # <-- 2x baseline; this is what the headroom buys
-  learning_rate: 1.4e-4             # <-- sqrt(2)-scaled for the 2x batch
+  experiment_name: "cristae-net32-lr1.2e-4-bs12-ps32x256x256-flashoptim-persample-aug-allfiles-2026-06-26"
+  use_flashoptim: true              # <-- FlashAdamW + bf16
+  batch_size: 12                    # <-- safe point for flashoptim's fp32 footprint (59.5/85 GB; probe)
+  learning_rate: 1.2e-4             # <-- sqrt(1.5)-scaled for the 1.5x batch
   loss_variant: "persample"         # MaskedDiceLossPerSample (proven recipe)
   augmentations: true               # default Kornia aug via AugmentedMitoStateMaskTransform
   split_strategy: "legacy"

@@ -1,0 +1,42 @@
+============================================================
+GPU: NVIDIA A100-SXM4-80GB  total memory: 85.1 GB
+patch_shape=(32, 256, 256)  feature_size=32  in/out channels=2/2  iters/batch=3
+batch sizes: [8, 12, 16, 20, 24, 28, 32, 40, 48]   regimes: ['fp32', 'amp']
+============================================================
+model params: 21.36 M  (fp32 weights+grads ~0.17 GB, AdamW states ~0.17 GB)
+
+===== regime: fp32 (autocast=OFF) =====
+ batch |  peak GB | result
+--------------------------------
+     8 |    39.76 | FIT
+    12 |    59.51 | FIT
+    16 |    74.94 | FIT
+    20 |        - | OOM (stop; larger sizes also OOM)
+
+===== regime: amp (autocast=ON) =====
+ batch |  peak GB | result
+--------------------------------
+     8 |    20.90 | FIT
+    12 |    31.20 | FIT
+    16 |    45.78 | FIT
+    20 |    54.46 | FIT
+    24 |    63.15 | FIT
+    28 |    71.83 | FIT
+    32 |        - | OOM (stop; larger sizes also OOM)
+
+============================================================
+SUMMARY — max batch size that fits
+   fp32: 16
+    amp: 28
+
+-> For the flashoptim config (runs fp32/single-precision), use batch_size = 16 or one step lower for headroom (validation + cuDNN workspace + fragmentation).
+============================================================
+Done.
+============ Job Information ===================================================
+Submitted: 2026-06-26T10:02:06
+Started: 2026-06-26T10:02:12
+Ended: 2026-06-26T10:05:37
+Elapsed: 4 min, Limit: 2160 min, Difference: 2156 min
+CPUs: 8, Nodes: 1
+Estimated credit Consumption: 10.00 core-hours
+================================================================================

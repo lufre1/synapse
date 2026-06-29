@@ -1,0 +1,50 @@
+# Eval for the bs12 FLASHOPTIM (FlashAdamW + bf16) persample-aug allfiles run (job 14507155).
+# Same recipe/test split as the bs24/bs8 evals -> AP comparable to 0.830 (bs8 allfiles) / 0.837 (gold).
+#
+# REPAIR FIRST: the flashoptim checkpoint stores an EMPTY init + bf16 weights, so torch_em's get_trainer
+# loader cannot rebuild it. The first command rebuilds the known cristae arch, loads the weights as fp32,
+# and saves a serialized nn.Module (model.pt). model_path points at that file (NOT named best.pt) so
+# synapse-net's get_prediction torch.loads it directly, bypassing get_trainer/init.
+# Trained with standardize (no --normalize).
+#
+# Submit chained to fire after training SUCCEEDS (repair runs on the FINAL best.pt):
+#   python sbatch_runner.py configs/evaluation/cristae/eval_cristae-net32-lr1.2e-4-bs12-ps32x256x256-flashoptim-persample-aug-allfiles-2026-06-26.yaml --dependency afterok:14507155
+
+slurm_profile: grete_interactive
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+commands:
+  - python ${REPO}/evaluation/cristae/repair_flashoptim_checkpoint.py --src /mnt/lustre-grete/usr/u12103/cristae/checkpoints/cristae-net32-lr1.2e-4-bs12-ps32x256x256-flashoptim-persample-aug-allfiles-2026-06-26 --out /mnt/lustre-grete/usr/u12103/cristae/checkpoints/cristae-net32-lr1.2e-4-bs12-ps32x256x256-flashoptim-persample-aug-allfiles-2026-06-26-repaired
+  - python ${REPO}/inference/cristae/segment_cristae.py -c ${SELF}
+  - python ${REPO}/evaluation/cristae/evaluate_cristae.py -c ${SELF}
+  - python ${REPO}/evaluation/cristae/evaluate_cristae_ap.py -c ${SELF}
+
+# serialized repaired model (file, not a checkpoint dir)
+model_path: /mnt/lustre-grete/usr/u12103/cristae/checkpoints/cristae-net32-lr1.2e-4-bs12-ps32x256x256-flashoptim-persample-aug-allfiles-2026-06-26-repaired/model.pt
+export_path: &export_path /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.2e-4-bs12-ps32x256x256-flashoptim-persample-aug-allfiles-2026-06-26
+tile_shape: [32, 256, 256]
+save_predictions: true   # save pred/foreground so evaluate_cristae_ap.py can reuse it
+
+h5_paths:  # pinned test split (SYNAPSENETV1_TEST_SPLIT, 15 files; Otof_455L repointed to needs_corrections)
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT22_eb5_model2_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT40_eb10_model_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M5_eb1_model_combined.h5
+  - /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined.h5
+  - /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36194_B4_66K_TS_SC_22_rec_crop_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT21_eb5_model2_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/KO8_eb4_model_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann_needs_corrections/2026-05-26-dataset/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M8_eb6_model_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT20_eb5_model2_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M1_eb6_model_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M2_eb5_model_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined.h5
+  - /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36194_B4_66K_TS_R01A_SC_01_rec_crop_combined.h5
+  - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT21_syn4_model2_combined.h5
+
+key: labels/cristae
+segmentations_key: seg
+output_path: *export_path   # directory; evaluate_cristae.py writes cristae_eval_results.csv inside

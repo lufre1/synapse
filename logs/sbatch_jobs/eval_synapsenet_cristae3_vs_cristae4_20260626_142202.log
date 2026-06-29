@@ -1,0 +1,116 @@
+linked 15 test files into /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/test_gt
+Determined tile size for CUDA: {'tile': {'x': 512, 'y': 512, 'z': 64}, 'halo': {'x': 64, 'y': 64, 'z': 16}}
+Segmenting cristae in volume of shape (236, 1024, 1024)
+Rescaled volume from (236, 1024, 1024) to (285, 1237, 1237) in 15.289743900299072 s
+Rescaled volume from (236, 1024, 1024) to (285, 1237, 1237) in 3.818586826324463 s
+Run prediction with mask.
+Prediction time in 42.20835900306702 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 17.04 s
+Compute connected components in 2.5547587871551514 s
+Size filter in 3.7915453910827637 s
+Resized prediction back to original shape (236, 1024, 1024) in 2.8046088218688965 s
+Saved segmentation to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/seg_cristae3/./36194_B4_66K_TS_R01A_SC_01_rec_crop_combined_prediction.h5.
+Segmenting cristae in volume of shape (246, 901, 902)
+Rescaled volume from (246, 901, 902) to (297, 1088, 1090) in 12.491386890411377 s
+Rescaled volume from (246, 901, 902) to (297, 1088, 1090) in 3.108882188796997 s
+Run prediction with mask.
+Prediction time in 18.208035469055176 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 6.56 s
+Compute connected components in 1.7005531787872314 s
+Size filter in 2.930262804031372 s
+Resized prediction back to original shape (246, 901, 902) in 2.2669291496276855 s
+Saved segmentation to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/seg_cristae3/./36194_B4_66K_TS_SC_22_rec_crop_combined_prediction.h5.
+Segmenting cristae in volume of shape (282, 911, 911)
+Rescaled volume from (282, 911, 911) to (341, 1100, 1100) in 14.639559984207153 s
+Rescaled volume from (282, 911, 911) to (341, 1100, 1100) in 3.6454834938049316 s
+Run prediction with mask.
+Prediction time in 47.6836633682251 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 27.90 s
+Compute connected components in 2.045776844024658 s
+Size filter in 3.4346251487731934 s
+Resized prediction back to original shape (282, 911, 911) in 2.653136968612671 s
+Saved segmentation to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/seg_cristae3/./36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined_prediction.h5.
+Segmenting cristae in volume of shape (91, 1336, 1336)
+Rescaled volume from (91, 1336, 1336) to (110, 1614, 1614) in 10.192455053329468 s
+Rescaled volume from (91, 1336, 1336) to (110, 1614, 1614) in 2.5138986110687256 s
+Run prediction with mask.
+Prediction time in 20.877362728118896 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 16.60 s
+Compute connected components in 1.3758232593536377 s
+Size filter in 2.388942003250122 s
+Resized prediction back to original shape (91, 1336, 1336) in 1.8347365856170654 s
+Saved segmentation to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/seg_cristae3/./KO8_eb4_model_combined_prediction.h5.
+Segmenting cristae in volume of shape (124, 1336, 1336)
+Rescaled volume from (124, 1336, 1336) to (150, 1614, 1614) in 13.881808757781982 s
+Rescaled volume from (124, 1336, 1336) to (150, 1614, 1614) in 3.4070959091186523 s
+Run prediction with mask.
+Prediction time in 13.57408356666565 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 8.08 s
+Compute connected components in 1.8489253520965576 s
+Size filter in 3.19620418548584 s
+Resized prediction back to original shape (124, 1336, 1336) in 2.4965403079986572 s
+Saved segmentation to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/seg_cristae3/./M1_eb6_model_combined_prediction.h5.
+Segmenting cristae in volume of shape (111, 1336, 1336)
+Rescaled volume from (111, 1336, 1336) to (134, 1614, 1614) in 12.481947183609009 s
+Rescaled volume from (111, 1336, 1336) to (134, 1614, 1614) in 3.0710628032684326 s
+Run prediction with mask.
+Prediction time in 30.56058645248413 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 19.51 s
+Compute connected components in 1.773782730102539 s
+Size filter in 3.127951145172119 s
+Resized prediction back to original shape (111, 1336, 1336) in 2.3137943744659424 s
+Saved segmentation to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/seg_cristae3/./M2_eb5_model_combined_prediction.h5.
+Segmenting cristae in volume of shape (107, 1336, 1336)
+Rescaled volume from (107, 1336, 1336) to (129, 1614, 1614) in 12.14290475845337 s
+Rescaled volume from (107, 1336, 1336) to (129, 1614, 1614) in 2.9546196460723877 s
+Run prediction with mask.
+Prediction time in 19.28585982322693 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 14.71 s
+Compute connected components in 1.726008415222168 s
+Size filter in 2.9073293209075928 s
+Resized prediction back to original shape (107, 1336, 1336) in 2.1744935512542725 s
+Saved segmentation to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/seg_cristae3/./M5_eb1_model_combined_prediction.h5.
+Segmenting cristae in volume of shape (79, 1336, 1336)
+Rescaled volume from (79, 1336, 1336) to (95, 1614, 1614) in 8.898136854171753 s
+Rescaled volume from (79, 1336, 1336) to (95, 1614, 1614) in 2.175910711288452 s
+Run prediction with mask.
+Prediction time in 22.21095895767212 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 9.72 s
+Compute connected components in 1.2394490242004395 s
+Size filter in 2.203888416290283 s
+Resized prediction back to original shape (79, 1336, 1336) in 1.6420750617980957 s
+Saved segmentation to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/seg_cristae3/./M8_eb6_model_combined_prediction.h5.
+Segmenting cristae in volume of shape (87, 1920, 2560)
+Rescaled volume from (87, 1920, 2560) to (105, 2319, 3092) in 27.3402202129364 s
+Rescaled volume from (87, 1920, 2560) to (105, 2319, 3092) in 6.559486627578735 s
+Run prediction with mask.
+Prediction time in 25.46570110321045 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 25.79 s
+Compute connected components in 3.537787914276123 s
+Size filter in 6.145633220672607 s
+Resized prediction back to original shape (87, 1920, 2560) in 4.790233850479126 s
+Saved segmentation to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/seg_cristae3/./Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined_prediction.h5.
+Segmenting cristae in volume of shape (100, 1920, 1920)
+Rescaled volume from (100, 1920, 1920) to (121, 2319, 2319) in 23.469529628753662 s
+Rescaled volume from (100, 1920, 1920) to (121, 2319, 2319) in 5.790919780731201 s
+Run prediction with mask.
+Prediction time in 12.725030660629272 s
+Eroding mitochondria instances globally by 7 voxels ...
+Done.
+============ Job Information ===================================================
+Submitted: 2026-06-26T14:22:02
+Started: 2026-06-26T14:22:42
+Ended: 2026-06-26T14:36:44
+Elapsed: 15 min, Limit: 2160 min, Difference: 2145 min
+CPUs: 8, Nodes: 1
+Estimated credit Consumption: 37.50 core-hours
+================================================================================

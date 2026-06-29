@@ -1,0 +1,21 @@
+linked 15 test files into /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/test_gt
+Determined tile size for CUDA: {'tile': {'x': 640, 'y': 640, 'z': 80}, 'halo': {'x': 64, 'y': 64, 'z': 16}}
+Segmenting cristae in volume of shape (236, 1024, 1024)
+Rescaled volume from (236, 1024, 1024) to (285, 1237, 1237) in 20.3236882686615 s
+Rescaled volume from (236, 1024, 1024) to (285, 1237, 1237) in 4.980304956436157 s
+Run prediction with mask.
+Prediction time in 42.984925508499146 s
+Eroding mitochondria instances globally by 7 voxels ...
+Instance erosion completed in 27.44 s
+Compute connected components in 3.0955657958984375 s
+Size filter in 5.034168243408203 s
+Resized prediction back to original shape (236, 1024, 1024) in 3.7166144847869873 s
+Done.
+============ Job Information ===================================================
+Submitted: 2026-06-26T14:42:19
+Started: 2026-06-26T14:42:28
+Ended: 2026-06-26T14:45:25
+Elapsed: 3 min, Limit: 2160 min, Difference: 2157 min
+CPUs: 8, Nodes: 1
+Estimated credit Consumption: 7.50 core-hours
+================================================================================

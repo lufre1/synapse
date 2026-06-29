@@ -1,0 +1,38 @@
+# Cristae training — proven best recipe (persample masked Dice + Kornia aug, legacy split, ALL files)
+# on the STANDARD mixed-precision trainer, scaled to a large batch on an 80 GB A100.
+# Built from cristae_allfiles_persample_aug.yaml (AP 0.830); deltas: grete_shared_80gb profile,
+# batch_size 8->24, learning_rate 1e-4->1.7e-4 (sqrt(3)-scaled for the 3x batch).
+# Why standard (no flashoptim): the 2026-06-26 memory probe (cristae_probe_maxbatch.yaml) showed the
+# mixed-precision/AMP trainer fits up to bs28 on 80 GB (bs24 = 63 GB, comfortable headroom), whereas
+# flashoptim's fp32 compute caps at bs16 at higher memory. AMP gives the bigger, faster batch.
+# Run: python sbatch_runner.py configs/training/cristae/cristae_persample_aug_bs24_80gb.yaml
+
+slurm_profile: grete_shared_80gb
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+script: "training/cristae/train_cristae.py"
+args:
+  experiment_name: "cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26"
+  batch_size: 24                    # <-- 3x baseline; AMP fits up to 28 on 80GB (probe), 24 = 63GB
+  learning_rate: 1.7e-4             # <-- sqrt(3)-scaled for the 3x batch
+  loss_variant: "persample"         # MaskedDiceLossPerSample (proven recipe)
+  augmentations: true               # default Kornia aug via AugmentedMitoStateMaskTransform
+  split_strategy: "legacy"
+  data_dir: "/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2"
+  data_dir2: "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae"
+  data_dir3: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/"
+  data_dir4: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann_needs_corrections/"
+  patch_shape: [32, 256, 256]
+  n_iterations: 100000
+  feature_size: 32
+  ignore_state_value: 2
+  state_channel: 1
+  test_split: "synapsenetv1-testsplit"
+  early_stopping: 25
+  seed: 42
+  num_workers: 8
+  persistent_workers: true
+  prefetch_factor: 4

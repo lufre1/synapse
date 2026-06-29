@@ -1,0 +1,52 @@
+# Compare synapse-net registry cristae models cristae3 (under test) vs cristae4 (baseline) on the
+# pinned 15-file test split, via the synapse_net.run_segmentation CLI, then the masked-Dice eval.
+#
+# Why these scales: the CLI rescales data to each model's training resolution (compute_scale_from
+# _voxel_size = data_voxel / training_voxel). Data is ~1.74 nm. cristae3 trained @1.44 -> 1.74/1.44
+# = 1.208; cristae4 trained @1.74 -> 1.0. (Our h5 carry no voxel metadata, so we pass --scale.)
+# The CLI reads `raw_mitos_combined` [2,Z,Y,X] directly and segment_cristae splits ch0=raw, ch1=mito
+# -> no --extra_input_path needed. Models are pre-cached in ~/.cache/synapse-net/models.
+#
+# Robustness (learned from runs 14508625/14508956):
+#  - We rm the seg dirs first: synapse-net's --force re-runs compute but writes with create_dataset(),
+#    which CANNOT overwrite an existing dataset -> "name already exists" crash on a 2nd run. Clean slate.
+#  - We segment ONE FILE PER PROCESS (the for-loop): isolates memory (a global instance-erosion spike
+#    on the larger upscaled volumes SIGKILLed the single-process dir run) and isolates a bad file.
+#  - 128G profile for erosion headroom.
+#
+# AP is NOT available here: the CLI emits a post-processed SEGMENTATION, not foreground probabilities.
+# evaluate_cristae.py masks the Dice/precision/recall (+HD95) to annotated mito (state==1).
+#
+# Run: python sbatch_runner.py configs/evaluation/cristae/eval_synapsenet_cristae3_vs_cristae4.yaml
+
+slurm_profile: grete_shared_80gb
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+commands:
+  # 1) stage the test files into one dir (combined h5 = CLI input AND GT for eval).
+  # Exclude Otof_455L_B3_2: its raw_mitos_combined is float32 (others int16) -> synapse-net's
+  # _erode_instances -> regionprops() raises "Non-integer label_image" for BOTH models. It is the
+  # flagged needs_corrections file; excluding it keeps the 14-file comparison aligned (GT vs seg).
+  - python ${REPO}/evaluation/cristae/make_test_split_dir.py --out /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/test_gt --exclude Otof_AVCN07_455L_KO_M.Stim_B3_2
+
+  # 2) cristae3 (rescale to 1.44 nm training res), one file per process, then strip _prediction suffix
+  - rm -f /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/seg_cristae3/*.h5
+  - for f in /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/test_gt/*.h5; do synapse_net.run_segmentation -i "$f" -o /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/seg_cristae3 -m cristae3 --segmentation_key cristae --scale 1.208 --tile_shape 32 512 512 --halo 8 128 128 -v; done
+  - python -c "import glob,os; [os.replace(f, f.replace('_prediction.h5','.h5')) for f in glob.glob('/mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/seg_cristae3/*_prediction.h5')]"
+
+  # 3) cristae4 (data already ~1.74 nm -> no rescale), one file per process
+  - rm -f /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/seg_cristae4/*.h5
+  - for f in /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/test_gt/*.h5; do synapse_net.run_segmentation -i "$f" -o /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/seg_cristae4 -m cristae4 --segmentation_key cristae --scale 1.0 --tile_shape 32 512 512 --halo 8 128 128 -v; done
+  - python -c "import glob,os; [os.replace(f, f.replace('_prediction.h5','.h5')) for f in glob.glob('/mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/seg_cristae4/*_prediction.h5')]"
+
+  # 4) masked-Dice evaluation (GT labels/cristae + mito mask from test_gt; seg key 'cristae')
+  - mkdir -p /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/eval_cristae3 /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/eval_cristae4
+  - rm -f /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/eval_cristae3/cristae_eval_results.csv /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/eval_cristae4/cristae_eval_results.csv
+  - python ${REPO}/evaluation/cristae/evaluate_cristae.py -l /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/test_gt -k labels/cristae -le .h5 -s /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/seg_cristae3 -sk cristae -se .h5 -o /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/eval_cristae3 -hd
+  - python ${REPO}/evaluation/cristae/evaluate_cristae.py -l /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/test_gt -k labels/cristae -le .h5 -s /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/seg_cristae4 -sk cristae -se .h5 -o /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/eval_cristae4 -hd
+
+  # 5) side-by-side summary
+  - python ${REPO}/evaluation/cristae/compare_eval_csvs.py -c cristae3 /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/eval_cristae3/cristae_eval_results.csv -c cristae4 /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/synapsenet_cli/eval_cristae4/cristae_eval_results.csv

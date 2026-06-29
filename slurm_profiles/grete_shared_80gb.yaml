@@ -2,6 +2,6 @@
 partition: "grete:shared"
 gpu: A100:1
 constraint: "80gb"
-time: "24:00:00"
+time: "1-12:00:00"
 cpus: 8
 mem: "128G"
