@@ -87,6 +87,7 @@ was removing the 13 bad annotations (+0.05). Cleaning + per-sample masked Dice +
 |---|---|---|
 | 06-01 (gold) | 0.837 | per-sample · aug · exact-120 split · ~100k |
 | repro0601-exactsplit | 0.837 | reproduces 06-01 on current code |
+| **bs24-AMP-allfiles** | **0.832** | per-sample · aug · allfiles · lr=1.7e-4 · **bs=24** · AMP bf16 · 100k |
 | persample-aug | 0.830 | per-sample · aug · extended split · **bad files excluded** · 100k |
 | newloss-aug | 0.822 | pooled loss · aug · extended · bad excluded · 75k |
 | oldloss | 0.780 | per-sample · aug · extended · **bad files included** · 75k |
