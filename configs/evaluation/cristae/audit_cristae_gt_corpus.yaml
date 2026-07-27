@@ -1,0 +1,36 @@
+# GT-ceiling audit + junction counts over the FULL cristae training corpus (~147 files).
+# Run: python sbatch_runner.py configs/evaluation/cristae/audit_cristae_gt_corpus.yaml
+#
+# Same measurement as audit_cristae_gt_test15.yaml, but over the training discovery set: does the
+# TRAINING data actually teach the model where cristae junctions are? Discovery mirrors
+# training/cristae/train_cristae.py (all four data_dirs of cristae_allfiles_persample_aug.yaml,
+# `_combined.h5` filter, the three hardcoded bad files excluded).
+#
+# The junction-count table also regenerates RESULTS_cristae_junction_audit.md from committed code
+# (the original script was never checked in). Expected reference values at 8 / 12 nm:
+#   147 analyzable files · 2341 cristae instances · 2119 / 2802 contact points ·
+#   42.5% / 49.7% cristae touching · 315 mito instances · 72.4% / 84.4% mito with junction.
+# Instance counts must match exactly; contact counts may differ a few percent because the membrane
+# shell is now a 3D distance transform instead of a per-slice XY erosion.
+
+slurm_profile: grete_std_cpu
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+script: "evaluation/cristae/audit_cristae_junctions.py"
+args:
+  output_path: /mnt/lustre-grete/usr/u12103/cristae/junction_audit/corpus
+  band_nm: [8, 12]
+  voxel_size: [1.74, 1.74, 1.74]   # drop this line to use each file's own voxel_size attribute
+  path_filter: "_combined.h5"
+  data_dirs:
+    - /scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2
+    - /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae
+    - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/
+    - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann_needs_corrections/
+  exclude_substrings:   # the three files train_cristae.py drops (raw artefacts / poor cristae labels)
+    - Otof_AVCN03_429C_WT_M.Stim_G3_1_model_combined
+    - WT20_eb8_AZ1_model_combined
+    - WT22_eb8_model_combined

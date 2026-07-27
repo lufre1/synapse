@@ -1,0 +1,37 @@
+# GT-ceiling audit on the PINNED 15-file test split (SYNAPSENETV1_TEST_SPLIT).
+# Run: python sbatch_runner.py configs/evaluation/cristae/audit_cristae_gt_test15.yaml
+#
+# Measures, per crista instance, the minimum distance to the mito membrane (`gap_nm`). This is the
+# ceiling on the band AP produced by eval_band_ap_top3.yaml: if the test annotations themselves stop
+# several nm short of the membrane, a low band AP is an annotation artefact, not a model failure.
+# READ cristae_gt_gap.csv BEFORE acting on any band-AP number.
+#
+# Model-free (no GPU): reads only raw_mitos_combined[1] and labels/cristae from the source H5s.
+
+slurm_profile: grete_std_cpu
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+script: "evaluation/cristae/audit_cristae_junctions.py"
+args:
+  output_path: /mnt/lustre-grete/usr/u12103/cristae/junction_audit/test15
+  band_nm: [8, 12]
+  voxel_size: [1.74, 1.74, 1.74]   # drop this line to use each file's own voxel_size attribute
+  h5_paths:
+    - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT22_eb5_model2_combined.h5
+    - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT40_eb10_model_combined.h5
+    - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M5_eb1_model_combined.h5
+    - /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined.h5
+    - /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36194_B4_66K_TS_SC_22_rec_crop_combined.h5
+    - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT21_eb5_model2_combined.h5
+    - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/KO8_eb4_model_combined.h5
+    - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann_needs_corrections/2026-05-26-dataset/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5
+    - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M8_eb6_model_combined.h5
+    - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT20_eb5_model2_combined.h5
+    - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M1_eb6_model_combined.h5
+    - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M2_eb5_model_combined.h5
+    - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined.h5
+    - /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36194_B4_66K_TS_R01A_SC_01_rec_crop_combined.h5
+    - /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT21_syn4_model2_combined.h5

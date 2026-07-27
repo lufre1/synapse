@@ -6,11 +6,24 @@ Reads, for each segmentation-output H5 in `export_path` (produced by segment_cri
 region (mito state == 1) it computes — reusing `analyze()` from `diagnose_cristae_probs.py` — the
 average precision (AP), ROC-AUC, mean foreground prob on true/non cristae, and a threshold sweep.
 
+With `--band_nm` (default 8 and 12 nm) the same metrics are additionally computed **restricted to the
+mitochondrial-membrane shell** — the cristae-junction region — and to its complement:
+
+    region = "all"      : every state==1 voxel (unchanged; comparable to previous runs)
+    region = "band<t>"  : state==1 voxels within t nm of the membrane   -> junction accuracy
+    region = "core<t>"  : the remaining state==1 voxels                 -> bulk accuracy
+
+Junction voxels are a median ~2% of crista voxels (see RESULTS_cristae_junction_audit.md), so they
+are invisible in the "all" AP; the band numbers are what a membrane-targeted training change has to
+move. The restriction is applied by handing `analyze()` a state array that is 1 only inside the
+region, so the metric definition is bit-for-bit the same in every region.
+
 This reuses the predictions already computed by the segment step (no model re-run). Writes
 `cristae_ap_summary.csv` (+ `cristae_ap_sweep.csv`) into `export_path`, next to `cristae_eval_results.csv`.
 
 Usage (config-driven, like segment/evaluate):
     python evaluation/cristae/evaluate_cristae_ap.py -c <eval_config.yaml>
+    python evaluation/cristae/evaluate_cristae_ap.py -e <export_dir> --band_nm 8 12
 """
 import argparse
 import glob
@@ -25,6 +38,9 @@ from elf.io import open_file
 # Reuse the exact analysis used by the standalone diagnostic (AP/AUC + fg-prob stats + threshold sweep).
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from diagnose_cristae_probs import analyze  # noqa: E402
+
+from synapse.cristae.membrane import DEFAULT_VOXEL_SIZE, membrane_band, membrane_distance  # noqa: E402
+from synapse.h5_util import read_voxel_size  # noqa: E402
 
 
 def build_parser():
@@ -41,6 +57,14 @@ def build_parser():
                         help="H5 dataset key for the mito-state channel (0=bg, 1=annotated, 2=unannotated).")
     parser.add_argument("--predictions_key", default="pred/foreground",
                         help="H5 dataset key for the foreground-probability map (needs save_predictions=true).")
+    parser.add_argument("--band_nm", type=float, nargs="+", default=[8.0, 12.0],
+                        help="Membrane-shell thicknesses in nm. For each, AP is also computed inside the "
+                             "shell (region 'band<t>', the cristae-junction region) and outside it "
+                             "(region 'core<t>'). Set `band_nm: []` in the config for the whole-region "
+                             "metric only.")
+    parser.add_argument("--voxel_size", type=float, nargs=3, default=None,
+                        help="(z y x) voxel size in nm, overriding the file's 'voxel_size' attribute. "
+                             f"Falls back to {DEFAULT_VOXEL_SIZE} when neither is available.")
     return parser
 
 
@@ -59,11 +83,45 @@ def parse_args():
     # config may not define these → fall back to the argparse defaults
     if getattr(args, "key", None) is None:
         args.key = "labels/cristae"
+    if getattr(args, "band_nm", None) is None:
+        args.band_nm = []
     return args
 
 
 def _fname(path):
     return os.path.splitext(os.path.basename(path))[0]
+
+
+def _voxel_size(path, override):
+    """(z, y, x) nm voxel size: explicit override > file attribute > corpus default."""
+    if override is not None:
+        return tuple(float(v) for v in override), "config"
+    try:
+        vs = read_voxel_size(path, h5_key="raw", default=None)
+    except Exception:
+        vs = None
+    if vs is not None:
+        return tuple(float(v) for v in vs), "file-attr"
+    return DEFAULT_VOXEL_SIZE, "default"
+
+
+def _regions(state, band_nm, voxel_size):
+    """[(region_name, state_array)] — the whole annotated-mito region plus membrane band / core.
+
+    The band/core arrays are 0/1 state arrays, so `analyze()` restricts to exactly that region
+    without any change to how AP is computed. State==2 statistics are only meaningful for the
+    whole region and come out NaN for the band/core rows.
+    """
+    regions = [("all", state)]
+    if not len(band_nm):
+        return regions
+    s1 = state == 1
+    dist = membrane_distance(s1, voxel_size)
+    for t in band_nm:
+        band = membrane_band(s1, voxel_size, t, distance=dist)
+        regions.append((f"band{t:g}", band.astype(np.uint8)))
+        regions.append((f"core{t:g}", (s1 & ~band).astype(np.uint8)))
+    return regions
 
 
 def main():
@@ -87,28 +145,40 @@ def main():
             fg = h[pred_key][:].astype(np.float32)
             state = h[state_key][:]
             gt = h[args.key][:]
-        summary, sweep = analyze(fg, state, gt)
-        summary.update({"model": model, "file": _fname(f)})
-        summary_rows.append(summary)
-        for s in sweep:
-            s.update({"model": model, "file": _fname(f)})
-            sweep_rows.append(s)
-        print(f"  {_fname(f)}: AP={summary['ap']:.4f} AUC={summary['auc']:.4f}", flush=True)
+
+        vs, vs_source = _voxel_size(f, args.voxel_size)
+        line = [f"  {_fname(f)} [vs={vs[0]:g},{vs[1]:g},{vs[2]:g} nm ({vs_source})]"]
+        for region, region_state in _regions(state, args.band_nm, vs):
+            summary, sweep = analyze(fg, region_state, gt)
+            tags = {"model": model, "file": _fname(f), "region": region}
+            summary.update(tags)
+            summary_rows.append(summary)
+            for s in sweep:
+                s.update(tags)
+                sweep_rows.append(s)
+            line.append(f"{region} AP={summary['ap']:.4f}")
+        print("  ".join(line), flush=True)
 
     df = pd.DataFrame(summary_rows)
-    avg = {c: (df[c].mean() if np.issubdtype(df[c].dtype, np.number) else "") for c in df.columns}
-    avg["file"] = "all-files-averaged"
-    avg["model"] = model
-    df = pd.concat([df, pd.DataFrame([avg])], ignore_index=True)
+    # One averaged row per region (macro average over files).
+    avgs = []
+    for region in df["region"].unique():
+        sub = df[df["region"] == region]
+        avg = {c: (sub[c].mean() if np.issubdtype(sub[c].dtype, np.number) else "") for c in df.columns}
+        avg.update({"file": "all-files-averaged", "model": model, "region": region})
+        avgs.append(avg)
+    df = pd.concat([df, pd.DataFrame(avgs)], ignore_index=True)
 
     os.makedirs(args.output_path, exist_ok=True)
     out_summary = os.path.join(args.output_path, "cristae_ap_summary.csv")
     df.to_csv(out_summary, index=False)
     pd.DataFrame(sweep_rows).to_csv(os.path.join(args.output_path, "cristae_ap_sweep.csv"), index=False)
 
-    macro = df[df["file"] == "all-files-averaged"].iloc[0]
-    print(f"\n[AP] {model}: macro AP={macro['ap']:.4f}  AUC={macro['auc']:.4f}  "
-          f"(n={len(files)} files)  ->  {out_summary}", flush=True)
+    print(f"\n[AP] {model} (n={len(files)} files)")
+    for _, macro in df[df["file"] == "all-files-averaged"].iterrows():
+        print(f"  region={macro['region']:<10} macro AP={macro['ap']:.4f}  AUC={macro['auc']:.4f}  "
+              f"gt_fg={int(macro['gt_fg']):,}/{int(macro['n_state1']):,} voxels", flush=True)
+    print(f"  ->  {out_summary}", flush=True)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,32 @@
+# Band-restricted AP for the top-3 cristae models — the cristae-JUNCTION metric.
+# Run: python sbatch_runner.py configs/evaluation/cristae/eval_band_ap_top3.yaml
+#
+# Recomputes AP from the foreground probabilities ALREADY on disk in each model's
+# test_segmentations dir (no GPU, no model re-run) and splits it into three regions:
+#   all      — every state==1 voxel (identical to the numbers in RESULTS_all_models.md)
+#   band8/12 — state==1 voxels within 8 / 12 nm of the mito membrane -> junction accuracy
+#   core8/12 — the rest of the mito interior                          -> bulk accuracy
+# Junction voxels are a median ~2% of crista voxels, so the headline AP (0.837 / 0.832 / 0.828)
+# says nothing about them. These band numbers are the baseline any membrane-targeted training
+# change has to beat.
+#
+# FAILS LOUD if `pred/foreground` is missing from an export dir (it is only written when the
+# segment step ran with `save_predictions: true`). In that case re-submit that model's own eval
+# config — all three already set save_predictions and now also carry band_nm:
+#   configs/evaluation/cristae/eval_cristae-net32-lr1e-4-bs8-ps32x256x256-repro0601-exactsplit-2026-06-18.yaml
+#   configs/evaluation/cristae/eval_cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26.yaml
+#   configs/evaluation/cristae/eval_cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-allfiles-2026-06-25.yaml
+
+slurm_profile: grete_std_cpu
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+commands:
+  # repro0601-exactsplit — gold standard, macro AP 0.837
+  - python ${REPO}/evaluation/cristae/evaluate_cristae_ap.py --band_nm 8 12 --export_path /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-repro0601-exactsplit-2026-06-18
+  # bs24-AMP-allfiles — macro AP 0.832
+  - python ${REPO}/evaluation/cristae/evaluate_cristae_ap.py --band_nm 8 12 --export_path /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26
+  # persample-aug-allfiles (bs8) — macro AP 0.828
+  - python ${REPO}/evaluation/cristae/evaluate_cristae_ap.py --band_nm 8 12 --export_path /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1e-4-bs8-ps32x256x256-persample-aug-allfiles-2026-06-25
