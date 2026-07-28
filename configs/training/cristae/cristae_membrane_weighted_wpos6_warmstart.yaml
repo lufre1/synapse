@@ -1,0 +1,67 @@
+# Cristae training — membrane-proximity WEIGHTED loss, run B (DOSE-RESPONSE), WARM-START RESUBMIT.
+#
+# Why this file exists: the original run B (job 15077437, submitted from
+# cristae_membrane_weighted_wpos6.yaml) hung after ~8.4k iterations when its compute node ggpu201
+# became unresponsive on 2026-07-28 at ~03:39 (node stopped answering SSH entirely; SLURM still
+# reported RUNNING). Nothing to do with the training code — runs A and C, byte-identical apart from
+# the weight values, kept progressing normally on ggpu211/ggpu202.
+#
+# Delta vs cristae_membrane_weighted_wpos6.yaml: `checkpoint_path` warm-starts from the step-7800
+# `best.pt` that survived on lustre (the dead node held no state). Everything else is identical.
+# The pre-hang checkpoint is preserved at <experiment_name>-preempted-step7800/ in case this run
+# needs to be redone from it.
+#
+# Arch drift does NOT apply here (checked): this checkpoint's stored `model_kwargs` contains
+# `norm: None` explicitly, so `AnisotropicUNet(**model_kwargs)` at train_cristae.py:463 rebuilds an
+# identical network. That hazard is real only for the old 2026-06-01-era checkpoints, whose
+# model_kwargs lack a `norm` key and therefore silently pick up ConvBlock's InstanceNorm default.
+#
+# CAVEAT for interpreting B against A and C: train_cristae.py warm-starts `model_state` ONLY — the
+# optimizer state is not restored. So B restarts with fresh Adam moments at iteration 0 of its own
+# schedule, whereas A and C have continuous optimizer momentum throughout. B is therefore not a
+# perfectly clean single-variable comparison any more. Treat its band AP as indicative of the
+# w_pos=6 direction, not as a precise dose-response point against A.
+#
+# The experiment_name is deliberately unchanged so this writes to the same checkpoint/export paths
+# and the existing eval config (eval_cristae_membrane_weighted_wpos6.yaml) applies without edits.
+#
+# Run:  python sbatch_runner.py configs/training/cristae/cristae_membrane_weighted_wpos6_warmstart.yaml
+#       (use the env python: `python` may resolve to system 3.6, which breaks sbatch_runner)
+
+slurm_profile: grete_shared_80gb
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+script: "training/cristae/train_cristae.py"
+args:
+  experiment_name: "cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos6-neg1-band12-2026-07-27"
+  checkpoint_path: "/mnt/lustre-grete/usr/u12103/cristae/checkpoints/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos6-neg1-band12-2026-07-27-preempted-step7800"
+  # ---- membrane-proximity weighting (unchanged from the original run B) ----
+  membrane_w_pos: 6.0
+  membrane_w_neg: 1.0
+  membrane_band_nm: 12.0
+  membrane_offset_nm: 0.0
+  membrane_voxel_size: [1.74, 1.74, 1.74]
+  # ---- baseline recipe, unchanged ----
+  batch_size: 24
+  learning_rate: 1.7e-4
+  loss_variant: "persample"
+  augmentations: true
+  split_strategy: "legacy"
+  data_dir: "/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2"
+  data_dir2: "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae"
+  data_dir3: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/"
+  data_dir4: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann_needs_corrections/"
+  patch_shape: [32, 256, 256]
+  n_iterations: 100000
+  feature_size: 32
+  ignore_state_value: 2
+  state_channel: 1
+  test_split: "synapsenetv1-testsplit"
+  early_stopping: 25
+  seed: 42
+  num_workers: 8
+  persistent_workers: true
+  prefetch_factor: 4
