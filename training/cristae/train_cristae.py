@@ -220,6 +220,30 @@ def main():
                              "occupies the transform slot and the run has NO augmentation. Use this to make a "
                              "MaskedDiceLoss run comparable to the augmented 'old_valid_mask'/06-01 runs. "
                              "Ignored for 'old_valid_mask' (which already gets the default augmentation).")
+    # ---- membrane-proximity loss weighting ----
+    # Raise the loss weight inside a band next to the mitochondrial membrane, separately for
+    # ground-truth cristae (--membrane_w_pos) and everything else in the band (--membrane_w_neg).
+    # The headline AP is nearly blind to this region (cristae in contact with the membrane shell are
+    # a median 2% of crista voxels, see evaluation/cristae/RESULTS_cristae_junction_band_ap.md), so
+    # evaluate these runs with `band_nm` in the eval config, not on the `all` AP.
+    # Defaults (1.0/1.0) reproduce the unweighted binary mask exactly.
+    parser.add_argument("--membrane_w_pos", type=float, default=1.0,
+                        help="Loss weight for GT cristae voxels inside the membrane-proximity band. "
+                             "Values >1 emphasise predicting cristae at the crista junction. 1.0 = off.")
+    parser.add_argument("--membrane_w_neg", type=float, default=1.0,
+                        help="Loss weight for NON-cristae voxels inside the band (the membrane itself and "
+                             "the matrix next to it). Values >1 push the model away from predicting the "
+                             "membrane as a crista. 1.0 = unchanged from the unweighted recipe. "
+                             "NOTE: only 42.5%% of GT crista instances touch the 8 nm membrane shell "
+                             "(RESULTS_cristae_junction_audit.md); if annotations stop short of the membrane "
+                             "a real junction is GT-negative here, so >1 also punishes predicting it.")
+    parser.add_argument("--membrane_band_nm", type=float, default=12.0,
+                        help="Thickness in nm of the membrane-proximity band (measured inward from the "
+                             "annotated-mito mask surface).")
+    parser.add_argument("--membrane_offset_nm", type=float, default=0.0,
+                        help="Start the band this far (nm) inside the mask surface. 0 = at the surface.")
+    parser.add_argument("--membrane_voxel_size", type=float, nargs=3, default=(1.74, 1.74, 1.74),
+                        help="Voxel spacing (z y x) in nm used to convert the band thickness to voxels.")
     parser.add_argument("--seed", type=int, default=42,
                         help="Seed for torch/numpy/python RNG (identical across A/B arms -> identical init).")
     parser.add_argument("--normalize", action="store_true", default=False,
@@ -444,8 +468,22 @@ def main():
     with_channels = True
     with_label_channels = False
     sampler = MinInstanceSampler(p_reject=0.95)
+    membrane_kwargs = dict(
+        band_nm=float(args.membrane_band_nm), offset_nm=float(args.membrane_offset_nm),
+        w_pos=float(args.membrane_w_pos), w_neg=float(args.membrane_w_neg),
+        voxel_size=tuple(float(v) for v in args.membrane_voxel_size),
+    )
+    membrane_weighted = membrane_kwargs["w_pos"] != 1.0 or membrane_kwargs["w_neg"] != 1.0
+    if membrane_weighted and args.loss_variant == "old_valid_mask":
+        # 'old_valid_mask' reads the mask from the model INPUT via a patched torch_em DiceLoss, not
+        # from the target, so there is no channel to carry a per-voxel weight.
+        raise ValueError(
+            "--membrane_w_pos/--membrane_w_neg require the mask to be carried in the target; "
+            "loss_variant='old_valid_mask' reads it from the model input. Use 'persample' instead."
+        )
     mito_mask_transform = util.MitoStateMaskTransform(
-        mito_channel=args.state_channel, exclude_state_value=float(args.ignore_state_value)
+        mito_channel=args.state_channel, exclude_state_value=float(args.ignore_state_value),
+        **membrane_kwargs
     )
     # The joint (raw, label) transform slot. For the masked-loss variants it holds MitoStateMaskTransform
     # (which appends the mask to the target and thereby REPLACES torch_em's default augmentation). For the
@@ -460,13 +498,20 @@ def main():
         from torch_em.transform.augmentation import get_augmentations
         default_aug = get_augmentations(ndim=ndim)
         joint_transform = util.AugmentedMitoStateMaskTransform(
-            default_aug, mito_channel=args.state_channel, exclude_state_value=float(args.ignore_state_value)
+            default_aug, mito_channel=args.state_channel, exclude_state_value=float(args.ignore_state_value),
+            **membrane_kwargs
         )
     else:
         joint_transform = mito_mask_transform
     raw_transform = util.standardize_channel if not args.normalize else util.normalize_channel
     print(f"[transform] loss_variant={args.loss_variant} augmentations={args.augmentations} -> joint transform="
           f"{type(joint_transform).__name__ if joint_transform is not None else 'None (default Kornia augmentation)'}")
+    if membrane_weighted:
+        print(f"[membrane] proximity weighting ON: w_pos={membrane_kwargs['w_pos']} "
+              f"w_neg={membrane_kwargs['w_neg']} band={membrane_kwargs['band_nm']}nm "
+              f"offset={membrane_kwargs['offset_nm']}nm voxel_size={membrane_kwargs['voxel_size']}")
+    else:
+        print("[membrane] proximity weighting OFF (plain binary mask, identical to the unweighted recipe)")
     print("Path for this model", os.path.join(SAVE_DIR, experiment_name))
     print("train", len(data["train"]), "val", len(data["val"]), "test", len(data["test"]))
     print("data['train']", data["train"])

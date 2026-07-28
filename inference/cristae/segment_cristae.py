@@ -26,6 +26,12 @@ def build_parser():
                         help="Tile shape (z y x)")
     parser.add_argument("--erode_mitos", "-em", action="store_true", default=False,
                         help="Erode mito mask in XY before prediction")
+    parser.add_argument("--erosion_distance_nm", type=float, default=0.0,
+                        help="Distance in nm by which synapse_net erodes the mito mask AFTER "
+                             "prediction, before masking the cristae foreground. 0.0 = disabled. "
+                             "Pin this explicitly: the upstream default has already changed once "
+                             "(the June 2026 exports used a hard-coded 10 nm, ~6 voxels at 1.74 nm, "
+                             "which removes the whole membrane-proximity band from `seg`).")
     parser.add_argument("--save_predictions", "-sp", action="store_true", default=False,
                         help="Also write pred/foreground and pred/boundary to the output")
     parser.add_argument("--force", "-f", action="store_true", default=False,
@@ -84,6 +90,7 @@ def main():
         base_path=args.base_path,
         force=args.force,
         normalize=args.normalize,
+        erosion_distance_nm=args.erosion_distance_nm,
     )
 
 

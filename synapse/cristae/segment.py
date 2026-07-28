@@ -25,6 +25,7 @@ def run_cristae_segmentation(
     force=False,
     normalize=False,
     voxel_size=1.74,
+    erosion_distance_nm=0.0,
 ):
     """Run cristae segmentation on a list of multi-channel H5 files.
 
@@ -37,6 +38,11 @@ def run_cristae_segmentation(
         export_path: Root directory for output files.
         tile_shape: (z, y, x) tile size for tiled prediction.
         erode_mitos: Erode the mito mask in XY before using as extra_segmentation.
+        erosion_distance_nm: Distance in nm by which synapse_net erodes the mito mask AFTER
+            prediction, before masking the cristae foreground. Pinned explicitly because the
+            upstream default has already changed once: the June 2026 exports were produced when
+            synapse_net hard-coded `erode_voxels = max(1, round(10.0 / voxel_size))` (~6 voxels at
+            1.74 nm), which removes the entire membrane-proximity band from `seg`. 0.0 disables it.
         add_missing: If True, merge model-found objects back into existing GT labels.
         save_predictions: If True, also write pred/foreground and pred/boundary to the output.
         base_path: If given, preserve relative directory structure in the output.
@@ -97,6 +103,7 @@ def run_cristae_segmentation(
             extra_segmentation=mito_proc,
             channels_to_standardize=channels_to_standardize,
             with_channels=True,
+            erosion_distance_nm=erosion_distance_nm,
         )
 
         if add_missing:

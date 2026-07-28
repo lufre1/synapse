@@ -1255,6 +1255,13 @@ def normalize_channel(raw, channel=0, lower=1.0, upper=99.0):
     return raw_norm
 
 
+# Voxel spacing (z, y, x) in nm of the cristae corpus — all wichmann tomograms are 1.74 nm isotropic
+# and the cooper ones are within a few percent of it. Mirrors
+# `synapse.cristae.membrane.DEFAULT_VOXEL_SIZE`; kept here so the transforms have a default that does
+# not require importing the membrane module at class-definition time.
+CRISTAE_VOXEL_SIZE = (1.74, 1.74, 1.74)
+
+
 class MitoStateMaskTransform:
     """Joint (raw, label) transform for cristae training.
 
@@ -1271,15 +1278,50 @@ class MitoStateMaskTransform:
     The mito-state channel is left as integer-valued floats by
     `standardize_channel` (which only normalises channel 0), so the equality
     check is safe.
+
+    Optionally the binary mask becomes a *weight* map that emphasises the mito-membrane proximity
+    band (`w_pos` / `w_neg`, see `synapse.cristae.membrane.membrane_proximity_weight`). With the
+    defaults `w_pos == w_neg == 1.0` the output is exactly the binary mask.
     """
 
-    def __init__(self, mito_channel: int = 1, exclude_state_value: float = 2.0):
+    def __init__(
+        self,
+        mito_channel: int = 1,
+        exclude_state_value: float = 2.0,
+        band_nm: float = 12.0,
+        offset_nm: float = 0.0,
+        w_pos: float = 1.0,
+        w_neg: float = 1.0,
+        voxel_size=CRISTAE_VOXEL_SIZE,
+    ):
         self.mito_channel = mito_channel
         self.exclude_state_value = exclude_state_value
+        self.band_nm = float(band_nm)
+        self.offset_nm = float(offset_nm)
+        self.w_pos = float(w_pos)
+        self.w_neg = float(w_neg)
+        self.voxel_size = tuple(float(v) for v in voxel_size)
+
+    @property
+    def weighted(self) -> bool:
+        """True if a membrane-proximity weight is applied (otherwise this is the plain binary mask)."""
+        return self.w_pos != 1.0 or self.w_neg != 1.0
+
+    def _weight(self, mito_state: np.ndarray, gt_foreground: np.ndarray) -> np.ndarray:
+        from synapse.cristae.membrane import membrane_proximity_weight
+        return membrane_proximity_weight(
+            mito_state, gt_foreground, voxel_size=self.voxel_size,
+            band_nm=self.band_nm, offset_nm=self.offset_nm, w_pos=self.w_pos, w_neg=self.w_neg,
+            exclude_state_value=self.exclude_state_value,
+        )
 
     def __call__(self, raw: np.ndarray, labels: np.ndarray):
         mito_state = raw[self.mito_channel]                                        # [D, H, W]
-        mask = (np.abs(mito_state - self.exclude_state_value) >= 0.5).astype(np.float32)  # 1 where NOT excluded
+        if self.weighted:
+            # labels[0] is the binary cristae channel from BoundaryTransform(add_binary_target=True).
+            mask = self._weight(mito_state, labels[0])
+        else:
+            mask = (np.abs(mito_state - self.exclude_state_value) >= 0.5).astype(np.float32)  # 1 where NOT excluded
         masks = np.stack([mask] * labels.shape[0], axis=0)                         # [n_ch, D, H, W]
         labels = np.concatenate([labels, masks], axis=0)                           # [2*n_ch, D, H, W]
         return raw, labels
@@ -1300,10 +1342,53 @@ class AugmentedMitoStateMaskTransform:
     torch_em uses by default for `transform=None`).
     """
 
-    def __init__(self, augmentation, mito_channel: int = 1, exclude_state_value: float = 2.0):
+    def __init__(
+        self,
+        augmentation,
+        mito_channel: int = 1,
+        exclude_state_value: float = 2.0,
+        band_nm: float = 12.0,
+        offset_nm: float = 0.0,
+        w_pos: float = 1.0,
+        w_neg: float = 1.0,
+        voxel_size=CRISTAE_VOXEL_SIZE,
+    ):
         self.augmentation = augmentation
         self.mito_channel = mito_channel
         self.exclude_state_value = exclude_state_value
+        self.band_nm = float(band_nm)
+        self.offset_nm = float(offset_nm)
+        self.w_pos = float(w_pos)
+        self.w_neg = float(w_neg)
+        self.voxel_size = tuple(float(v) for v in voxel_size)
+
+    @property
+    def weighted(self) -> bool:
+        """True if a membrane-proximity weight is applied (otherwise this is the plain binary mask)."""
+        return self.w_pos != 1.0 or self.w_neg != 1.0
+
+    def _weight(self, mito_state, gt_foreground, cax):
+        """Membrane-proximity weight, computed in numpy on the AUGMENTED state channel.
+
+        The augmentation is flips only (`torch_em.transform.augmentation.get_augmentations`), so the
+        state channel stays exactly integral and the distance transform is computed on the same
+        geometry the network sees.
+        """
+        from synapse.cristae.membrane import membrane_proximity_weight
+        state_np = mito_state.detach().cpu().numpy()
+        gt_np = gt_foreground.detach().cpu().numpy()
+        kwargs = dict(
+            voxel_size=self.voxel_size, band_nm=self.band_nm, offset_nm=self.offset_nm,
+            w_pos=self.w_pos, w_neg=self.w_neg, exclude_state_value=self.exclude_state_value,
+        )
+        if cax == 1:  # leading batch axis: the EDT must run per sample
+            weight = np.stack(
+                [membrane_proximity_weight(state_np[i], gt_np[i], **kwargs) for i in range(state_np.shape[0])],
+                axis=0,
+            )
+        else:
+            weight = membrane_proximity_weight(state_np, gt_np, **kwargs)
+        return weight
 
     def __call__(self, raw, labels):
         raw, labels = self.augmentation(raw, labels)                      # joint geom+intensity augmentation
@@ -1313,7 +1398,13 @@ class AugmentedMitoStateMaskTransform:
         # a plain [C, D, H, W] layout. Channel axis is 1 when a batch axis is present, else 0.
         cax = 1 if raw_t.dim() >= 5 else 0
         mito_state = raw_t.narrow(cax, self.mito_channel, 1).squeeze(cax).float()           # [(B,) D, H, W]
-        mask = (torch.abs(mito_state - self.exclude_state_value) >= 0.5).to(labels_t.dtype)  # 1 where NOT excluded
+        if self.weighted:
+            # labels[0] is the binary cristae channel from BoundaryTransform(add_binary_target=True).
+            gt_fg = labels_t.narrow(cax, 0, 1).squeeze(cax)                                  # [(B,) D, H, W]
+            weight = self._weight(mito_state, gt_fg, cax)
+            mask = torch.as_tensor(weight).to(labels_t.dtype)
+        else:
+            mask = (torch.abs(mito_state - self.exclude_state_value) >= 0.5).to(labels_t.dtype)  # 1 where NOT excluded
         n_ch = labels_t.shape[cax]
         mask = mask.unsqueeze(cax)                                                           # [(B,) 1, D, H, W]
         reps = [1] * labels_t.dim(); reps[cax] = n_ch
@@ -1344,8 +1435,13 @@ class MaskedDiceLoss(nn.Module):
         )
         mask = target[:, n_pred_ch:]   # [B, n_ch, ...]
         tgt = target[:, :n_pred_ch]    # [B, n_ch, ...]
-        p = prediction * mask
-        t = tgt * mask
+        # sqrt so that a continuous weight w enters numerator and denominator linearly:
+        #   num = sum(w*p*t), den = sum(w*p^2) + sum(w*t^2)  -- a properly weighted Dice.
+        # For a binary {0,1} mask this is the identity (sqrt(0)==0, sqrt(1)==1 exactly), so the
+        # unweighted recipe is bit-identical to before.
+        sqrt_mask = torch.sqrt(mask)
+        p = prediction * sqrt_mask
+        t = tgt * sqrt_mask
         # Match torch_em DiceLoss: flatten [B, C, ...] -> [C, B*...] so dice
         # is computed per channel across all batch samples (not per-sample).
         n_ch = p.size(1)
@@ -1386,8 +1482,11 @@ class MaskedDiceLossPerSample(nn.Module):
         )
         mask = target[:, n_pred_ch:]   # [B, n_ch, ...]
         tgt = target[:, :n_pred_ch]    # [B, n_ch, ...]
-        p = prediction * mask
-        t = tgt * mask
+        # sqrt so that a continuous weight w enters numerator and denominator linearly (see
+        # MaskedDiceLoss). Identity for a binary {0,1} mask, so the unweighted recipe is unchanged.
+        sqrt_mask = torch.sqrt(mask)
+        p = prediction * sqrt_mask
+        t = tgt * sqrt_mask
         dims = tuple(range(2, p.dim()))                              # spatial dims only
         num = (p * t).sum(dims)                                      # [B, C]
         den = (p * p).sum(dims) + (t * t).sum(dims)                  # [B, C]
