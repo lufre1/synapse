@@ -282,16 +282,27 @@ def find_matching_rec_file(mod_file, rec_files):
 
     # Remove 'mtk_' and '.mod' parts from the mod file name to get the identifier
     mod_base = mod_name.replace('_model2', '').replace("_model", "").replace('.mod', '').replace("model", "")
+    
+    # Strip common suffixes that distinguish manual from automatic corrections
+    mod_base = mod_base.replace('_manual-corr', '').replace('_manual_corr', '').replace('_corrected', '').replace('_manual', '')
 
     # Now loop over rec files to find a match
     for rec_file in rec_files:
         rec_name = os.path.basename(rec_file)
 
-        # Normalize rec file name: remove '_SP.rec' or '.rec'
-        rec_base = rec_name.replace('_SP.rec', '').replace('_rec', '').replace('.rec', '').replace(".mrc", "")
+        # Normalize rec file name: remove '.rec' or '.mrc' from the end only
+        rec_base = rec_name
+        if rec_base.endswith('.rec'):
+            rec_base = rec_base[:-4]
+        if rec_base.endswith('.mrc'):
+            rec_base = rec_base[:-4]
+        if rec_base.endswith('_SP'):
+            rec_base = rec_base[:-3]
+        if rec_base.endswith('_rec'):
+            rec_base = rec_base[:-4]
 
-        # Check if the relevant part of mod file name is in the rec file name
-        if mod_base in rec_base:
+        # Check if the relevant part of mod file name is in the rec file name or vice versa
+        if mod_base in rec_base or rec_base in mod_base:
             return rec_file
 
     # If no exact match is found, return None (or raise an error)
@@ -345,16 +356,24 @@ def create_directories_if_not_exists(base_path, inter_dirs):
 def get_true_labels(label_dict):
     true_labels = {}
     for key, value in label_dict.items():
-        if "az" in value.lower():
-            true_labels[key] = "labels/az"
-        elif "mito" in value.lower() and "cristae" not in value.lower() and "inner" not in value.lower():
+        # Check mito first (including mito+cristae combinations like "Presyn1_AZ1_Mito")
+        if "mito" in value.lower() and "cristae" not in value.lower() and "inner" not in value.lower():
             true_labels[key] = "labels/mitochondria"
+        # Check cristae (can also be in mito+cristae combos)
         elif "cm" in value.lower() or "cristae" in value.lower() or "inner" in value.lower():
             true_labels[key] = "labels/cristae"
+        # Active zone (only if not already classified as mito/cristae)
+        elif "az" in value.lower():
+            true_labels[key] = "labels/az"
         elif "endbulb" in value.lower():
             true_labels[key] = "labels/endbulb"
         else:
-            true_labels[key] = f"labels/{value}"
+            base_label = f"labels/{value}" if value else "labels/unknown"
+            if base_label in true_labels.values():
+                base_label = base_label.replace(":", "_")
+                true_labels[key] = f"{base_label}_{key}"
+            else:
+                true_labels[key] = base_label
     return true_labels
 
 
@@ -422,6 +441,7 @@ def main():
     # /mnt/lustre-emmy-hdd/projects/nim00007/data/synaptic-reconstruction/cooper/original_imod_data/20240909_cp_datatransfer
     parser.add_argument("--base_path", "-b",  type=str, default="/home/freckmann15/data/mitochondria/cooper/new_mitos", help="Path to the root data directory")
     parser.add_argument("--export_path", "-e",  type=str, default="/home/freckmann15/data/mitochondria/wichmann/output", help="Path to the root data directory")
+    parser.add_argument("--file_list", "-l", type=str, default=None, help="Comma-separated list of .mrc and .mod file paths")
     parser.add_argument("--visualize", "-v", default=False, action='store_true', help="If to visualize or not")
     parser.add_argument("--print_labels", "-pl", default=False, action='store_true', help="If to print labels from mod file or not")
     parser.add_argument("--force_overwrite", "-f", default=False, action='store_true', help="If to over-write already present segmentation results.")
@@ -436,9 +456,15 @@ def main():
     mrc_paths = sorted(glob(os.path.join(args.base_path, "**", "*.mrc"), recursive=True))
     rec_paths = sorted(glob(os.path.join(args.base_path, "**", "*.rec"), recursive=True))
     mrc_paths.extend(rec_paths)
-    # use this for 06
-    # mod_paths = sorted(glob(os.path.join(args.base_path, "*.mod")), reverse=True)
-    # mrc_paths = sorted(glob(os.path.join(args.base_path, "*.mrc")), reverse=True)
+
+    if args.file_list is not None:
+        file_paths = [p.strip() for p in args.file_list.split(",")]
+        mod_paths = sorted([p for p in file_paths if p.endswith(".mod")])
+        mrc_paths = sorted([p for p in file_paths if p.endswith((".mrc", ".rec"))])
+        base_path = os.path.commonpath([mod_paths[0], mrc_paths[0]]) if len(mod_paths) > 0 and len(mrc_paths) > 0 else args.base_path
+    else:
+        base_path = args.base_path
+
     count = 0
     for mod_path, mrc_path in tqdm(zip(mod_paths, mrc_paths)):
         # count += 1
@@ -464,6 +490,9 @@ def main():
         mod_basename = os.path.splitext(os.path.basename(mod_path))[0]
         if mrc_basename != mod_basename:
             mrc_path = find_matching_rec_file(mod_path, mrc_paths)
+        if mrc_path is None:
+            print(f"Could not find matching mrc/rec file for {mod_path}, skipping")
+            continue
         print("\nmrc path", mrc_path, "\nmod path", mod_path, "\n")
 
         label_names = get_true_labels(get_label_names(mod_path))
@@ -471,7 +500,7 @@ def main():
         label_dict = {k: v for k, v in label_names.items() if args.include_az or v != "labels/az"}
 
         if not label_dict:
-            print("\nNo mito labels found in", mod_path)
+            print("\nNo labels found in", mod_path)
             continue
         if visualize:
             print(f"Visualizing \n{mod_path} and \n{mrc_path}")
