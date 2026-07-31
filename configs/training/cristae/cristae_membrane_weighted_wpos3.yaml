@@ -1,0 +1,60 @@
+# Cristae training — membrane-proximity WEIGHTED loss, run A (PRIMARY).
+#
+# Goal: the models segment poorly next to the mitochondrial membrane (cristae missed at the crista
+# junction; the membrane itself sometimes predicted as crista). The headline AP cannot see this —
+# cristae in contact with the membrane shell are a median 2% of crista voxels
+# (evaluation/cristae/RESULTS_cristae_junction_band_ap.md). This run makes the loss care about them.
+#
+# Delta vs the baseline cristae_persample_aug_bs24_80gb.yaml (AP 0.832) is ONLY the weighting:
+#   membrane_w_pos 3.0  -> GT cristae inside the 12 nm membrane band count 3x in the Dice.
+#   membrane_w_neg 1.0  -> everything else in the band is left at baseline weight.
+# Everything else (persample masked Dice, Kornia aug, legacy split, all files, bs24/lr1.7e-4) is
+# byte-for-byte the baseline, so this is a clean single-variable comparison.
+#
+# Why w_neg stays at 1.0: measured on real patches, the 12 nm band is ~99% GT-negative and covers
+# 24-41% of the mito interior, whereas only 1.4-2.0% of crista voxels fall inside it. So w_neg is a
+# far bigger lever than w_pos and it pushes AGAINST predicting cristae near the membrane. Raising it
+# is a different objective (suppress membrane false positives) — that is run C, not a stronger A.
+# Also, RESULTS_cristae_junction_audit.md found only 42.5% of GT crista instances touching the 8 nm
+# shell; if annotations stop short of the membrane, a real junction is GT-negative in the band and
+# w_neg > 1 would punish predicting it.
+#
+# Run:  python sbatch_runner.py configs/training/cristae/cristae_membrane_weighted_wpos3.yaml
+# Eval: configs/evaluation/cristae/eval_cristae_membrane_weighted_wpos3.yaml  (uses band_nm: [8, 12])
+
+slurm_profile: grete_shared_80gb
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+script: "training/cristae/train_cristae.py"
+args:
+  experiment_name: "cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg1-band12-2026-07-27"
+  # ---- membrane-proximity weighting (the ONLY delta vs the bs24 allfiles baseline) ----
+  membrane_w_pos: 3.0               # <-- GT cristae in the band weigh 3x
+  membrane_w_neg: 1.0               # <-- band non-cristae unchanged (see header)
+  membrane_band_nm: 12.0            # ~7 voxels at 1.74 nm; covers 1.4-2.0% of crista voxels
+  membrane_offset_nm: 0.0           # band starts at the mito mask surface
+  membrane_voxel_size: [1.74, 1.74, 1.74]
+  # ---- baseline recipe, unchanged ----
+  batch_size: 24
+  learning_rate: 1.7e-4
+  loss_variant: "persample"         # required: the weight is carried in the target
+  augmentations: true
+  split_strategy: "legacy"
+  data_dir: "/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2"
+  data_dir2: "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae"
+  data_dir3: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/"
+  data_dir4: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann_needs_corrections/"
+  patch_shape: [32, 256, 256]
+  n_iterations: 100000
+  feature_size: 32
+  ignore_state_value: 2
+  state_channel: 1
+  test_split: "synapsenetv1-testsplit"
+  early_stopping: 25
+  seed: 42
+  num_workers: 8
+  persistent_workers: true
+  prefetch_factor: 4
