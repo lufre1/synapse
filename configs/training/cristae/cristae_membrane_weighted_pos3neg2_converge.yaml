@@ -1,0 +1,67 @@
+# Cristae training — pos3-neg2 membrane-proximity WEIGHTED loss, PRODUCTION CONVERGENCE RUN.
+#
+# pos3-neg2 (membrane_w_pos=3.0, membrane_w_neg=2.0, band=12nm) already ran once as
+# cristae_membrane_weighted_wneg2.yaml (job launched 2026-07-27) and won on junction detection
+# (mito_with_junction 4.2% -> 54.2% at 8nm vs. baseline). That run never finished: it hit the old
+# 36h job time limit at only 35,095/100,000 iterations (35%), with the metric still improving.
+#
+# This run:
+#   - Uses the exact same validated pos3-neg2 recipe.
+#   - Trains over the ENLARGED data pool: 4 new annotated volumes
+#     (fidi_cristae_h5combined_2026-07) were merged directly into data_dir2's tree at
+#     /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/fidi_cristae_h5combined_2026-07/,
+#     so they're picked up automatically by the existing recursive data_dir2 discovery — no code
+#     or data_dir change needed. Pool grows from 160 -> 164 files.
+#   - Gets a FRESH experiment_name (new date suffix) rather than warm-starting from the
+#     2026-07-27 checkpoint: a clean, directly comparable run with no stale-optimizer /
+#     reset-early-stopping-patience caveats (the same caveat that applied to
+#     cristae_membrane_weighted_wpos6_warmstart.yaml).
+#   - Overrides the job time limit to 2-00:00:00 (48h), the hard `grete:shared` partition cap
+#     (confirmed via sinfo) — the max a single job can get. At the observed ~980 iter/hour pace
+#     this still likely won't reach 100k iterations or trigger early stopping (patience=25
+#     epochs=16,250 iters), so this may need a manual resubmit later: rerunning this same config
+#     unchanged will auto-resume model weights from best.pt via tu.resolve_checkpoint (fresh
+#     optimizer state each time, same as the wpos6 warm-start precedent).
+#   - This time override is INLINE (this config only) — the shared grete_shared_80gb.yaml profile
+#     is left untouched since it's also used by axon/mito/domain-adapt training configs.
+#
+# Run:  python sbatch_runner.py configs/training/cristae/cristae_membrane_weighted_pos3neg2_converge.yaml
+
+slurm_profile: grete_shared_80gb
+slurm:
+  time: "2-00:00:00"
+
+env:
+  type: micromamba
+  path: /mnt/vast-nhr/home/freckmann15/u12103/micromamba/envs/synapse
+
+script: "training/cristae/train_cristae.py"
+args:
+  experiment_name: "cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31"
+  # ---- membrane-proximity weighting (validated pos3-neg2 recipe, unchanged) ----
+  membrane_w_pos: 3.0
+  membrane_w_neg: 2.0
+  membrane_band_nm: 12.0            # ~7 voxels at 1.74 nm; covers 1.4-2.0% of crista voxels
+  membrane_offset_nm: 0.0           # band starts at the mito mask surface
+  membrane_voxel_size: [1.74, 1.74, 1.74]
+  # ---- baseline recipe, unchanged ----
+  batch_size: 24
+  learning_rate: 1.7e-4
+  loss_variant: "persample"         # required: the weight is carried in the target
+  augmentations: true
+  split_strategy: "legacy"
+  data_dir: "/scratch-grete/projects/nim00007/data/mitochondria/cooper/raw_mito_combined_s2"
+  data_dir2: "/mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae"
+  data_dir3: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann/"
+  data_dir4: "/mnt/lustre-grete/usr/u12103/cristae_data/wichmann_needs_corrections/"
+  patch_shape: [32, 256, 256]
+  n_iterations: 100000
+  feature_size: 32
+  ignore_state_value: 2
+  state_channel: 1
+  test_split: "synapsenetv1-testsplit"
+  early_stopping: 25
+  seed: 42
+  num_workers: 8
+  persistent_workers: true
+  prefetch_factor: 4

@@ -3,6 +3,7 @@ checkpoints/
 logs/sam_model/
 logs/sbatch_jobs/*.err
 config.py
+models/
 slurm/
 slurm-*
 *.egg-info/

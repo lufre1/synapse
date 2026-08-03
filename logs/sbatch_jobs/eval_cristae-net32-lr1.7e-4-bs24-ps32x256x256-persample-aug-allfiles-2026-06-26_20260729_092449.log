@@ -1,0 +1,116 @@
+Found 15 files
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT22_eb5_model2_combined.h5
+Skipping (already exists): /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/WT22_eb5_model2_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT40_eb10_model_combined.h5
+Skipping (already exists): /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/WT40_eb10_model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M5_eb1_model_combined.h5
+Skipping (already exists): /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/M5_eb1_model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined.h5
+Skipping (already exists): /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36194_B4_66K_TS_SC_22_rec_crop_combined.h5
+Skipping (already exists): /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/36194_B4_66K_TS_SC_22_rec_crop_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT21_eb5_model2_combined.h5
+Skipping (already exists): /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/WT21_eb5_model2_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/KO8_eb4_model_combined.h5
+Skipping (already exists): /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/KO8_eb4_model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann_needs_corrections/2026-05-26-dataset/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5
+Skipping (already exists): /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M8_eb6_model_combined.h5
+Skipping (already exists): /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/M8_eb6_model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT20_eb5_model2_combined.h5
+Skipping (already exists): /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/WT20_eb5_model2_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M1_eb6_model_combined.h5
+Skipping (already exists): /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/M1_eb6_model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M2_eb5_model_combined.h5
+Skipping (already exists): /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/M2_eb5_model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined.h5
+Skipping (already exists): /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36194_B4_66K_TS_R01A_SC_01_rec_crop_combined.h5
+Skipping (already exists): /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/36194_B4_66K_TS_R01A_SC_01_rec_crop_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT21_syn4_model2_combined.h5
+Skipping (already exists): /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/WT21_syn4_model2_combined.h5
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/36194_B4_66K_TS_R01A_SC_01_rec_crop_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/36194_B4_66K_TS_R01A_SC_01_rec_crop_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/36194_B4_66K_TS_SC_22_rec_crop_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/36194_B4_66K_TS_SC_22_rec_crop_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/KO8_eb4_model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/KO8_eb4_model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/M1_eb6_model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/M1_eb6_model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/M2_eb5_model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/M2_eb5_model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/M5_eb1_model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/M5_eb1_model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/M8_eb6_model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/M8_eb6_model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/WT20_eb5_model2_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/WT20_eb5_model2_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/WT21_eb5_model2_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/WT21_eb5_model2_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/WT21_syn4_model2_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/WT21_syn4_model2_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/WT22_eb5_model2_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/WT22_eb5_model2_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/WT40_eb10_model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/WT40_eb10_model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+  36194_B4_66K_TS_R01A_SC_01_rec_crop_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.9668  band8 AP=nan  core8 AP=0.9662  band12 AP=0.4020  core12 AP=0.9663
+  36194_B4_66K_TS_SC_22_rec_crop_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.9724  band8 AP=nan  core8 AP=0.9731  band12 AP=0.3237  core12 AP=0.9751
+  36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.9394  band8 AP=0.0000  core8 AP=0.9397  band12 AP=0.0883  core12 AP=0.9400
+  KO8_eb4_model_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.8173  band8 AP=0.7742  core8 AP=0.8206  band12 AP=0.7799  core12 AP=0.8220
+  M1_eb6_model_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.8549  band8 AP=0.7859  core8 AP=0.8567  band12 AP=0.7718  core12 AP=0.8586
+  M2_eb5_model_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.8111  band8 AP=0.6830  core8 AP=0.8133  band12 AP=0.6800  core12 AP=0.8167
+  M5_eb1_model_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.8929  band8 AP=0.8626  core8 AP=0.8955  band12 AP=0.8593  core12 AP=0.8964
+  M8_eb6_model_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.6877  band8 AP=0.6217  core8 AP=0.6939  band12 AP=0.6127  core12 AP=0.7001
+  Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.5344  band8 AP=0.0279  core8 AP=0.5362  band12 AP=0.0333  core12 AP=0.5372
+  Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.7087  band8 AP=nan  core8 AP=0.7088  band12 AP=0.3320  core12 AP=0.7089
+  WT20_eb5_model2_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.8899  band8 AP=0.8280  core8 AP=0.8925  band12 AP=0.8072  core12 AP=0.8944
+  WT21_eb5_model2_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.8616  band8 AP=0.7477  core8 AP=0.8684  band12 AP=0.7357  core12 AP=0.8730
+  WT21_syn4_model2_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.8605  band8 AP=0.8529  core8 AP=0.8610  band12 AP=0.8366  core12 AP=0.8611
+  WT22_eb5_model2_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.8486  band8 AP=0.7091  core8 AP=0.8541  band12 AP=0.7351  core12 AP=0.8550
+  WT40_eb10_model_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.8344  band8 AP=0.7954  core8 AP=0.8350  band12 AP=0.7971  core12 AP=0.8364
+
+[AP] cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26 (n=15 files)
+  region=all        macro AP=0.8320  AUC=0.9528  gt_fg=1,374,001/8,333,378 voxels
+  region=band8      macro AP=0.6407  AUC=0.9033  gt_fg=46,718/1,226,375 voxels
+  region=core8      macro AP=0.8343  AUC=0.9453  gt_fg=1,327,283/7,107,002 voxels
+  region=band12     macro AP=0.5863  AUC=0.9673  gt_fg=74,142/1,773,655 voxels
+  region=core12     macro AP=0.8361  AUC=0.9417  gt_fg=1,299,859/6,559,722 voxels
+  ->  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-persample-aug-allfiles-2026-06-26/cristae_ap_summary.csv
+Done.
