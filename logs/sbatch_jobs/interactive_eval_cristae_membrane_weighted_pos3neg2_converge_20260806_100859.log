@@ -1,0 +1,1999 @@
+=== Do 6. Aug 10:08:59 CEST 2026 : starting interactive eval run on ggpu137, GPU=MIG-4fde924b-3d75-5ae6-a78e-3495a2aa8b07 ===
+Loading software stack: gwdg-lmod
+/usr/bin/basename: missing operand
+Try '/usr/bin/basename --help' for more information.
+/usr/bin/basename: missing operand
+Try '/usr/bin/basename --help' for more information.
+Found project directory, setting $PROJECT_DIR to '/projects/extern/nhr/nhr_ni/nim00007/dir.project'
+Found scratch directory, setting $WORK to '/mnt/lustre-grete/usr/u12103'
+Found cold directory, setting $COLD to '/mnt/ceph-hdd/cold/nim00007'
+Found 15 files
+  0%|          | 0/15 [00:00<?, ?it/s]opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT22_eb5_model2_combined.h5
+Segmenting cristae in volume of shape (101, 1336, 1336)
+Run prediction with mask.
+
+predict with halo:   3%|▎         | 27/847 [00:00<00:29, 27.85it/s][A
+predict with halo:   4%|▎         | 30/847 [00:01<00:40, 20.01it/s][A
+predict with halo:   4%|▍         | 38/847 [00:01<00:34, 23.75it/s][A
+predict with halo:   5%|▍         | 41/847 [00:02<00:45, 17.52it/s][A
+predict with halo:   6%|▌         | 49/847 [00:02<00:36, 21.81it/s][A
+predict with halo:   6%|▌         | 52/847 [00:02<00:48, 16.35it/s][A
+predict with halo:   7%|▋         | 60/847 [00:02<00:37, 20.84it/s][A
+predict with halo:   7%|▋         | 63/847 [00:03<00:58, 13.30it/s][A
+predict with halo:   8%|▊         | 70/847 [00:03<00:45, 16.95it/s][A
+predict with halo:   9%|▊         | 73/847 [00:04<01:06, 11.65it/s][A
+predict with halo:   9%|▉         | 75/847 [00:04<01:20,  9.65it/s][A
+predict with halo:   9%|▉         | 77/847 [00:04<01:19,  9.64it/s][A
+predict with halo:  10%|▉         | 81/847 [00:05<01:06, 11.50it/s][A
+predict with halo:  10%|▉         | 83/847 [00:05<01:24,  9.09it/s][A
+predict with halo:  10%|█         | 85/847 [00:05<01:39,  7.65it/s][A
+predict with halo:  10%|█         | 86/847 [00:06<01:47,  7.10it/s][A
+predict with halo:  10%|█         | 87/847 [00:06<01:55,  6.60it/s][A
+predict with halo:  11%|█         | 93/847 [00:06<01:03, 11.80it/s][A
+predict with halo:  11%|█         | 95/847 [00:07<01:23,  9.00it/s][A
+predict with halo:  11%|█▏        | 97/847 [00:07<01:40,  7.49it/s][A
+predict with halo:  12%|█▏        | 98/847 [00:07<01:47,  6.94it/s][A
+predict with halo:  13%|█▎        | 107/847 [00:07<00:48, 15.12it/s][A
+predict with halo:  13%|█▎        | 109/847 [00:08<01:06, 11.08it/s][A
+predict with halo:  17%|█▋        | 148/847 [00:08<00:14, 48.52it/s][A
+predict with halo:  18%|█▊        | 154/847 [00:08<00:19, 35.37it/s][A
+predict with halo:  19%|█▉        | 159/847 [00:09<00:21, 32.54it/s][A
+predict with halo:  19%|█▉        | 163/847 [00:09<00:28, 24.05it/s][A
+predict with halo:  20%|██        | 170/847 [00:09<00:26, 25.83it/s][A
+predict with halo:  21%|██        | 174/847 [00:10<00:33, 19.83it/s][A
+predict with halo:  21%|██▏       | 181/847 [00:10<00:29, 22.50it/s][A
+predict with halo:  22%|██▏       | 184/847 [00:11<00:46, 14.21it/s][A
+predict with halo:  23%|██▎       | 191/847 [00:11<00:37, 17.63it/s][A
+predict with halo:  23%|██▎       | 194/847 [00:11<00:54, 12.04it/s][A
+predict with halo:  23%|██▎       | 196/847 [00:12<01:05,  9.90it/s][A
+predict with halo:  23%|██▎       | 198/847 [00:12<01:06,  9.83it/s][A
+predict with halo:  24%|██▍       | 202/847 [00:12<00:55, 11.56it/s][A
+predict with halo:  24%|██▍       | 204/847 [00:13<01:10,  9.17it/s][A
+predict with halo:  24%|██▍       | 206/847 [00:13<01:23,  7.72it/s][A
+predict with halo:  24%|██▍       | 207/847 [00:13<01:29,  7.17it/s][A
+predict with halo:  25%|██▍       | 208/847 [00:13<01:35,  6.66it/s][A
+predict with halo:  25%|██▌       | 214/847 [00:14<00:53, 11.78it/s][A
+predict with halo:  26%|██▌       | 216/847 [00:14<01:10,  9.01it/s][A
+predict with halo:  26%|██▌       | 218/847 [00:14<01:23,  7.51it/s][A
+predict with halo:  26%|██▌       | 219/847 [00:15<01:30,  6.96it/s][A
+predict with halo:  27%|██▋       | 228/847 [00:15<00:41, 14.97it/s][A
+predict with halo:  27%|██▋       | 230/847 [00:15<00:56, 11.00it/s][A
+predict with halo:  32%|███▏      | 270/847 [00:16<00:11, 48.66it/s][A
+predict with halo:  33%|███▎      | 276/847 [00:16<00:13, 43.83it/s][A
+predict with halo:  33%|███▎      | 281/847 [00:16<00:18, 30.95it/s][A
+predict with halo:  34%|███▎      | 285/847 [00:16<00:19, 28.43it/s][A
+predict with halo:  34%|███▍      | 291/847 [00:17<00:19, 28.17it/s][A
+predict with halo:  35%|███▍      | 295/847 [00:17<00:26, 20.80it/s][A
+predict with halo:  36%|███▌      | 302/847 [00:17<00:23, 23.42it/s][A
+predict with halo:  36%|███▌      | 305/847 [00:18<00:37, 14.44it/s][A
+predict with halo:  37%|███▋      | 312/847 [00:18<00:29, 17.91it/s][A
+predict with halo:  37%|███▋      | 315/847 [00:19<00:43, 12.11it/s][A
+predict with halo:  37%|███▋      | 317/847 [00:19<00:53,  9.97it/s][A
+predict with halo:  38%|███▊      | 319/847 [00:19<00:53,  9.90it/s][A
+predict with halo:  38%|███▊      | 323/847 [00:20<00:44, 11.68it/s][A
+predict with halo:  38%|███▊      | 325/847 [00:20<00:56,  9.24it/s][A
+predict with halo:  39%|███▊      | 327/847 [00:20<01:06,  7.76it/s][A
+predict with halo:  39%|███▊      | 328/847 [00:21<01:12,  7.20it/s][A
+predict with halo:  39%|███▉      | 329/847 [00:21<01:17,  6.68it/s][A
+predict with halo:  40%|███▉      | 335/847 [00:21<00:43, 11.86it/s][A
+predict with halo:  40%|███▉      | 337/847 [00:21<00:56,  9.05it/s][A
+predict with halo:  40%|████      | 339/847 [00:22<01:07,  7.54it/s][A
+predict with halo:  40%|████      | 340/847 [00:22<01:12,  6.97it/s][A
+predict with halo:  41%|████      | 347/847 [00:22<00:38, 12.93it/s][A
+predict with halo:  41%|████      | 349/847 [00:22<00:41, 12.11it/s][A
+predict with halo:  41%|████▏     | 351/847 [00:23<00:54,  9.13it/s][A
+predict with halo:  43%|████▎     | 360/847 [00:23<00:29, 16.75it/s][A
+predict with halo:  43%|████▎     | 363/847 [00:23<00:29, 16.19it/s][A
+predict with halo:  46%|████▌     | 391/847 [00:24<00:10, 45.50it/s][A
+predict with halo:  47%|████▋     | 396/847 [00:24<00:11, 39.80it/s][A
+predict with halo:  47%|████▋     | 401/847 [00:24<00:12, 35.12it/s][A
+predict with halo:  48%|████▊     | 405/847 [00:24<00:18, 24.01it/s][A
+predict with halo:  49%|████▊     | 412/847 [00:25<00:16, 26.00it/s][A
+predict with halo:  49%|████▉     | 415/847 [00:25<00:23, 18.53it/s][A
+predict with halo:  50%|█████     | 424/847 [00:25<00:17, 23.78it/s][A
+predict with halo:  50%|█████     | 427/847 [00:26<00:24, 17.39it/s][A
+predict with halo:  51%|█████     | 434/847 [00:26<00:19, 20.70it/s][A
+predict with halo:  52%|█████▏    | 437/847 [00:26<00:31, 13.15it/s][A
+predict with halo:  52%|█████▏    | 439/847 [00:27<00:38, 10.52it/s][A
+predict with halo:  53%|█████▎    | 445/847 [00:27<00:29, 13.77it/s][A
+predict with halo:  53%|█████▎    | 447/847 [00:28<00:37, 10.75it/s][A
+predict with halo:  53%|█████▎    | 449/847 [00:28<00:45,  8.84it/s][A
+predict with halo:  53%|█████▎    | 451/847 [00:28<00:44,  8.98it/s][A
+predict with halo:  54%|█████▍    | 456/847 [00:28<00:32, 12.10it/s][A
+predict with halo:  54%|█████▍    | 458/847 [00:29<00:41,  9.38it/s][A
+predict with halo:  54%|█████▍    | 460/847 [00:29<00:49,  7.80it/s][A
+predict with halo:  54%|█████▍    | 461/847 [00:29<00:53,  7.20it/s][A
+predict with halo:  55%|█████▌    | 468/847 [00:30<00:29, 12.96it/s][A
+predict with halo:  55%|█████▌    | 470/847 [00:30<00:38,  9.83it/s][A
+predict with halo:  56%|█████▌    | 472/847 [00:30<00:46,  8.06it/s][A
+predict with halo:  57%|█████▋    | 481/847 [00:31<00:24, 15.10it/s][A
+predict with halo:  57%|█████▋    | 483/847 [00:31<00:26, 13.90it/s][A
+predict with halo:  60%|██████    | 512/847 [00:31<00:07, 43.11it/s][A
+predict with halo:  62%|██████▏   | 522/847 [00:31<00:07, 43.80it/s][A
+predict with halo:  62%|██████▏   | 527/847 [00:32<00:10, 30.71it/s][A
+predict with halo:  63%|██████▎   | 533/847 [00:32<00:10, 29.96it/s][A
+predict with halo:  63%|██████▎   | 537/847 [00:32<00:14, 22.07it/s][A
+predict with halo:  64%|██████▍   | 545/847 [00:33<00:11, 25.42it/s][A
+predict with halo:  65%|██████▍   | 548/847 [00:33<00:16, 18.51it/s][A
+predict with halo:  66%|██████▌   | 555/847 [00:33<00:13, 21.53it/s][A
+predict with halo:  66%|██████▌   | 558/847 [00:34<00:21, 13.64it/s][A
+predict with halo:  66%|██████▌   | 560/847 [00:34<00:26, 10.90it/s][A
+predict with halo:  67%|██████▋   | 566/847 [00:34<00:19, 14.08it/s][A
+predict with halo:  67%|██████▋   | 568/847 [00:35<00:25, 10.94it/s][A
+predict with halo:  67%|██████▋   | 570/847 [00:35<00:30,  8.96it/s][A
+predict with halo:  68%|██████▊   | 572/847 [00:35<00:30,  9.07it/s][A
+predict with halo:  68%|██████▊   | 577/847 [00:36<00:22, 12.17it/s][A
+predict with halo:  68%|██████▊   | 579/847 [00:36<00:28,  9.44it/s][A
+predict with halo:  69%|██████▊   | 581/847 [00:37<00:33,  7.85it/s][A
+predict with halo:  69%|██████▊   | 582/847 [00:37<00:36,  7.24it/s][A
+predict with halo:  70%|██████▉   | 589/847 [00:37<00:19, 12.98it/s][A
+predict with halo:  70%|██████▉   | 591/847 [00:37<00:26,  9.84it/s][A
+predict with halo:  70%|███████   | 593/847 [00:38<00:31,  8.02it/s][A
+predict with halo:  70%|███████   | 594/847 [00:38<00:34,  7.36it/s][A
+predict with halo:  71%|███████   | 602/847 [00:38<00:17, 14.29it/s][A
+predict with halo:  71%|███████▏  | 604/847 [00:38<00:18, 13.19it/s][A
+predict with halo:  76%|███████▌  | 644/847 [00:39<00:03, 56.80it/s][A
+predict with halo:  77%|███████▋  | 650/847 [00:39<00:04, 49.14it/s][A
+predict with halo:  77%|███████▋  | 656/847 [00:39<00:05, 34.08it/s][A
+predict with halo:  79%|███████▊  | 666/847 [00:40<00:04, 36.71it/s][A
+predict with halo:  79%|███████▉  | 671/847 [00:40<00:06, 26.91it/s][A
+predict with halo:  80%|███████▉  | 676/847 [00:40<00:06, 25.98it/s][A
+predict with halo:  80%|████████  | 679/847 [00:41<00:10, 15.82it/s][A
+predict with halo:  81%|████████  | 682/847 [00:41<00:12, 13.12it/s][A
+predict with halo:  81%|████████  | 687/847 [00:41<00:10, 14.98it/s][A
+predict with halo:  81%|████████▏ | 689/847 [00:42<00:13, 11.46it/s][A
+predict with halo:  82%|████████▏ | 691/847 [00:42<00:16,  9.31it/s][A
+predict with halo:  82%|████████▏ | 693/847 [00:42<00:16,  9.36it/s][A
+predict with halo:  82%|████████▏ | 698/847 [00:43<00:12, 12.33it/s][A
+predict with halo:  83%|████████▎ | 700/847 [00:43<00:15,  9.50it/s][A
+predict with halo:  83%|████████▎ | 702/847 [00:43<00:18,  7.88it/s][A
+predict with halo:  83%|████████▎ | 703/847 [00:44<00:19,  7.27it/s][A
+predict with halo:  83%|████████▎ | 704/847 [00:44<00:21,  6.73it/s][A
+predict with halo:  84%|████████▎ | 709/847 [00:44<00:12, 10.76it/s][A
+predict with halo:  84%|████████▍ | 711/847 [00:45<00:16,  8.36it/s][A
+predict with halo:  84%|████████▍ | 712/847 [00:45<00:17,  7.57it/s][A
+predict with halo:  84%|████████▍ | 713/847 [00:45<00:19,  6.92it/s][A
+predict with halo:  84%|████████▍ | 714/847 [00:45<00:20,  6.38it/s][A
+predict with halo:  84%|████████▍ | 715/847 [00:45<00:22,  5.95it/s][A
+predict with halo:  85%|████████▌ | 721/847 [00:46<00:10, 12.28it/s][A
+predict with halo:  85%|████████▌ | 723/847 [00:46<00:13,  9.03it/s][A
+predict with halo:  86%|████████▌ | 725/847 [00:46<00:13,  9.19it/s][A
+predict with halo:  94%|█████████▍| 800/847 [00:46<00:00, 94.10it/s][A
+predict with halo:  96%|█████████▌| 810/847 [00:47<00:00, 65.30it/s][A
+predict with halo:  97%|█████████▋| 818/847 [00:47<00:00, 40.88it/s][A
+predict with halo:  97%|█████████▋| 824/847 [00:48<00:00, 28.43it/s][A
+predict with halo:  98%|█████████▊| 829/847 [00:48<00:00, 27.71it/s][A
+predict with halo:  98%|█████████▊| 833/847 [00:49<00:00, 26.14it/s][A
+predict with halo:  99%|█████████▉| 837/847 [00:49<00:00, 17.38it/s][A
+predict with halo: 100%|█████████▉| 844/847 [00:49<00:00, 20.23it/s][A
+predict with halo: 100%|██████████| 847/847 [00:50<00:00, 19.10it/s][Apredict with halo: 100%|██████████| 847/847 [00:50<00:00, 16.92it/s]
+Prediction time in 51.2411744594574 s
+Eroding mitochondria instances globally by 0 voxels ...
+Instance erosion completed in 0.96 s
+
+Label all sub-blocks:   0%|          | 0/36 [00:00<?, ?it/s][A
+Label all sub-blocks:  53%|█████▎    | 19/36 [00:00<00:00, 126.89it/s][A
+Label all sub-blocks:  89%|████████▉ | 32/36 [00:00<00:00, 87.14it/s] [ALabel all sub-blocks: 100%|██████████| 36/36 [00:00<00:00, 103.77it/s]
+
+Merge labels across block faces:   0%|          | 0/36 [00:00<?, ?it/s][AMerge labels across block faces: 100%|██████████| 36/36 [00:00<00:00, 3412.55it/s]
+
+Write blocks:   0%|          | 0/36 [00:00<?, ?it/s][A
+Write blocks:  81%|████████  | 29/36 [00:00<00:00, 206.71it/s][AWrite blocks: 100%|██████████| 36/36 [00:00<00:00, 256.23it/s]
+Compute connected components in 3.4130256175994873 s
+
+  0%|          | 0/36 [00:00<?, ?it/s][A
+ 31%|███       | 11/36 [00:00<00:00, 54.83it/s][A
+ 47%|████▋     | 17/36 [00:00<00:00, 38.65it/s][A
+ 58%|█████▊    | 21/36 [00:00<00:00, 34.05it/s][A100%|██████████| 36/36 [00:00<00:00, 62.37it/s]
+
+  0%|          | 0/36 [00:00<?, ?it/s][A
+ 14%|█▍        | 5/36 [00:00<00:00, 40.60it/s][A
+ 28%|██▊       | 10/36 [00:00<00:00, 42.81it/s][A
+ 42%|████▏     | 15/36 [00:00<00:01, 18.80it/s][A
+ 64%|██████▍   | 23/36 [00:00<00:00, 28.49it/s][A100%|██████████| 36/36 [00:00<00:00, 39.80it/s]
+  7%|▋         | 1/15 [01:33<21:47, 93.37s/it]Size filter in 5.335664510726929 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT22_eb5_model2_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT22_eb5_model2_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT40_eb10_model_combined.h5
+Segmenting cristae in volume of shape (97, 1336, 1336)
+Run prediction with mask.
+
+predict with halo:   6%|▌         | 47/847 [00:00<00:04, 196.70it/s][A
+predict with halo:   8%|▊         | 67/847 [00:01<00:17, 43.45it/s] [A
+predict with halo:   9%|▉         | 77/847 [00:02<00:27, 27.77it/s][A
+predict with halo:  10%|▉         | 83/847 [00:03<00:43, 17.47it/s][A
+predict with halo:  10%|█         | 87/847 [00:03<00:42, 17.68it/s][A
+predict with halo:  11%|█         | 90/847 [00:03<00:44, 17.13it/s][A
+predict with halo:  11%|█         | 93/847 [00:04<01:00, 12.45it/s][A
+predict with halo:  11%|█         | 95/847 [00:04<01:12, 10.44it/s][A
+predict with halo:  12%|█▏        | 101/847 [00:04<00:56, 13.30it/s][A
+predict with halo:  12%|█▏        | 103/847 [00:05<01:09, 10.66it/s][A
+predict with halo:  12%|█▏        | 105/847 [00:05<01:23,  8.87it/s][A
+predict with halo:  14%|█▎        | 115/847 [00:05<00:46, 15.91it/s][A
+predict with halo:  20%|█▉        | 168/847 [00:06<00:10, 63.22it/s][A
+predict with halo:  21%|██        | 177/847 [00:06<00:13, 48.13it/s][A
+predict with halo:  22%|██▏       | 184/847 [00:07<00:23, 28.02it/s][A
+predict with halo:  22%|██▏       | 189/847 [00:07<00:24, 27.28it/s][A
+predict with halo:  23%|██▎       | 194/847 [00:08<00:37, 17.47it/s][A
+predict with halo:  24%|██▎       | 200/847 [00:08<00:33, 19.03it/s][A
+predict with halo:  24%|██▍       | 203/847 [00:09<00:47, 13.69it/s][A
+predict with halo:  24%|██▍       | 206/847 [00:09<00:53, 12.01it/s][A
+predict with halo:  25%|██▍       | 211/847 [00:09<00:45, 13.89it/s][A
+predict with halo:  25%|██▌       | 213/847 [00:10<00:57, 11.09it/s][A
+predict with halo:  25%|██▌       | 215/847 [00:10<01:08,  9.19it/s][A
+predict with halo:  26%|██▌       | 217/847 [00:10<01:07,  9.29it/s][A
+predict with halo:  26%|██▌       | 222/847 [00:11<00:50, 12.26it/s][A
+predict with halo:  26%|██▋       | 224/847 [00:11<01:05,  9.53it/s][A
+predict with halo:  27%|██▋       | 226/847 [00:11<01:18,  7.92it/s][A
+predict with halo:  27%|██▋       | 227/847 [00:12<01:24,  7.32it/s][A
+predict with halo:  34%|███▍      | 289/847 [00:12<00:08, 69.67it/s][A
+predict with halo:  35%|███▌      | 298/847 [00:12<00:10, 51.47it/s][A
+predict with halo:  36%|███▌      | 305/847 [00:13<00:18, 29.15it/s][A
+predict with halo:  37%|███▋      | 310/847 [00:13<00:19, 28.22it/s][A
+predict with halo:  37%|███▋      | 315/847 [00:14<00:29, 17.85it/s][A
+predict with halo:  38%|███▊      | 321/847 [00:14<00:27, 19.34it/s][A
+predict with halo:  38%|███▊      | 324/847 [00:15<00:37, 13.86it/s][A
+predict with halo:  39%|███▊      | 327/847 [00:15<00:42, 12.13it/s][A
+predict with halo:  39%|███▉      | 332/847 [00:16<00:36, 13.99it/s][A
+predict with halo:  39%|███▉      | 334/847 [00:16<00:46, 11.14it/s][A
+predict with halo:  40%|███▉      | 336/847 [00:16<00:55,  9.23it/s][A
+predict with halo:  40%|███▉      | 338/847 [00:17<00:54,  9.32it/s][A
+predict with halo:  40%|████      | 343/847 [00:17<00:40, 12.29it/s][A
+predict with halo:  41%|████      | 345/847 [00:17<00:52,  9.55it/s][A
+predict with halo:  41%|████      | 347/847 [00:18<01:03,  7.94it/s][A
+predict with halo:  41%|████      | 348/847 [00:18<01:08,  7.33it/s][A
+predict with halo:  48%|████▊     | 410/847 [00:18<00:06, 69.76it/s][A
+predict with halo:  49%|████▉     | 419/847 [00:18<00:08, 51.42it/s][A
+predict with halo:  50%|█████     | 426/847 [00:19<00:14, 29.15it/s][A
+predict with halo:  51%|█████     | 431/847 [00:20<00:14, 28.22it/s][A
+predict with halo:  51%|█████▏    | 436/847 [00:21<00:25, 15.96it/s][A
+predict with halo:  52%|█████▏    | 442/847 [00:21<00:23, 17.60it/s][A
+predict with halo:  53%|█████▎    | 445/847 [00:21<00:30, 13.06it/s][A
+predict with halo:  53%|█████▎    | 448/847 [00:22<00:34, 11.61it/s][A
+predict with halo:  53%|█████▎    | 453/847 [00:22<00:29, 13.49it/s][A
+predict with halo:  54%|█████▎    | 455/847 [00:22<00:36, 10.87it/s][A
+predict with halo:  54%|█████▍    | 457/847 [00:23<00:43,  9.02it/s][A
+predict with halo:  54%|█████▍    | 459/847 [00:23<00:42,  9.15it/s][A
+predict with halo:  55%|█████▍    | 464/847 [00:23<00:31, 12.08it/s][A
+predict with halo:  55%|█████▌    | 466/847 [00:24<00:40,  9.44it/s][A
+predict with halo:  55%|█████▌    | 468/847 [00:24<00:48,  7.85it/s][A
+predict with halo:  55%|█████▌    | 469/847 [00:24<00:52,  7.27it/s][A
+predict with halo:  63%|██████▎   | 531/847 [00:25<00:04, 68.76it/s][A
+predict with halo:  64%|██████▍   | 540/847 [00:25<00:06, 51.05it/s][A
+predict with halo:  65%|██████▍   | 547/847 [00:26<00:10, 28.95it/s][A
+predict with halo:  65%|██████▌   | 552/847 [00:26<00:10, 27.99it/s][A
+predict with halo:  66%|██████▌   | 557/847 [00:27<00:18, 15.86it/s][A
+predict with halo:  66%|██████▋   | 563/847 [00:27<00:16, 17.44it/s][A
+predict with halo:  67%|██████▋   | 566/847 [00:28<00:21, 12.98it/s][A
+predict with halo:  67%|██████▋   | 569/847 [00:28<00:24, 11.55it/s][A
+predict with halo:  68%|██████▊   | 574/847 [00:28<00:20, 13.37it/s][A
+predict with halo:  68%|██████▊   | 576/847 [00:29<00:25, 10.80it/s][A
+predict with halo:  68%|██████▊   | 578/847 [00:29<00:29,  9.03it/s][A
+predict with halo:  68%|██████▊   | 580/847 [00:30<00:29,  9.16it/s][A
+predict with halo:  69%|██████▉   | 585/847 [00:30<00:21, 12.06it/s][A
+predict with halo:  69%|██████▉   | 587/847 [00:30<00:27,  9.42it/s][A
+predict with halo:  70%|██████▉   | 589/847 [00:31<00:32,  7.86it/s][A
+predict with halo:  70%|██████▉   | 590/847 [00:31<00:35,  7.27it/s][A
+predict with halo:  77%|███████▋  | 652/847 [00:31<00:02, 68.46it/s][A
+predict with halo:  78%|███████▊  | 661/847 [00:31<00:03, 50.70it/s][A
+predict with halo:  79%|███████▉  | 668/847 [00:32<00:06, 28.72it/s][A
+predict with halo:  79%|███████▉  | 673/847 [00:32<00:06, 27.79it/s][A
+predict with halo:  80%|███████▉  | 677/847 [00:33<00:09, 17.07it/s][A
+predict with halo:  80%|████████  | 680/847 [00:34<00:10, 16.69it/s][A
+predict with halo:  81%|████████  | 684/847 [00:34<00:09, 17.01it/s][A
+predict with halo:  81%|████████  | 687/847 [00:34<00:13, 11.91it/s][A
+predict with halo:  81%|████████▏ | 689/847 [00:35<00:16,  9.87it/s][A
+predict with halo:  82%|████████▏ | 695/847 [00:35<00:11, 12.96it/s][A
+predict with halo:  82%|████████▏ | 697/847 [00:35<00:14, 10.33it/s][A
+predict with halo:  83%|████████▎ | 699/847 [00:36<00:17,  8.60it/s][A
+predict with halo:  83%|████████▎ | 701/847 [00:36<00:16,  8.79it/s][A
+predict with halo:  83%|████████▎ | 706/847 [00:36<00:11, 11.86it/s][A
+predict with halo:  84%|████████▎ | 708/847 [00:37<00:15,  9.25it/s][A
+predict with halo:  84%|████████▍ | 710/847 [00:37<00:17,  7.73it/s][A
+predict with halo:  84%|████████▍ | 711/847 [00:37<00:18,  7.16it/s][A
+predict with halo:  94%|█████████▍| 797/847 [00:38<00:00, 93.90it/s][A
+predict with halo:  96%|█████████▌| 809/847 [00:39<00:00, 39.32it/s][A
+predict with halo:  97%|█████████▋| 818/847 [00:40<00:01, 28.44it/s][A
+predict with halo:  97%|█████████▋| 825/847 [00:40<00:00, 23.45it/s][A
+predict with halo:  98%|█████████▊| 830/847 [00:41<00:00, 17.25it/s][A
+predict with halo:  98%|█████████▊| 834/847 [00:41<00:00, 15.70it/s][Apredict with halo: 100%|██████████| 847/847 [00:41<00:00, 20.17it/s]
+Prediction time in 42.42348670959473 s
+Eroding mitochondria instances globally by 0 voxels ...
+Instance erosion completed in 0.68 s
+
+Label all sub-blocks:   0%|          | 0/36 [00:00<?, ?it/s][A
+Label all sub-blocks:  47%|████▋     | 17/36 [00:00<00:00, 83.29it/s][A
+Label all sub-blocks:  72%|███████▏  | 26/36 [00:00<00:00, 56.43it/s][ALabel all sub-blocks: 100%|██████████| 36/36 [00:00<00:00, 82.16it/s]
+
+Merge labels across block faces:   0%|          | 0/36 [00:00<?, ?it/s][AMerge labels across block faces: 100%|██████████| 36/36 [00:00<00:00, 13720.58it/s]
+
+Write blocks:   0%|          | 0/36 [00:00<?, ?it/s][AWrite blocks: 100%|██████████| 36/36 [00:00<00:00, 423.72it/s]
+Compute connected components in 2.6840288639068604 s
+
+  0%|          | 0/36 [00:00<?, ?it/s][A
+ 28%|██▊       | 10/36 [00:00<00:00, 93.86it/s][A
+ 56%|█████▌    | 20/36 [00:00<00:00, 52.56it/s][A
+ 75%|███████▌  | 27/36 [00:00<00:00, 51.24it/s][A100%|██████████| 36/36 [00:00<00:00, 72.29it/s]
+
+  0%|          | 0/36 [00:00<?, ?it/s][A
+ 19%|█▉        | 7/36 [00:00<00:00, 35.94it/s][A
+ 31%|███       | 11/36 [00:00<00:01, 19.21it/s][A
+ 39%|███▉      | 14/36 [00:00<00:01, 20.45it/s][A
+ 47%|████▋     | 17/36 [00:00<00:01, 18.95it/s][A
+ 56%|█████▌    | 20/36 [00:01<00:01, 15.76it/s][A100%|██████████| 36/36 [00:01<00:00, 32.35it/s]
+ 13%|█▎        | 2/15 [02:55<18:45, 86.55s/it]Size filter in 4.994399547576904 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT40_eb10_model_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT40_eb10_model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M5_eb1_model_combined.h5
+Segmenting cristae in volume of shape (107, 1336, 1336)
+Run prediction with mask.
+
+predict with halo:   6%|▌         | 52/847 [00:00<00:03, 215.07it/s][A
+predict with halo:   9%|▊         | 74/847 [00:01<00:24, 31.72it/s] [A
+predict with halo:  10%|▉         | 84/847 [00:02<00:31, 23.99it/s][A
+predict with halo:  11%|█         | 90/847 [00:03<00:38, 19.78it/s][A
+predict with halo:  11%|█         | 94/847 [00:03<00:38, 19.67it/s][A
+predict with halo:  12%|█▏        | 98/847 [00:03<00:43, 17.08it/s][A
+predict with halo:  20%|██        | 173/847 [00:04<00:09, 69.42it/s][A
+predict with halo:  22%|██▏       | 185/847 [00:05<00:16, 39.07it/s][A
+predict with halo:  23%|██▎       | 194/847 [00:05<00:20, 31.45it/s][A
+predict with halo:  24%|██▎       | 201/847 [00:06<00:25, 25.25it/s][A
+predict with halo:  24%|██▍       | 206/847 [00:07<00:31, 20.04it/s][A
+predict with halo:  25%|██▍       | 210/847 [00:07<00:35, 17.72it/s][A
+predict with halo:  25%|██▌       | 215/847 [00:07<00:34, 18.55it/s][A
+predict with halo:  26%|██▌       | 218/847 [00:08<00:40, 15.40it/s][A
+predict with halo:  35%|███▍      | 294/847 [00:08<00:07, 72.56it/s][A
+predict with halo:  36%|███▌      | 305/847 [00:09<00:12, 43.59it/s][A
+predict with halo:  37%|███▋      | 314/847 [00:09<00:15, 33.64it/s][A
+predict with halo:  38%|███▊      | 321/847 [00:10<00:22, 23.81it/s][A
+predict with halo:  38%|███▊      | 326/847 [00:11<00:24, 21.13it/s][A
+predict with halo:  39%|███▉      | 330/847 [00:11<00:31, 16.48it/s][A
+predict with halo:  40%|███▉      | 337/847 [00:11<00:27, 18.66it/s][A
+predict with halo:  40%|████      | 340/847 [00:12<00:28, 18.01it/s][A
+predict with halo:  49%|████▉     | 415/847 [00:12<00:05, 78.65it/s][A
+predict with halo:  50%|█████     | 426/847 [00:13<00:09, 45.52it/s][A
+predict with halo:  51%|█████     | 434/847 [00:13<00:10, 38.62it/s][A
+predict with halo:  52%|█████▏    | 441/847 [00:14<00:17, 23.06it/s][A
+predict with halo:  53%|█████▎    | 446/847 [00:14<00:17, 23.07it/s][A
+predict with halo:  53%|█████▎    | 450/847 [00:15<00:25, 15.67it/s][A
+predict with halo:  54%|█████▍    | 458/847 [00:15<00:21, 18.47it/s][A
+predict with halo:  55%|█████▍    | 462/847 [00:16<00:20, 18.58it/s][A
+predict with halo:  63%|██████▎   | 536/847 [00:16<00:04, 76.30it/s][A
+predict with halo:  65%|██████▍   | 547/847 [00:17<00:06, 44.86it/s][A
+predict with halo:  66%|██████▌   | 555/847 [00:17<00:07, 38.06it/s][A
+predict with halo:  66%|██████▋   | 562/847 [00:18<00:12, 22.96it/s][A
+predict with halo:  67%|██████▋   | 568/847 [00:18<00:11, 23.58it/s][A
+predict with halo:  68%|██████▊   | 572/847 [00:19<00:15, 17.72it/s][A
+predict with halo:  68%|██████▊   | 579/847 [00:19<00:13, 19.85it/s][A
+predict with halo:  78%|███████▊  | 657/847 [00:20<00:02, 76.40it/s][A
+predict with halo:  79%|███████▉  | 669/847 [00:21<00:04, 41.39it/s][A
+predict with halo:  80%|████████  | 678/847 [00:21<00:05, 32.89it/s][A
+predict with halo:  81%|████████  | 685/847 [00:22<00:06, 26.12it/s][A
+predict with halo:  81%|████████▏ | 690/847 [00:22<00:06, 22.80it/s][A
+predict with halo:  82%|████████▏ | 694/847 [00:23<00:07, 19.62it/s][A
+predict with halo:  92%|█████████▏| 778/847 [00:23<00:00, 74.75it/s][A
+predict with halo:  93%|█████████▎| 791/847 [00:24<00:01, 39.19it/s][A
+predict with halo:  95%|█████████▍| 801/847 [00:25<00:01, 29.84it/s][A
+predict with halo:  95%|█████████▌| 808/847 [00:25<00:01, 30.23it/s][A
+predict with halo:  96%|█████████▌| 814/847 [00:26<00:01, 21.40it/s][Apredict with halo: 100%|██████████| 847/847 [00:26<00:00, 31.91it/s]
+Prediction time in 26.980616807937622 s
+Eroding mitochondria instances globally by 0 voxels ...
+Instance erosion completed in 0.53 s
+
+Label all sub-blocks:   0%|          | 0/36 [00:00<?, ?it/s][A
+Label all sub-blocks:  53%|█████▎    | 19/36 [00:00<00:00, 108.30it/s][A
+Label all sub-blocks:  83%|████████▎ | 30/36 [00:00<00:00, 96.08it/s] [ALabel all sub-blocks: 100%|██████████| 36/36 [00:00<00:00, 117.75it/s]
+
+Merge labels across block faces:   0%|          | 0/36 [00:00<?, ?it/s][AMerge labels across block faces: 100%|██████████| 36/36 [00:00<00:00, 9414.82it/s]
+
+Write blocks:   0%|          | 0/36 [00:00<?, ?it/s][AWrite blocks: 100%|██████████| 36/36 [00:00<00:00, 632.95it/s]
+Compute connected components in 3.0082688331604004 s
+
+  0%|          | 0/36 [00:00<?, ?it/s][A
+ 31%|███       | 11/36 [00:00<00:00, 47.50it/s][A
+ 44%|████▍     | 16/36 [00:00<00:00, 47.02it/s][A
+ 58%|█████▊    | 21/36 [00:00<00:00, 45.33it/s][A100%|██████████| 36/36 [00:00<00:00, 67.38it/s]
+
+  0%|          | 0/36 [00:00<?, ?it/s][A
+ 19%|█▉        | 7/36 [00:00<00:02, 10.85it/s][A
+ 39%|███▉      | 14/36 [00:00<00:01, 18.87it/s][A
+ 47%|████▋     | 17/36 [00:01<00:01, 16.10it/s][A
+ 78%|███████▊  | 28/36 [00:01<00:00, 31.84it/s][A100%|██████████| 36/36 [00:01<00:00, 30.28it/s]
+ 20%|██        | 3/15 [04:02<15:31, 77.63s/it]Size filter in 5.460763692855835 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/M5_eb1_model_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/M5_eb1_model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined.h5
+Segmenting cristae in volume of shape (282, 911, 911)
+Run prediction with mask.
+
+predict with halo:   0%|          | 1/1152 [00:00<04:11,  4.57it/s][A
+predict with halo:   0%|          | 2/1152 [00:00<04:05,  4.69it/s][A
+predict with halo:   1%|          | 9/1152 [00:00<01:05, 17.49it/s][A
+predict with halo:   1%|▏         | 17/1152 [00:00<00:44, 25.30it/s][A
+predict with halo:   2%|▏         | 22/1152 [00:01<00:45, 24.84it/s][A
+predict with halo:   2%|▏         | 25/1152 [00:01<00:53, 21.18it/s][A
+predict with halo:   4%|▍         | 49/1152 [00:01<00:21, 50.38it/s][A
+predict with halo:   6%|▌         | 65/1152 [00:01<00:18, 57.67it/s][A
+predict with halo:   6%|▌         | 71/1152 [00:01<00:22, 48.87it/s][A
+predict with halo:   7%|▋         | 76/1152 [00:02<00:26, 41.03it/s][A
+predict with halo:   7%|▋         | 81/1152 [00:02<00:30, 35.58it/s][A
+predict with halo:   7%|▋         | 85/1152 [00:02<00:34, 30.81it/s][A
+predict with halo:   8%|▊         | 89/1152 [00:02<00:50, 20.98it/s][A
+predict with halo:   9%|▉         | 105/1152 [00:03<00:30, 34.35it/s][A
+predict with halo:   9%|▉         | 109/1152 [00:03<00:34, 30.36it/s][A
+predict with halo:  10%|▉         | 113/1152 [00:03<00:38, 27.16it/s][A
+predict with halo:  10%|█         | 116/1152 [00:03<00:43, 23.68it/s][A
+predict with halo:  11%|█         | 129/1152 [00:04<00:29, 34.24it/s][A
+predict with halo:  12%|█▏        | 133/1152 [00:04<00:33, 29.99it/s][A
+predict with halo:  12%|█▏        | 137/1152 [00:04<00:38, 26.64it/s][A
+predict with halo:  13%|█▎        | 145/1152 [00:04<00:33, 29.72it/s][A
+predict with halo:  13%|█▎        | 148/1152 [00:04<00:39, 25.37it/s][A
+predict with halo:  13%|█▎        | 151/1152 [00:05<00:58, 17.21it/s][A
+predict with halo:  13%|█▎        | 153/1152 [00:05<01:05, 15.26it/s][A
+predict with halo:  13%|█▎        | 155/1152 [00:05<01:11, 13.85it/s][A
+predict with halo:  15%|█▍        | 169/1152 [00:05<00:35, 27.99it/s][A
+predict with halo:  15%|█▍        | 172/1152 [00:06<00:40, 24.33it/s][A
+predict with halo:  15%|█▌        | 177/1152 [00:06<00:40, 24.07it/s][A
+predict with halo:  16%|█▌        | 180/1152 [00:06<00:45, 21.33it/s][A
+predict with halo:  17%|█▋        | 193/1152 [00:06<00:29, 32.81it/s][A
+predict with halo:  17%|█▋        | 197/1152 [00:06<00:33, 28.89it/s][A
+predict with halo:  17%|█▋        | 201/1152 [00:07<00:36, 25.83it/s][A
+predict with halo:  18%|█▊        | 209/1152 [00:07<00:32, 29.26it/s][A
+predict with halo:  18%|█▊        | 212/1152 [00:07<00:48, 19.39it/s][A
+predict with halo:  19%|█▊        | 215/1152 [00:08<01:03, 14.66it/s][A
+predict with halo:  19%|█▉        | 217/1152 [00:08<01:09, 13.47it/s][A
+predict with halo:  19%|█▉        | 219/1152 [00:08<01:14, 12.59it/s][A
+predict with halo:  19%|█▉        | 221/1152 [00:09<01:38,  9.49it/s][A
+predict with halo:  20%|██        | 233/1152 [00:09<00:45, 20.16it/s][A
+predict with halo:  20%|██        | 236/1152 [00:09<00:48, 18.83it/s][A
+predict with halo:  21%|██        | 241/1152 [00:09<00:45, 20.03it/s][A
+predict with halo:  21%|██        | 244/1152 [00:09<00:48, 18.54it/s][A
+predict with halo:  22%|██▏       | 257/1152 [00:10<00:29, 30.31it/s][A
+predict with halo:  23%|██▎       | 261/1152 [00:10<00:32, 27.25it/s][A
+predict with halo:  23%|██▎       | 265/1152 [00:10<00:35, 24.76it/s][A
+predict with halo:  24%|██▎       | 273/1152 [00:10<00:30, 28.46it/s][A
+predict with halo:  24%|██▍       | 276/1152 [00:11<00:46, 19.03it/s][A
+predict with halo:  24%|██▍       | 279/1152 [00:11<01:00, 14.47it/s][A
+predict with halo:  24%|██▍       | 281/1152 [00:11<01:05, 13.33it/s][A
+predict with halo:  25%|██▍       | 283/1152 [00:12<01:09, 12.49it/s][A
+predict with halo:  25%|██▍       | 285/1152 [00:12<01:31,  9.43it/s][A
+predict with halo:  26%|██▌       | 297/1152 [00:12<00:42, 20.13it/s][A
+predict with halo:  26%|██▌       | 300/1152 [00:12<00:45, 18.81it/s][A
+predict with halo:  26%|██▋       | 305/1152 [00:13<00:42, 20.02it/s][A
+predict with halo:  27%|██▋       | 308/1152 [00:13<00:45, 18.56it/s][A
+predict with halo:  29%|██▉       | 337/1152 [00:13<00:16, 50.84it/s][A
+predict with halo:  30%|██▉       | 343/1152 [00:14<00:32, 24.55it/s][A
+predict with halo:  30%|███       | 347/1152 [00:14<00:40, 19.97it/s][A
+predict with halo:  30%|███       | 351/1152 [00:15<00:47, 16.90it/s][A
+predict with halo:  31%|███▏      | 361/1152 [00:15<00:35, 22.29it/s][A
+predict with halo:  32%|███▏      | 365/1152 [00:15<00:36, 21.73it/s][A
+predict with halo:  32%|███▏      | 369/1152 [00:15<00:37, 21.03it/s][A
+predict with halo:  32%|███▏      | 372/1152 [00:15<00:40, 19.47it/s][A
+predict with halo:  35%|███▍      | 401/1152 [00:16<00:15, 49.17it/s][A
+predict with halo:  35%|███▌      | 407/1152 [00:17<00:30, 24.64it/s][A
+predict with halo:  36%|███▌      | 411/1152 [00:17<00:36, 20.15it/s][A
+predict with halo:  36%|███▌      | 415/1152 [00:17<00:43, 17.07it/s][A
+predict with halo:  36%|███▋      | 418/1152 [00:18<00:44, 16.56it/s][A
+predict with halo:  37%|███▋      | 425/1152 [00:18<00:36, 19.86it/s][A
+predict with halo:  37%|███▋      | 428/1152 [00:18<00:38, 18.70it/s][A
+predict with halo:  38%|███▊      | 433/1152 [00:18<00:36, 19.83it/s][A
+predict with halo:  38%|███▊      | 436/1152 [00:18<00:38, 18.49it/s][A
+predict with halo:  40%|████      | 465/1152 [00:19<00:13, 49.64it/s][A
+predict with halo:  41%|████      | 471/1152 [00:19<00:23, 28.71it/s][A
+predict with halo:  41%|████      | 475/1152 [00:20<00:30, 22.25it/s][A
+predict with halo:  42%|████▏     | 479/1152 [00:20<00:36, 18.24it/s][A
+predict with halo:  42%|████▏     | 482/1152 [00:20<00:45, 14.71it/s][A
+predict with halo:  42%|████▏     | 489/1152 [00:21<00:36, 18.10it/s][A
+predict with halo:  43%|████▎     | 492/1152 [00:21<00:37, 17.39it/s][A
+predict with halo:  43%|████▎     | 497/1152 [00:21<00:34, 18.77it/s][A
+predict with halo:  43%|████▎     | 500/1152 [00:21<00:36, 17.73it/s][A
+predict with halo:  45%|████▍     | 515/1152 [00:22<00:20, 31.48it/s][A
+predict with halo:  45%|████▌     | 519/1152 [00:22<00:34, 18.45it/s][A
+predict with halo:  45%|████▌     | 523/1152 [00:22<00:33, 18.54it/s][A
+predict with halo:  46%|████▌     | 526/1152 [00:23<00:43, 14.49it/s][A
+predict with halo:  46%|████▌     | 529/1152 [00:23<00:43, 14.39it/s][A
+predict with halo:  46%|████▌     | 531/1152 [00:23<00:46, 13.35it/s][A
+predict with halo:  47%|████▋     | 537/1152 [00:23<00:36, 17.04it/s][A
+predict with halo:  47%|████▋     | 539/1152 [00:24<00:40, 15.18it/s][A
+predict with halo:  47%|████▋     | 541/1152 [00:24<00:44, 13.73it/s][A
+predict with halo:  47%|████▋     | 545/1152 [00:24<00:40, 15.13it/s][A
+predict with halo:  47%|████▋     | 547/1152 [00:24<00:44, 13.62it/s][A
+predict with halo:  48%|████▊     | 553/1152 [00:24<00:33, 17.88it/s][A
+predict with halo:  48%|████▊     | 555/1152 [00:25<00:38, 15.54it/s][A
+predict with halo:  49%|████▊     | 561/1152 [00:25<00:30, 19.29it/s][A
+predict with halo:  49%|████▉     | 563/1152 [00:25<00:35, 16.48it/s][A
+predict with halo:  50%|█████     | 579/1152 [00:25<00:16, 33.91it/s][A
+predict with halo:  51%|█████     | 583/1152 [00:26<00:30, 18.73it/s][A
+predict with halo:  51%|█████     | 587/1152 [00:26<00:30, 18.71it/s][A
+predict with halo:  51%|█████     | 590/1152 [00:27<00:38, 14.50it/s][A
+predict with halo:  51%|█████▏    | 593/1152 [00:27<00:38, 14.40it/s][A
+predict with halo:  52%|█████▏    | 601/1152 [00:27<00:27, 19.83it/s][A
+predict with halo:  52%|█████▏    | 604/1152 [00:27<00:29, 18.50it/s][A
+predict with halo:  53%|█████▎    | 609/1152 [00:27<00:27, 19.75it/s][A
+predict with halo:  53%|█████▎    | 612/1152 [00:28<00:37, 14.47it/s][A
+predict with halo:  54%|█████▎    | 617/1152 [00:28<00:32, 16.57it/s][A
+predict with halo:  54%|█████▎    | 619/1152 [00:28<00:35, 14.90it/s][A
+predict with halo:  54%|█████▍    | 625/1152 [00:28<00:28, 18.42it/s][A
+predict with halo:  54%|█████▍    | 627/1152 [00:29<00:32, 16.07it/s][A
+predict with halo:  56%|█████▌    | 643/1152 [00:29<00:15, 32.63it/s][A
+predict with halo:  56%|█████▌    | 647/1152 [00:29<00:27, 18.49it/s][A
+predict with halo:  56%|█████▋    | 650/1152 [00:30<00:28, 17.59it/s][A
+predict with halo:  57%|█████▋    | 653/1152 [00:30<00:42, 11.69it/s][A
+predict with halo:  58%|█████▊    | 666/1152 [00:31<00:23, 20.85it/s][A
+predict with halo:  58%|█████▊    | 669/1152 [00:31<00:24, 19.58it/s][A
+predict with halo:  58%|█████▊    | 673/1152 [00:31<00:24, 19.36it/s][A
+predict with halo:  59%|█████▊    | 676/1152 [00:31<00:32, 14.67it/s][A
+predict with halo:  59%|█████▉    | 681/1152 [00:32<00:28, 16.61it/s][A
+predict with halo:  59%|█████▉    | 683/1152 [00:32<00:31, 14.99it/s][A
+predict with halo:  60%|█████▉    | 689/1152 [00:32<00:25, 18.39it/s][A
+predict with halo:  60%|██████    | 692/1152 [00:32<00:26, 17.36it/s][A
+predict with halo:  61%|██████▏   | 707/1152 [00:32<00:13, 31.98it/s][A
+predict with halo:  62%|██████▏   | 711/1152 [00:33<00:24, 18.35it/s][A
+predict with halo:  62%|██████▏   | 714/1152 [00:33<00:25, 17.49it/s][A
+predict with halo:  62%|██████▏   | 717/1152 [00:34<00:37, 11.67it/s][A
+predict with halo:  63%|██████▎   | 721/1152 [00:34<00:33, 12.98it/s][A
+predict with halo:  63%|██████▎   | 723/1152 [00:34<00:41, 10.24it/s][A
+predict with halo:  63%|██████▎   | 729/1152 [00:35<00:30, 13.83it/s][A
+predict with halo:  63%|██████▎   | 731/1152 [00:35<00:39, 10.65it/s][A
+predict with halo:  64%|██████▍   | 738/1152 [00:35<00:27, 15.28it/s][A
+predict with halo:  64%|██████▍   | 740/1152 [00:36<00:29, 14.05it/s][A
+predict with halo:  65%|██████▍   | 745/1152 [00:36<00:24, 16.37it/s][A
+predict with halo:  65%|██████▍   | 747/1152 [00:36<00:27, 14.68it/s][A
+predict with halo:  67%|██████▋   | 771/1152 [00:36<00:09, 41.04it/s][A
+predict with halo:  67%|██████▋   | 776/1152 [00:37<00:13, 28.59it/s][A
+predict with halo:  68%|██████▊   | 780/1152 [00:37<00:23, 15.54it/s][A
+predict with halo:  68%|██████▊   | 783/1152 [00:38<00:23, 15.38it/s][A
+predict with halo:  68%|██████▊   | 786/1152 [00:38<00:28, 12.75it/s][A
+predict with halo:  68%|██████▊   | 788/1152 [00:38<00:29, 12.20it/s][A
+predict with halo:  69%|██████▉   | 793/1152 [00:38<00:24, 14.60it/s][A
+predict with halo:  69%|██████▉   | 795/1152 [00:39<00:32, 11.00it/s][A
+predict with halo:  70%|██████▉   | 802/1152 [00:39<00:22, 15.72it/s][A
+predict with halo:  70%|██████▉   | 804/1152 [00:39<00:24, 14.36it/s][A
+predict with halo:  70%|███████   | 810/1152 [00:39<00:19, 17.87it/s][A
+predict with halo:  72%|███████▏  | 835/1152 [00:40<00:07, 43.72it/s][A
+predict with halo:  73%|███████▎  | 840/1152 [00:40<00:08, 38.40it/s][A
+predict with halo:  73%|███████▎  | 845/1152 [00:41<00:16, 18.91it/s][A
+predict with halo:  74%|███████▎  | 849/1152 [00:41<00:16, 18.85it/s][A
+predict with halo:  74%|███████▍  | 852/1152 [00:42<00:23, 12.86it/s][A
+predict with halo:  74%|███████▍  | 855/1152 [00:42<00:22, 13.16it/s][A
+predict with halo:  74%|███████▍  | 857/1152 [00:42<00:23, 12.40it/s][A
+predict with halo:  75%|███████▍  | 859/1152 [00:42<00:30,  9.73it/s][A
+predict with halo:  75%|███████▍  | 861/1152 [00:43<00:29,  9.74it/s][A
+predict with halo:  75%|███████▌  | 866/1152 [00:43<00:22, 12.92it/s][A
+predict with halo:  75%|███████▌  | 868/1152 [00:43<00:23, 12.16it/s][A
+predict with halo:  79%|███████▊  | 905/1152 [00:43<00:04, 53.47it/s][A
+predict with halo:  79%|███████▉  | 911/1152 [00:44<00:07, 30.87it/s][A
+predict with halo:  80%|███████▉  | 916/1152 [00:45<00:14, 16.49it/s][A
+predict with halo:  80%|███████▉  | 920/1152 [00:46<00:17, 13.21it/s][A
+predict with halo:  80%|████████  | 923/1152 [00:46<00:21, 10.57it/s][A
+predict with halo:  80%|████████  | 925/1152 [00:47<00:24,  9.27it/s][A
+predict with halo:  81%|████████  | 930/1152 [00:47<00:19, 11.30it/s][A
+predict with halo:  81%|████████  | 932/1152 [00:47<00:19, 11.05it/s][A
+predict with halo:  84%|████████▍ | 969/1152 [00:47<00:04, 42.24it/s][A
+predict with halo:  85%|████████▍ | 975/1152 [00:48<00:09, 19.28it/s][A
+predict with halo:  85%|████████▌ | 980/1152 [00:50<00:13, 13.13it/s][A
+predict with halo:  85%|████████▌ | 984/1152 [00:50<00:16, 10.44it/s][A
+predict with halo:  86%|████████▌ | 987/1152 [00:51<00:18,  8.95it/s][A
+predict with halo:  86%|████████▌ | 989/1152 [00:51<00:19,  8.16it/s][A
+predict with halo:  86%|████████▋ | 994/1152 [00:52<00:15, 10.07it/s][A
+predict with halo:  86%|████████▋ | 996/1152 [00:52<00:15, 10.03it/s][A
+predict with halo:  90%|████████▉ | 1033/1152 [00:52<00:03, 38.58it/s][A
+predict with halo:  90%|█████████ | 1039/1152 [00:53<00:06, 18.62it/s][A
+predict with halo:  91%|█████████ | 1044/1152 [00:54<00:08, 12.88it/s][A
+predict with halo:  91%|█████████ | 1047/1152 [00:55<00:09, 10.78it/s][A
+predict with halo:  91%|█████████ | 1050/1152 [00:56<00:11,  9.13it/s][A
+predict with halo:  91%|█████████▏| 1052/1152 [00:56<00:12,  8.25it/s][A
+predict with halo:  91%|█████████▏| 1054/1152 [00:56<00:11,  8.44it/s][A
+predict with halo:  92%|█████████▏| 1058/1152 [00:56<00:09, 10.07it/s][A
+predict with halo:  92%|█████████▏| 1060/1152 [00:57<00:09, 10.02it/s][A
+predict with halo:  95%|█████████▌| 1098/1152 [00:57<00:01, 44.71it/s][A
+predict with halo:  96%|█████████▌| 1104/1152 [00:58<00:02, 21.86it/s][A
+predict with halo:  96%|█████████▋| 1109/1152 [00:59<00:03, 14.10it/s][A
+predict with halo:  97%|█████████▋| 1113/1152 [00:59<00:03, 11.92it/s][A
+predict with halo:  97%|█████████▋| 1116/1152 [01:00<00:03,  9.89it/s][A
+predict with halo:  97%|█████████▋| 1118/1152 [01:00<00:03,  9.86it/s][A
+predict with halo:  97%|█████████▋| 1122/1152 [01:01<00:02, 11.22it/s][A
+predict with halo:  98%|█████████▊| 1124/1152 [01:01<00:02, 10.96it/s][Apredict with halo: 100%|██████████| 1152/1152 [01:01<00:00, 18.81it/s]
+Prediction time in 61.692224979400635 s
+Eroding mitochondria instances globally by 0 voxels ...
+Instance erosion completed in 1.66 s
+
+Label all sub-blocks:   0%|          | 0/48 [00:00<?, ?it/s][A
+Label all sub-blocks:  44%|████▍     | 21/48 [00:00<00:00, 104.76it/s][ALabel all sub-blocks: 100%|██████████| 48/48 [00:00<00:00, 184.33it/s]
+
+Merge labels across block faces:   0%|          | 0/48 [00:00<?, ?it/s][AMerge labels across block faces: 100%|██████████| 48/48 [00:00<00:00, 8167.41it/s]
+
+Write blocks:   0%|          | 0/48 [00:00<?, ?it/s][AWrite blocks: 100%|██████████| 48/48 [00:00<00:00, 696.07it/s]
+Compute connected components in 3.791210889816284 s
+
+  0%|          | 0/48 [00:00<?, ?it/s][A
+ 19%|█▉        | 9/48 [00:00<00:00, 48.76it/s][A
+ 35%|███▌      | 17/48 [00:00<00:00, 42.04it/s][A100%|██████████| 48/48 [00:00<00:00, 107.44it/s]
+
+  0%|          | 0/48 [00:00<?, ?it/s][A
+ 15%|█▍        | 7/48 [00:00<00:02, 16.03it/s][A
+ 35%|███▌      | 17/48 [00:00<00:01, 27.61it/s][A
+ 44%|████▍     | 21/48 [00:00<00:01, 24.10it/s][A100%|██████████| 48/48 [00:00<00:00, 50.99it/s]
+ 27%|██▋       | 4/15 [06:07<17:39, 96.28s/it]Size filter in 6.635429620742798 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36194_B4_66K_TS_SC_22_rec_crop_combined.h5
+Segmenting cristae in volume of shape (246, 901, 902)
+Run prediction with mask.
+
+predict with halo:  20%|█▉        | 200/1024 [00:00<00:00, 1998.32it/s][A
+predict with halo:  39%|███▉      | 400/1024 [00:02<00:04, 127.15it/s] [A
+predict with halo:  48%|████▊     | 487/1024 [00:05<00:08, 64.58it/s] [A
+predict with halo:  52%|█████▏    | 536/1024 [00:07<00:08, 57.67it/s][A
+predict with halo:  55%|█████▌    | 567/1024 [00:09<00:10, 42.88it/s][A
+predict with halo:  57%|█████▋    | 588/1024 [00:09<00:09, 45.82it/s][A
+predict with halo:  59%|█████▉    | 605/1024 [00:09<00:09, 44.96it/s][A
+predict with halo:  60%|██████    | 618/1024 [00:10<00:11, 36.85it/s][A
+predict with halo:  61%|██████    | 627/1024 [00:11<00:13, 29.56it/s][A
+predict with halo:  62%|██████▏   | 634/1024 [00:11<00:13, 29.91it/s][A
+predict with halo:  64%|██████▍   | 657/1024 [00:11<00:09, 38.87it/s][A
+predict with halo:  65%|██████▍   | 665/1024 [00:11<00:09, 38.63it/s][A
+predict with halo:  67%|██████▋   | 681/1024 [00:12<00:07, 44.61it/s][A
+predict with halo:  67%|██████▋   | 688/1024 [00:12<00:09, 35.82it/s][A
+predict with halo:  68%|██████▊   | 693/1024 [00:13<00:13, 24.49it/s][A
+predict with halo:  70%|███████   | 721/1024 [00:13<00:07, 41.77it/s][A
+predict with halo:  71%|███████   | 729/1024 [00:13<00:07, 40.89it/s][A
+predict with halo:  73%|███████▎  | 745/1024 [00:13<00:05, 47.89it/s][A
+predict with halo:  73%|███████▎  | 752/1024 [00:14<00:07, 36.47it/s][A
+predict with halo:  74%|███████▍  | 757/1024 [00:14<00:11, 23.81it/s][A
+predict with halo:  74%|███████▍  | 761/1024 [00:15<00:13, 19.61it/s][A
+predict with halo:  77%|███████▋  | 785/1024 [00:15<00:06, 35.87it/s][A
+predict with halo:  79%|███████▉  | 809/1024 [00:15<00:04, 50.88it/s][A
+predict with halo:  80%|███████▉  | 816/1024 [00:16<00:04, 47.15it/s][A
+predict with halo:  80%|████████  | 822/1024 [00:16<00:05, 34.51it/s][A
+predict with halo:  81%|████████  | 827/1024 [00:16<00:07, 26.58it/s][A
+predict with halo:  84%|████████▍ | 865/1024 [00:17<00:02, 56.83it/s][A
+predict with halo:  85%|████████▌ | 873/1024 [00:17<00:02, 52.43it/s][A
+predict with halo:  86%|████████▌ | 880/1024 [00:17<00:03, 47.98it/s][A
+predict with halo:  87%|████████▋ | 886/1024 [00:17<00:04, 34.31it/s][A
+predict with halo:  87%|████████▋ | 891/1024 [00:18<00:05, 26.18it/s][A
+predict with halo:  87%|████████▋ | 895/1024 [00:18<00:05, 24.78it/s][A
+predict with halo:  88%|████████▊ | 898/1024 [00:18<00:05, 22.41it/s][A
+predict with halo:  91%|█████████ | 929/1024 [00:18<00:01, 52.33it/s][A
+predict with halo:  92%|█████████▏| 937/1024 [00:19<00:01, 48.34it/s][A
+predict with halo:  92%|█████████▏| 943/1024 [00:19<00:01, 43.14it/s][A
+predict with halo:  93%|█████████▎| 951/1024 [00:19<00:01, 41.50it/s][A
+predict with halo:  93%|█████████▎| 956/1024 [00:19<00:01, 36.56it/s][A
+predict with halo:  94%|█████████▍| 960/1024 [00:20<00:02, 24.68it/s][A
+predict with halo:  98%|█████████▊| 1001/1024 [00:20<00:00, 65.00it/s][A
+predict with halo:  99%|█████████▉| 1015/1024 [00:20<00:00, 65.19it/s][A
+predict with halo: 100%|█████████▉| 1023/1024 [00:21<00:00, 46.10it/s][Apredict with halo: 100%|██████████| 1024/1024 [00:21<00:00, 48.09it/s]
+Prediction time in 21.731260299682617 s
+Eroding mitochondria instances globally by 0 voxels ...
+Instance erosion completed in 0.93 s
+
+Label all sub-blocks:   0%|          | 0/32 [00:00<?, ?it/s][A
+Label all sub-blocks:  53%|█████▎    | 17/32 [00:00<00:00, 33.89it/s][ALabel all sub-blocks: 100%|██████████| 32/32 [00:00<00:00, 53.39it/s]
+
+Merge labels across block faces:   0%|          | 0/32 [00:00<?, ?it/s][AMerge labels across block faces: 100%|██████████| 32/32 [00:00<00:00, 2369.41it/s]
+
+Write blocks:   0%|          | 0/32 [00:00<?, ?it/s][A
+Write blocks:  78%|███████▊  | 25/32 [00:00<00:00, 234.05it/s][AWrite blocks: 100%|██████████| 32/32 [00:00<00:00, 157.16it/s]
+Compute connected components in 3.166970729827881 s
+
+  0%|          | 0/32 [00:00<?, ?it/s][A
+  9%|▉         | 3/32 [00:00<00:02, 14.47it/s][A
+ 16%|█▌        | 5/32 [00:00<00:02, 10.70it/s][A
+ 31%|███▏      | 10/32 [00:00<00:01, 19.28it/s][A
+ 53%|█████▎    | 17/32 [00:00<00:00, 31.16it/s][A
+ 78%|███████▊  | 25/32 [00:00<00:00, 43.04it/s][A100%|██████████| 32/32 [00:00<00:00, 39.53it/s]
+
+  0%|          | 0/32 [00:00<?, ?it/s][A
+  6%|▋         | 2/32 [00:00<00:05,  5.98it/s][A
+  9%|▉         | 3/32 [00:00<00:07,  3.89it/s][A
+ 19%|█▉        | 6/32 [00:01<00:05,  4.67it/s][A
+ 53%|█████▎    | 17/32 [00:01<00:00, 16.00it/s][A
+ 66%|██████▌   | 21/32 [00:01<00:00, 19.05it/s][A100%|██████████| 32/32 [00:01<00:00, 19.66it/s]
+ 33%|███▎      | 5/15 [07:20<14:41, 88.11s/it]Size filter in 5.53509783744812 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/36194_B4_66K_TS_SC_22_rec_crop_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/36194_B4_66K_TS_SC_22_rec_crop_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT21_eb5_model2_combined.h5
+Segmenting cristae in volume of shape (100, 1336, 1336)
+Run prediction with mask.
+
+predict with halo:   4%|▍         | 36/847 [00:00<00:05, 154.07it/s][A
+predict with halo:   6%|▌         | 52/847 [00:01<00:35, 22.58it/s] [A
+predict with halo:   7%|▋         | 59/847 [00:02<00:41, 18.83it/s][A
+predict with halo:   8%|▊         | 64/847 [00:03<00:50, 15.43it/s][A
+predict with halo:   9%|▊         | 73/847 [00:03<00:40, 19.02it/s][A
+predict with halo:   9%|▉         | 77/847 [00:03<00:53, 14.51it/s][A
+predict with halo:  10%|▉         | 84/847 [00:04<00:44, 17.23it/s][A
+predict with halo:  10%|█         | 87/847 [00:04<01:00, 12.49it/s][A
+predict with halo:  18%|█▊        | 156/847 [00:05<00:11, 60.67it/s][A
+predict with halo:  20%|█▉        | 167/847 [00:06<00:19, 34.77it/s][A
+predict with halo:  21%|██        | 175/847 [00:07<00:33, 19.91it/s][A
+predict with halo:  21%|██▏       | 181/847 [00:08<00:38, 17.46it/s][A
+predict with halo:  22%|██▏       | 186/847 [00:08<00:47, 13.93it/s][A
+predict with halo:  23%|██▎       | 194/847 [00:09<00:39, 16.35it/s][A
+predict with halo:  23%|██▎       | 198/847 [00:09<00:48, 13.39it/s][A
+predict with halo:  24%|██▍       | 205/847 [00:10<00:40, 15.90it/s][A
+predict with halo:  25%|██▍       | 208/847 [00:10<00:46, 13.63it/s][A
+predict with halo:  32%|███▏      | 267/847 [00:10<00:10, 55.42it/s][A
+predict with halo:  33%|███▎      | 277/847 [00:11<00:12, 45.65it/s][A
+predict with halo:  34%|███▎      | 285/847 [00:12<00:21, 25.93it/s][A
+predict with halo:  34%|███▍      | 291/847 [00:12<00:26, 20.81it/s][A
+predict with halo:  35%|███▍      | 295/847 [00:13<00:36, 14.96it/s][A
+predict with halo:  35%|███▌      | 300/847 [00:13<00:34, 15.95it/s][A
+predict with halo:  36%|███▌      | 303/847 [00:14<00:44, 12.28it/s][A
+predict with halo:  36%|███▌      | 306/847 [00:15<00:54,  9.88it/s][A
+predict with halo:  36%|███▋      | 308/847 [00:15<00:54,  9.84it/s][A
+predict with halo:  37%|███▋      | 315/847 [00:15<00:39, 13.55it/s][A
+predict with halo:  37%|███▋      | 317/847 [00:15<00:48, 10.86it/s][A
+predict with halo:  38%|███▊      | 326/847 [00:16<00:31, 16.59it/s][A
+predict with halo:  39%|███▉      | 329/847 [00:16<00:38, 13.44it/s][A
+predict with halo:  46%|████▌     | 387/847 [00:16<00:07, 63.16it/s][A
+predict with halo:  47%|████▋     | 396/847 [00:17<00:09, 48.68it/s][A
+predict with halo:  48%|████▊     | 403/847 [00:18<00:19, 22.86it/s][A
+predict with halo:  48%|████▊     | 409/847 [00:18<00:18, 23.47it/s][A
+predict with halo:  49%|████▉     | 414/847 [00:19<00:29, 14.78it/s][A
+predict with halo:  49%|████▉     | 418/847 [00:20<00:31, 13.71it/s][A
+predict with halo:  50%|████▉     | 421/847 [00:20<00:30, 13.74it/s][A
+predict with halo:  50%|█████     | 424/847 [00:20<00:40, 10.57it/s][A
+predict with halo:  50%|█████     | 426/847 [00:21<00:46,  9.12it/s][A
+predict with halo:  51%|█████     | 428/847 [00:21<00:45,  9.21it/s][A
+predict with halo:  51%|█████     | 433/847 [00:21<00:34, 11.83it/s][A
+predict with halo:  51%|█████▏    | 435/847 [00:22<00:43,  9.47it/s][A
+predict with halo:  52%|█████▏    | 437/847 [00:22<00:51,  7.99it/s][A
+predict with halo:  52%|█████▏    | 438/847 [00:22<00:55,  7.40it/s][A
+predict with halo:  53%|█████▎    | 446/847 [00:22<00:28, 13.93it/s][A
+predict with halo:  53%|█████▎    | 448/847 [00:23<00:37, 10.51it/s][A
+predict with halo:  53%|█████▎    | 450/847 [00:23<00:38, 10.31it/s][A
+predict with halo:  60%|█████▉    | 508/847 [00:23<00:04, 70.10it/s][A
+predict with halo:  61%|██████    | 516/847 [00:24<00:06, 50.35it/s][A
+predict with halo:  62%|██████▏   | 523/847 [00:25<00:12, 24.99it/s][A
+predict with halo:  62%|██████▏   | 528/847 [00:25<00:12, 24.84it/s][A
+predict with halo:  63%|██████▎   | 532/847 [00:26<00:17, 17.81it/s][A
+predict with halo:  63%|██████▎   | 535/847 [00:26<00:23, 13.31it/s][A
+predict with halo:  64%|██████▎   | 538/847 [00:27<00:26, 11.82it/s][A
+predict with halo:  64%|██████▍   | 542/847 [00:27<00:23, 12.87it/s][A
+predict with halo:  64%|██████▍   | 544/847 [00:27<00:28, 10.47it/s][A
+predict with halo:  64%|██████▍   | 546/847 [00:28<00:34,  8.80it/s][A
+predict with halo:  65%|██████▍   | 548/847 [00:28<00:39,  7.63it/s][A
+predict with halo:  65%|██████▌   | 554/847 [00:28<00:25, 11.31it/s][A
+predict with halo:  66%|██████▌   | 556/847 [00:29<00:31,  9.17it/s][A
+predict with halo:  66%|██████▌   | 558/847 [00:29<00:37,  7.79it/s][A
+predict with halo:  66%|██████▌   | 559/847 [00:29<00:39,  7.25it/s][A
+predict with halo:  67%|██████▋   | 567/847 [00:30<00:20, 13.76it/s][A
+predict with halo:  67%|██████▋   | 569/847 [00:30<00:26, 10.38it/s][A
+predict with halo:  67%|██████▋   | 571/847 [00:30<00:26, 10.24it/s][A
+predict with halo:  74%|███████▍  | 629/847 [00:30<00:03, 69.80it/s][A
+predict with halo:  75%|███████▌  | 637/847 [00:31<00:04, 50.15it/s][A
+predict with halo:  76%|███████▌  | 644/847 [00:32<00:09, 22.30it/s][A
+predict with halo:  77%|███████▋  | 649/847 [00:32<00:08, 22.52it/s][A
+predict with halo:  77%|███████▋  | 653/847 [00:33<00:12, 14.96it/s][A
+predict with halo:  77%|███████▋  | 656/847 [00:34<00:16, 11.83it/s][A
+predict with halo:  78%|███████▊  | 659/847 [00:34<00:17, 10.79it/s][A
+predict with halo:  78%|███████▊  | 663/847 [00:34<00:15, 11.92it/s][A
+predict with halo:  79%|███████▊  | 665/847 [00:35<00:18,  9.89it/s][A
+predict with halo:  79%|███████▊  | 667/847 [00:35<00:21,  8.44it/s][A
+predict with halo:  79%|███████▉  | 669/847 [00:36<00:24,  7.40it/s][A
+predict with halo:  80%|███████▉  | 674/847 [00:36<00:16, 10.22it/s][A
+predict with halo:  80%|███████▉  | 676/847 [00:36<00:20,  8.45it/s][A
+predict with halo:  80%|████████  | 678/847 [00:37<00:23,  7.31it/s][A
+predict with halo:  80%|████████  | 679/847 [00:37<00:24,  6.85it/s][A
+predict with halo:  80%|████████  | 680/847 [00:37<00:25,  6.44it/s][A
+predict with halo:  81%|████████  | 688/847 [00:37<00:11, 13.73it/s][A
+predict with halo:  81%|████████▏ | 690/847 [00:38<00:15, 10.23it/s][A
+predict with halo:  82%|████████▏ | 692/847 [00:38<00:15, 10.11it/s][A
+predict with halo:  89%|████████▊ | 751/847 [00:38<00:01, 73.95it/s][A
+predict with halo:  90%|████████▉ | 760/847 [00:39<00:01, 53.02it/s][A
+predict with halo:  91%|█████████ | 767/847 [00:40<00:03, 25.98it/s][A
+predict with halo:  91%|█████████ | 772/847 [00:40<00:03, 22.48it/s][A
+predict with halo:  92%|█████████▏| 776/847 [00:41<00:04, 15.15it/s][A
+predict with halo:  92%|█████████▏| 779/847 [00:41<00:05, 13.35it/s][A
+predict with halo:  93%|█████████▎| 784/847 [00:41<00:04, 14.87it/s][A
+predict with halo:  93%|█████████▎| 787/847 [00:42<00:05, 11.12it/s][A
+predict with halo:  93%|█████████▎| 789/847 [00:42<00:06,  9.47it/s][A
+predict with halo:  94%|█████████▍| 795/847 [00:43<00:04, 12.54it/s][A
+predict with halo:  94%|█████████▍| 797/847 [00:43<00:04, 10.17it/s][A
+predict with halo:  94%|█████████▍| 799/847 [00:43<00:04, 10.09it/s][Apredict with halo: 100%|██████████| 847/847 [00:43<00:00, 19.36it/s]
+Prediction time in 44.19382905960083 s
+Eroding mitochondria instances globally by 0 voxels ...
+Instance erosion completed in 0.77 s
+
+Label all sub-blocks:   0%|          | 0/36 [00:00<?, ?it/s][A
+Label all sub-blocks:  53%|█████▎    | 19/36 [00:00<00:00, 91.78it/s][ALabel all sub-blocks: 100%|██████████| 36/36 [00:00<00:00, 128.04it/s]
+
+Merge labels across block faces:   0%|          | 0/36 [00:00<?, ?it/s][AMerge labels across block faces: 100%|██████████| 36/36 [00:00<00:00, 8599.29it/s]
+
+Write blocks:   0%|          | 0/36 [00:00<?, ?it/s][A
+Write blocks:  78%|███████▊  | 28/36 [00:00<00:00, 265.15it/s][AWrite blocks: 100%|██████████| 36/36 [00:00<00:00, 340.24it/s]
+Compute connected components in 2.6741039752960205 s
+
+  0%|          | 0/36 [00:00<?, ?it/s][A
+ 22%|██▏       | 8/36 [00:00<00:00, 41.56it/s][A
+ 44%|████▍     | 16/36 [00:00<00:00, 46.73it/s][A100%|██████████| 36/36 [00:00<00:00, 81.09it/s]
+
+  0%|          | 0/36 [00:00<?, ?it/s][A
+ 39%|███▉      | 14/36 [00:00<00:00, 52.47it/s][A
+ 56%|█████▌    | 20/36 [00:00<00:00, 54.50it/s][A
+ 72%|███████▏  | 26/36 [00:00<00:00, 31.07it/s][A100%|██████████| 36/36 [00:00<00:00, 49.85it/s]
+ 40%|████      | 6/15 [08:43<12:57, 86.39s/it]Size filter in 5.163338661193848 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT21_eb5_model2_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT21_eb5_model2_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/KO8_eb4_model_combined.h5
+Segmenting cristae in volume of shape (91, 1336, 1336)
+Run prediction with mask.
+
+predict with halo:   4%|▎         | 26/726 [00:00<00:06, 113.28it/s][A
+predict with halo:   5%|▌         | 38/726 [00:00<00:18, 38.03it/s] [A
+predict with halo:   6%|▋         | 47/726 [00:01<00:17, 39.01it/s][A
+predict with halo:   7%|▋         | 53/726 [00:01<00:23, 28.29it/s][A
+predict with halo:   8%|▊         | 57/726 [00:01<00:25, 25.95it/s][A
+predict with halo:   8%|▊         | 60/726 [00:02<00:43, 15.37it/s][A
+predict with halo:   9%|▉         | 68/726 [00:02<00:33, 19.63it/s][A
+predict with halo:  10%|▉         | 71/726 [00:03<00:50, 12.98it/s][A
+predict with halo:  11%|█         | 79/726 [00:03<00:37, 17.37it/s][A
+predict with halo:  11%|█▏        | 82/726 [00:04<00:53, 11.99it/s][A
+predict with halo:  13%|█▎        | 91/726 [00:04<00:36, 17.17it/s][A
+predict with halo:  13%|█▎        | 94/726 [00:04<00:45, 13.93it/s][A
+predict with halo:  14%|█▍        | 103/726 [00:04<00:32, 19.30it/s][A
+predict with halo:  15%|█▍        | 106/726 [00:05<00:33, 18.26it/s][A
+predict with halo:  20%|██        | 147/726 [00:05<00:09, 58.39it/s][A
+predict with halo:  21%|██▏       | 155/726 [00:05<00:10, 53.45it/s][A
+predict with halo:  22%|██▏       | 162/726 [00:06<00:17, 31.93it/s][A
+predict with halo:  23%|██▎       | 167/726 [00:06<00:18, 30.21it/s][A
+predict with halo:  24%|██▎       | 171/726 [00:06<00:28, 19.49it/s][A
+predict with halo:  25%|██▍       | 178/726 [00:07<00:25, 21.91it/s][A
+predict with halo:  25%|██▌       | 182/726 [00:07<00:35, 15.26it/s][A
+predict with halo:  26%|██▌       | 189/726 [00:08<00:29, 18.31it/s][A
+predict with halo:  26%|██▋       | 192/726 [00:08<00:36, 14.74it/s][A
+predict with halo:  28%|██▊       | 200/726 [00:08<00:27, 19.05it/s][A
+predict with halo:  28%|██▊       | 203/726 [00:09<00:40, 12.77it/s][A
+predict with halo:  29%|██▉       | 213/726 [00:09<00:27, 18.84it/s][A
+predict with halo:  30%|██▉       | 216/726 [00:09<00:28, 18.00it/s][A
+predict with halo:  31%|███       | 224/726 [00:09<00:22, 22.29it/s][A
+predict with halo:  31%|███▏      | 227/726 [00:10<00:24, 20.42it/s][A
+predict with halo:  37%|███▋      | 268/726 [00:10<00:07, 63.36it/s][A
+predict with halo:  38%|███▊      | 275/726 [00:10<00:08, 55.60it/s][A
+predict with halo:  39%|███▊      | 281/726 [00:11<00:14, 31.17it/s][A
+predict with halo:  40%|███▉      | 288/726 [00:11<00:13, 31.32it/s][A
+predict with halo:  40%|████      | 293/726 [00:12<00:20, 20.70it/s][A
+predict with halo:  41%|████      | 299/726 [00:12<00:19, 21.92it/s][A
+predict with halo:  42%|████▏     | 302/726 [00:12<00:29, 14.59it/s][A
+predict with halo:  43%|████▎     | 310/726 [00:13<00:22, 18.52it/s][A
+predict with halo:  43%|████▎     | 313/726 [00:13<00:27, 14.88it/s][A
+predict with halo:  44%|████▍     | 321/726 [00:13<00:21, 19.16it/s][A
+predict with halo:  45%|████▍     | 324/726 [00:14<00:31, 12.84it/s][A
+predict with halo:  46%|████▌     | 334/726 [00:14<00:20, 18.85it/s][A
+predict with halo:  46%|████▋     | 337/726 [00:14<00:21, 18.00it/s][A
+predict with halo:  48%|████▊     | 345/726 [00:14<00:17, 22.24it/s][A
+predict with halo:  48%|████▊     | 348/726 [00:15<00:18, 20.37it/s][A
+predict with halo:  54%|█████▎    | 389/726 [00:15<00:05, 62.89it/s][A
+predict with halo:  55%|█████▍    | 396/726 [00:15<00:05, 55.28it/s][A
+predict with halo:  55%|█████▌    | 402/726 [00:16<00:10, 31.20it/s][A
+predict with halo:  56%|█████▋    | 409/726 [00:16<00:10, 31.42it/s][A
+predict with halo:  57%|█████▋    | 413/726 [00:17<00:15, 20.06it/s][A
+predict with halo:  58%|█████▊    | 420/726 [00:17<00:13, 22.34it/s][A
+predict with halo:  58%|█████▊    | 424/726 [00:17<00:19, 15.52it/s][A
+predict with halo:  59%|█████▉    | 431/726 [00:18<00:15, 18.50it/s][A
+predict with halo:  60%|█████▉    | 434/726 [00:18<00:19, 14.86it/s][A
+predict with halo:  61%|██████    | 442/726 [00:18<00:14, 19.19it/s][A
+predict with halo:  61%|██████▏   | 445/726 [00:19<00:21, 12.84it/s][A
+predict with halo:  63%|██████▎   | 455/726 [00:19<00:14, 18.86it/s][A
+predict with halo:  63%|██████▎   | 458/726 [00:19<00:14, 17.99it/s][A
+predict with halo:  64%|██████▍   | 466/726 [00:20<00:11, 22.28it/s][A
+predict with halo:  65%|██████▍   | 469/726 [00:20<00:12, 20.41it/s][A
+predict with halo:  70%|███████   | 510/726 [00:20<00:03, 63.24it/s][A
+predict with halo:  71%|███████   | 517/726 [00:20<00:03, 55.52it/s][A
+predict with halo:  72%|███████▏  | 523/726 [00:21<00:06, 31.18it/s][A
+predict with halo:  73%|███████▎  | 530/726 [00:21<00:06, 31.38it/s][A
+predict with halo:  74%|███████▎  | 535/726 [00:22<00:09, 20.74it/s][A
+predict with halo:  75%|███████▍  | 541/726 [00:22<00:08, 22.02it/s][A
+predict with halo:  75%|███████▍  | 544/726 [00:22<00:12, 14.64it/s][A
+predict with halo:  76%|███████▌  | 552/726 [00:23<00:09, 18.59it/s][A
+predict with halo:  76%|███████▋  | 555/726 [00:23<00:11, 14.92it/s][A
+predict with halo:  78%|███████▊  | 563/726 [00:23<00:08, 19.18it/s][A
+predict with halo:  78%|███████▊  | 566/726 [00:24<00:12, 12.82it/s][A
+predict with halo:  79%|███████▉  | 575/726 [00:24<00:08, 18.02it/s][A
+predict with halo:  80%|███████▉  | 578/726 [00:25<00:10, 14.48it/s][A
+predict with halo:  81%|████████  | 587/726 [00:25<00:07, 19.80it/s][A
+predict with halo:  81%|████████▏ | 590/726 [00:25<00:07, 18.65it/s][A
+predict with halo:  87%|████████▋ | 631/726 [00:25<00:01, 58.84it/s][A
+predict with halo:  88%|████████▊ | 638/726 [00:25<00:01, 52.52it/s][A
+predict with halo:  89%|████████▊ | 644/726 [00:26<00:02, 30.44it/s][A
+predict with halo:  90%|████████▉ | 651/726 [00:26<00:02, 30.87it/s][A
+predict with halo:  90%|█████████ | 656/726 [00:27<00:03, 20.52it/s][A
+predict with halo:  91%|█████████ | 662/726 [00:27<00:02, 21.87it/s][A
+predict with halo:  92%|█████████▏| 665/726 [00:28<00:04, 14.54it/s][A
+predict with halo:  93%|█████████▎| 673/726 [00:28<00:02, 18.51it/s][A
+predict with halo:  93%|█████████▎| 676/726 [00:28<00:03, 14.83it/s][A
+predict with halo:  94%|█████████▍| 685/726 [00:29<00:02, 20.08it/s][A
+predict with halo:  95%|█████████▍| 688/726 [00:29<00:02, 15.60it/s][A
+predict with halo:  96%|█████████▌| 696/726 [00:29<00:01, 20.02it/s][A
+predict with halo:  96%|█████████▋| 699/726 [00:30<00:01, 15.38it/s][Apredict with halo: 100%|██████████| 726/726 [00:30<00:00, 24.09it/s]
+Prediction time in 30.558730363845825 s
+Eroding mitochondria instances globally by 0 voxels ...
+Instance erosion completed in 0.57 s
+
+Label all sub-blocks:   0%|          | 0/36 [00:00<?, ?it/s][A
+Label all sub-blocks:  53%|█████▎    | 19/36 [00:00<00:00, 74.97it/s][ALabel all sub-blocks: 100%|██████████| 36/36 [00:00<00:00, 114.70it/s]
+
+Merge labels across block faces:   0%|          | 0/36 [00:00<?, ?it/s][AMerge labels across block faces: 100%|██████████| 36/36 [00:00<00:00, 4195.00it/s]
+
+Write blocks:   0%|          | 0/36 [00:00<?, ?it/s][AWrite blocks: 100%|██████████| 36/36 [00:00<00:00, 444.95it/s]
+Compute connected components in 2.4357712268829346 s
+
+  0%|          | 0/36 [00:00<?, ?it/s][A
+ 25%|██▌       | 9/36 [00:00<00:00, 41.61it/s][A
+ 39%|███▉      | 14/36 [00:00<00:00, 29.24it/s][A100%|██████████| 36/36 [00:00<00:00, 71.32it/s]
+
+  0%|          | 0/36 [00:00<?, ?it/s][A
+ 22%|██▏       | 8/36 [00:00<00:01, 17.87it/s][A
+ 28%|██▊       | 10/36 [00:00<00:01, 16.04it/s][A
+ 53%|█████▎    | 19/36 [00:00<00:00, 32.28it/s][A
+ 67%|██████▋   | 24/36 [00:00<00:00, 34.13it/s][A100%|██████████| 36/36 [00:00<00:00, 41.79it/s]
+ 47%|████▋     | 7/15 [09:49<10:36, 79.62s/it]Size filter in 4.420869588851929 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/KO8_eb4_model_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/KO8_eb4_model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann_needs_corrections/2026-05-26-dataset/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5
+Segmenting cristae in volume of shape (100, 1920, 1920)
+Run prediction with mask.
+
+predict with halo:   0%|          | 5/1575 [00:00<01:09, 22.74it/s][A
+predict with halo:   1%|          | 8/1575 [00:00<02:17, 11.38it/s][A
+predict with halo:   1%|          | 10/1575 [00:01<03:14,  8.03it/s][A
+predict with halo:   1%|▏         | 20/1575 [00:01<01:24, 18.50it/s][A
+predict with halo:   1%|▏         | 23/1575 [00:01<01:53, 13.65it/s][A
+predict with halo:   2%|▏         | 25/1575 [00:02<02:30, 10.29it/s][A
+predict with halo:   2%|▏         | 36/1575 [00:02<01:20, 19.20it/s][A
+predict with halo:   2%|▏         | 39/1575 [00:02<01:25, 18.06it/s][A
+predict with halo:   3%|▎         | 42/1575 [00:02<01:29, 17.15it/s][A
+predict with halo:  15%|█▍        | 230/1575 [00:03<00:05, 226.31it/s][A
+predict with halo:  16%|█▌        | 252/1575 [00:04<00:20, 64.79it/s] [A
+predict with halo:  17%|█▋        | 268/1575 [00:05<00:24, 54.37it/s][A
+predict with halo:  29%|██▉       | 455/1575 [00:05<00:07, 144.37it/s][A
+predict with halo:  31%|███       | 485/1575 [00:07<00:15, 69.68it/s] [A
+predict with halo:  32%|███▏      | 506/1575 [00:07<00:14, 72.10it/s][A
+predict with halo:  43%|████▎     | 680/1575 [00:08<00:05, 150.20it/s][A
+predict with halo:  45%|████▌     | 713/1575 [00:09<00:10, 79.12it/s] [A
+predict with halo:  47%|████▋     | 737/1575 [00:10<00:10, 82.01it/s][A
+predict with halo:  57%|█████▋    | 905/1575 [00:10<00:04, 158.96it/s][A
+predict with halo:  60%|█████▉    | 939/1575 [00:11<00:07, 88.19it/s] [A
+predict with halo:  72%|███████▏  | 1130/1575 [00:11<00:02, 163.61it/s][A
+predict with halo:  74%|███████▍  | 1169/1575 [00:12<00:03, 133.56it/s][A
+predict with halo:  86%|████████▌ | 1356/1575 [00:12<00:01, 215.20it/s][A
+predict with halo:  89%|████████▊ | 1396/1575 [00:13<00:00, 209.96it/s][Apredict with halo: 100%|██████████| 1575/1575 [00:13<00:00, 119.31it/s]
+Prediction time in 13.902331352233887 s
+Eroding mitochondria instances globally by 0 voxels ...
+Instance erosion completed in 0.65 s
+
+Label all sub-blocks:   0%|          | 0/64 [00:00<?, ?it/s][A
+Label all sub-blocks:  64%|██████▍   | 41/64 [00:00<00:00, 97.47it/s][ALabel all sub-blocks: 100%|██████████| 64/64 [00:00<00:00, 128.92it/s]
+
+Merge labels across block faces:   0%|          | 0/64 [00:00<?, ?it/s][AMerge labels across block faces: 100%|██████████| 64/64 [00:00<00:00, 6562.41it/s]
+
+Write blocks:   0%|          | 0/64 [00:00<?, ?it/s][A
+Write blocks:  66%|██████▌   | 42/64 [00:00<00:00, 246.82it/s][AWrite blocks: 100%|██████████| 64/64 [00:00<00:00, 243.74it/s]
+Compute connected components in 5.347556829452515 s
+
+  0%|          | 0/64 [00:00<?, ?it/s][A
+ 52%|█████▏    | 33/64 [00:00<00:00, 81.33it/s][A
+ 66%|██████▌   | 42/64 [00:00<00:00, 65.71it/s][A100%|██████████| 64/64 [00:00<00:00, 101.70it/s]
+
+  0%|          | 0/64 [00:00<?, ?it/s][A
+ 53%|█████▎    | 34/64 [00:00<00:00, 44.76it/s][A
+ 61%|██████    | 39/64 [00:00<00:00, 42.94it/s][A
+ 70%|███████   | 45/64 [00:01<00:00, 37.03it/s][A100%|██████████| 64/64 [00:01<00:00, 52.55it/s]
+ 53%|█████▎    | 8/15 [11:26<09:55, 85.04s/it]Size filter in 9.857434749603271 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M8_eb6_model_combined.h5
+Segmenting cristae in volume of shape (79, 1336, 1336)
+Run prediction with mask.
+
+predict with halo:   7%|▋         | 40/605 [00:00<00:03, 169.28it/s][A
+predict with halo:   9%|▉         | 57/605 [00:01<00:22, 24.59it/s] [A
+predict with halo:  11%|█         | 65/605 [00:03<00:34, 15.63it/s][A
+predict with halo:  12%|█▏        | 72/605 [00:03<00:30, 17.47it/s][A
+predict with halo:  13%|█▎        | 76/605 [00:04<00:41, 12.76it/s][A
+predict with halo:  13%|█▎        | 79/605 [00:04<00:40, 12.95it/s][A
+predict with halo:  14%|█▎        | 83/605 [00:04<00:37, 13.81it/s][A
+predict with halo:  14%|█▍        | 86/605 [00:05<00:43, 11.92it/s][A
+predict with halo:  15%|█▍        | 88/605 [00:05<00:44, 11.52it/s][A
+predict with halo:  27%|██▋       | 161/605 [00:05<00:05, 76.47it/s][A
+predict with halo:  28%|██▊       | 172/605 [00:06<00:11, 38.47it/s][A
+predict with halo:  30%|██▉       | 180/605 [00:07<00:14, 30.04it/s][A
+predict with halo:  31%|███       | 186/605 [00:08<00:23, 17.81it/s][A
+predict with halo:  32%|███▏      | 193/605 [00:08<00:21, 19.41it/s][A
+predict with halo:  33%|███▎      | 197/605 [00:09<00:29, 14.03it/s][A
+predict with halo:  33%|███▎      | 200/605 [00:09<00:28, 14.05it/s][A
+predict with halo:  34%|███▎      | 204/605 [00:09<00:27, 14.77it/s][A
+predict with halo:  34%|███▍      | 207/605 [00:10<00:36, 11.03it/s][A
+predict with halo:  35%|███▍      | 209/605 [00:10<00:36, 10.82it/s][A
+predict with halo:  46%|████▋     | 281/605 [00:10<00:04, 69.74it/s][A
+predict with halo:  48%|████▊     | 292/605 [00:11<00:07, 41.43it/s][A
+predict with halo:  50%|████▉     | 300/605 [00:12<00:10, 28.26it/s][A
+predict with halo:  51%|█████     | 306/605 [00:13<00:16, 18.68it/s][A
+predict with halo:  51%|█████▏    | 311/605 [00:13<00:15, 19.26it/s][A
+predict with halo:  52%|█████▏    | 315/605 [00:14<00:17, 16.97it/s][A
+predict with halo:  53%|█████▎    | 318/605 [00:14<00:22, 12.92it/s][A
+predict with halo:  53%|█████▎    | 321/605 [00:15<00:21, 13.11it/s][A
+predict with halo:  54%|█████▎    | 325/605 [00:15<00:19, 14.10it/s][A
+predict with halo:  54%|█████▍    | 327/605 [00:15<00:24, 11.17it/s][A
+predict with halo:  54%|█████▍    | 329/605 [00:16<00:30,  9.19it/s][A
+predict with halo:  66%|██████▋   | 402/605 [00:16<00:02, 70.26it/s][A
+predict with halo:  68%|██████▊   | 413/605 [00:17<00:04, 41.36it/s][A
+predict with halo:  70%|██████▉   | 421/605 [00:17<00:06, 28.17it/s][A
+predict with halo:  71%|███████   | 427/605 [00:18<00:09, 18.63it/s][A
+predict with halo:  71%|███████▏  | 432/605 [00:19<00:09, 19.19it/s][A
+predict with halo:  72%|███████▏  | 436/605 [00:19<00:09, 16.92it/s][A
+predict with halo:  73%|███████▎  | 439/605 [00:20<00:12, 12.88it/s][A
+predict with halo:  73%|███████▎  | 442/605 [00:20<00:12, 13.07it/s][A
+predict with halo:  74%|███████▍  | 447/605 [00:20<00:10, 14.85it/s][A
+predict with halo:  74%|███████▍  | 450/605 [00:21<00:14, 10.73it/s][A
+predict with halo:  86%|████████▋ | 523/605 [00:21<00:01, 65.26it/s][A
+predict with halo:  88%|████████▊ | 534/605 [00:22<00:01, 45.70it/s][A
+predict with halo:  90%|████████▉ | 542/605 [00:22<00:01, 33.67it/s][A
+predict with halo:  91%|█████████ | 548/605 [00:23<00:02, 22.74it/s][A
+predict with halo:  91%|█████████▏| 553/605 [00:23<00:02, 22.90it/s][A
+predict with halo:  92%|█████████▏| 557/605 [00:24<00:02, 19.29it/s][A
+predict with halo:  93%|█████████▎| 560/605 [00:24<00:03, 14.03it/s][A
+predict with halo:  94%|█████████▍| 568/605 [00:25<00:02, 17.53it/s][A
+predict with halo:  94%|█████████▍| 571/605 [00:25<00:02, 12.63it/s][Apredict with halo: 100%|██████████| 605/605 [00:25<00:00, 23.57it/s]
+Prediction time in 26.093217372894287 s
+Eroding mitochondria instances globally by 0 voxels ...
+Instance erosion completed in 0.43 s
+
+Label all sub-blocks:   0%|          | 0/36 [00:00<?, ?it/s][A
+Label all sub-blocks:  53%|█████▎    | 19/36 [00:00<00:00, 171.49it/s][ALabel all sub-blocks: 100%|██████████| 36/36 [00:00<00:00, 155.63it/s]
+
+Merge labels across block faces:   0%|          | 0/36 [00:00<?, ?it/s][AMerge labels across block faces: 100%|██████████| 36/36 [00:00<00:00, 6084.09it/s]
+
+Write blocks:   0%|          | 0/36 [00:00<?, ?it/s][AWrite blocks: 100%|██████████| 36/36 [00:00<00:00, 415.09it/s]
+Compute connected components in 2.1061081886291504 s
+
+  0%|          | 0/36 [00:00<?, ?it/s][A
+ 36%|███▌      | 13/36 [00:00<00:00, 96.27it/s][A
+ 64%|██████▍   | 23/36 [00:00<00:00, 62.00it/s][A100%|██████████| 36/36 [00:00<00:00, 96.91it/s]
+
+  0%|          | 0/36 [00:00<?, ?it/s][A
+  3%|▎         | 1/36 [00:00<00:04,  7.73it/s][A
+ 25%|██▌       | 9/36 [00:00<00:01, 18.84it/s][A
+ 58%|█████▊    | 21/36 [00:00<00:00, 38.51it/s][A100%|██████████| 36/36 [00:00<00:00, 54.19it/s]
+ 60%|██████    | 9/15 [12:21<07:34, 75.67s/it]Size filter in 3.48394775390625 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/M8_eb6_model_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/M8_eb6_model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT20_eb5_model2_combined.h5
+Segmenting cristae in volume of shape (137, 1336, 1336)
+Run prediction with mask.
+
+predict with halo:   2%|▏         | 27/1089 [00:00<00:09, 117.10it/s][A
+predict with halo:   4%|▎         | 39/1089 [00:01<00:33, 30.91it/s] [A
+predict with halo:   4%|▍         | 45/1089 [00:01<00:49, 20.89it/s][A
+predict with halo:   4%|▍         | 49/1089 [00:01<00:50, 20.49it/s][A
+predict with halo:   5%|▍         | 52/1089 [00:02<01:16, 13.64it/s][A
+predict with halo:   5%|▌         | 55/1089 [00:03<01:41, 10.24it/s][A
+predict with halo:   5%|▌         | 59/1089 [00:03<01:28, 11.58it/s][A
+predict with halo:   6%|▌         | 61/1089 [00:03<01:48,  9.52it/s][A
+predict with halo:   6%|▌         | 63/1089 [00:04<02:06,  8.10it/s][A
+predict with halo:   6%|▌         | 65/1089 [00:04<02:24,  7.11it/s][A
+predict with halo:   6%|▌         | 66/1089 [00:04<02:32,  6.70it/s][A
+predict with halo:   6%|▋         | 70/1089 [00:05<01:50,  9.20it/s][A
+predict with halo:   7%|▋         | 72/1089 [00:05<02:13,  7.60it/s][A
+predict with halo:   7%|▋         | 73/1089 [00:05<02:24,  7.03it/s][A
+predict with halo:   7%|▋         | 74/1089 [00:05<02:35,  6.53it/s][A
+predict with halo:   7%|▋         | 76/1089 [00:06<02:18,  7.30it/s][A
+predict with halo:   7%|▋         | 77/1089 [00:06<02:32,  6.66it/s][A
+predict with halo:   7%|▋         | 80/1089 [00:06<01:55,  8.72it/s][A
+predict with halo:   7%|▋         | 81/1089 [00:06<02:12,  7.63it/s][A
+predict with halo:   8%|▊         | 82/1089 [00:06<02:27,  6.84it/s][A
+predict with halo:   8%|▊         | 83/1089 [00:07<02:40,  6.26it/s][A
+predict with halo:   8%|▊         | 84/1089 [00:07<02:51,  5.84it/s][A
+predict with halo:   8%|▊         | 85/1089 [00:07<03:00,  5.55it/s][A
+predict with halo:   8%|▊         | 91/1089 [00:07<01:20, 12.33it/s][A
+predict with halo:   9%|▊         | 93/1089 [00:08<01:51,  8.92it/s][A
+predict with halo:   9%|▊         | 95/1089 [00:08<02:15,  7.31it/s][A
+predict with halo:  14%|█▎        | 148/1089 [00:08<00:15, 60.38it/s][A
+predict with halo:  14%|█▍        | 156/1089 [00:09<00:20, 44.83it/s][A
+predict with halo:  15%|█▍        | 162/1089 [00:10<00:36, 25.31it/s][A
+predict with halo:  15%|█▌        | 167/1089 [00:10<00:36, 25.12it/s][A
+predict with halo:  16%|█▌        | 171/1089 [00:10<00:45, 20.30it/s][A
+predict with halo:  16%|█▌        | 174/1089 [00:11<01:04, 14.20it/s][A
+predict with halo:  17%|█▋        | 180/1089 [00:11<00:55, 16.48it/s][A
+predict with halo:  17%|█▋        | 183/1089 [00:12<01:16, 11.80it/s][A
+predict with halo:  17%|█▋        | 185/1089 [00:12<01:31,  9.88it/s][A
+predict with halo:  17%|█▋        | 187/1089 [00:12<01:46,  8.44it/s][A
+predict with halo:  18%|█▊        | 191/1089 [00:13<01:27, 10.25it/s][A
+predict with halo:  18%|█▊        | 193/1089 [00:13<01:45,  8.51it/s][A
+predict with halo:  18%|█▊        | 195/1089 [00:13<02:01,  7.36it/s][A
+predict with halo:  18%|█▊        | 197/1089 [00:14<01:54,  7.78it/s][A
+predict with halo:  18%|█▊        | 198/1089 [00:14<02:04,  7.16it/s][A
+predict with halo:  18%|█▊        | 201/1089 [00:14<01:40,  8.80it/s][A
+predict with halo:  19%|█▊        | 202/1089 [00:14<01:53,  7.84it/s][A
+predict with halo:  19%|█▊        | 203/1089 [00:14<02:05,  7.07it/s][A
+predict with halo:  19%|█▊        | 204/1089 [00:15<02:16,  6.48it/s][A
+predict with halo:  19%|█▉        | 205/1089 [00:15<02:26,  6.04it/s][A
+predict with halo:  19%|█▉        | 206/1089 [00:15<02:34,  5.71it/s][A
+predict with halo:  19%|█▉        | 209/1089 [00:15<01:46,  8.25it/s][A
+predict with halo:  19%|█▉        | 212/1089 [00:16<01:27, 10.01it/s][A
+predict with halo:  20%|█▉        | 214/1089 [00:16<01:53,  7.69it/s][A
+predict with halo:  20%|█▉        | 215/1089 [00:16<02:04,  7.01it/s][A
+predict with halo:  20%|█▉        | 216/1089 [00:16<02:15,  6.46it/s][A
+predict with halo:  21%|██        | 224/1089 [00:17<00:57, 14.96it/s][A
+predict with halo:  25%|██▍       | 268/1089 [00:17<00:12, 67.37it/s][A
+predict with halo:  25%|██▌       | 275/1089 [00:17<00:21, 37.51it/s][A
+predict with halo:  26%|██▌       | 281/1089 [00:18<00:36, 22.17it/s][A
+predict with halo:  26%|██▌       | 285/1089 [00:19<00:48, 16.71it/s][A
+predict with halo:  27%|██▋       | 289/1089 [00:19<00:47, 17.01it/s][A
+predict with halo:  27%|██▋       | 292/1089 [00:20<01:04, 12.43it/s][A
+predict with halo:  27%|██▋       | 294/1089 [00:20<01:16, 10.44it/s][A
+predict with halo:  27%|██▋       | 296/1089 [00:20<01:16, 10.33it/s][A
+predict with halo:  28%|██▊       | 301/1089 [00:21<01:01, 12.84it/s][A
+predict with halo:  28%|██▊       | 303/1089 [00:21<01:17, 10.10it/s][A
+predict with halo:  28%|██▊       | 305/1089 [00:21<01:33,  8.38it/s][A
+predict with halo:  28%|██▊       | 307/1089 [00:22<01:47,  7.25it/s][A
+predict with halo:  28%|██▊       | 308/1089 [00:22<01:54,  6.79it/s][A
+predict with halo:  28%|██▊       | 310/1089 [00:22<01:45,  7.36it/s][A
+predict with halo:  29%|██▊       | 311/1089 [00:22<01:54,  6.79it/s][A
+predict with halo:  29%|██▊       | 312/1089 [00:23<02:02,  6.32it/s][A
+predict with halo:  29%|██▊       | 313/1089 [00:23<02:10,  5.95it/s][A
+predict with halo:  29%|██▉       | 314/1089 [00:23<02:17,  5.65it/s][A
+predict with halo:  29%|██▉       | 315/1089 [00:23<02:22,  5.43it/s][A
+predict with halo:  29%|██▉       | 316/1089 [00:23<02:26,  5.27it/s][A
+predict with halo:  29%|██▉       | 318/1089 [00:24<01:58,  6.53it/s][A
+predict with halo:  29%|██▉       | 319/1089 [00:24<02:07,  6.03it/s][A
+predict with halo:  29%|██▉       | 321/1089 [00:24<01:49,  7.05it/s][A
+predict with halo:  30%|██▉       | 322/1089 [00:24<01:59,  6.40it/s][A
+predict with halo:  30%|██▉       | 323/1089 [00:24<02:08,  5.94it/s][A
+predict with halo:  30%|██▉       | 324/1089 [00:25<02:15,  5.63it/s][A
+predict with halo:  30%|██▉       | 325/1089 [00:25<02:21,  5.41it/s][A
+predict with halo:  30%|██▉       | 326/1089 [00:25<02:25,  5.25it/s][A
+predict with halo:  30%|███       | 327/1089 [00:25<02:28,  5.14it/s][A
+predict with halo:  30%|███       | 330/1089 [00:25<01:35,  7.93it/s][A
+predict with halo:  31%|███       | 333/1089 [00:26<01:16,  9.83it/s][A
+predict with halo:  31%|███       | 334/1089 [00:26<01:30,  8.36it/s][A
+predict with halo:  31%|███       | 335/1089 [00:26<01:42,  7.33it/s][A
+predict with halo:  31%|███       | 336/1089 [00:26<01:54,  6.60it/s][A
+predict with halo:  31%|███       | 337/1089 [00:26<02:03,  6.09it/s][A
+predict with halo:  32%|███▏      | 345/1089 [00:27<00:47, 15.70it/s][A
+predict with halo:  36%|███▌      | 389/1089 [00:27<00:09, 72.10it/s][A
+predict with halo:  36%|███▋      | 396/1089 [00:28<00:17, 38.57it/s][A
+predict with halo:  37%|███▋      | 402/1089 [00:28<00:30, 22.48it/s][A
+predict with halo:  37%|███▋      | 406/1089 [00:29<00:40, 16.84it/s][A
+predict with halo:  38%|███▊      | 410/1089 [00:29<00:39, 17.13it/s][A
+predict with halo:  38%|███▊      | 413/1089 [00:30<00:54, 12.47it/s][A
+predict with halo:  38%|███▊      | 415/1089 [00:30<01:04, 10.45it/s][A
+predict with halo:  38%|███▊      | 417/1089 [00:30<01:04, 10.34it/s][A
+predict with halo:  39%|███▉      | 422/1089 [00:31<00:51, 12.86it/s][A
+predict with halo:  39%|███▉      | 424/1089 [00:31<01:06, 10.03it/s][A
+predict with halo:  39%|███▉      | 426/1089 [00:31<01:19,  8.34it/s][A
+predict with halo:  39%|███▉      | 428/1089 [00:32<01:31,  7.22it/s][A
+predict with halo:  39%|███▉      | 429/1089 [00:32<01:37,  6.77it/s][A
+predict with halo:  40%|███▉      | 431/1089 [00:32<01:29,  7.32it/s][A
+predict with halo:  40%|███▉      | 432/1089 [00:33<01:37,  6.74it/s][A
+predict with halo:  40%|███▉      | 433/1089 [00:33<01:44,  6.29it/s][A
+predict with halo:  40%|███▉      | 434/1089 [00:33<01:50,  5.92it/s][A
+predict with halo:  40%|███▉      | 435/1089 [00:33<01:55,  5.64it/s][A
+predict with halo:  40%|████      | 436/1089 [00:33<02:00,  5.43it/s][A
+predict with halo:  40%|████      | 437/1089 [00:34<02:03,  5.28it/s][A
+predict with halo:  40%|████      | 439/1089 [00:34<01:39,  6.55it/s][A
+predict with halo:  40%|████      | 440/1089 [00:34<01:47,  6.04it/s][A
+predict with halo:  41%|████      | 442/1089 [00:34<01:32,  7.03it/s][A
+predict with halo:  41%|████      | 443/1089 [00:34<01:41,  6.39it/s][A
+predict with halo:  41%|████      | 444/1089 [00:35<01:48,  5.94it/s][A
+predict with halo:  41%|████      | 445/1089 [00:35<01:54,  5.63it/s][A
+predict with halo:  41%|████      | 446/1089 [00:35<01:58,  5.41it/s][A
+predict with halo:  41%|████      | 447/1089 [00:35<02:02,  5.25it/s][A
+predict with halo:  41%|████      | 448/1089 [00:35<02:04,  5.14it/s][A
+predict with halo:  41%|████▏     | 451/1089 [00:36<01:20,  7.94it/s][A
+predict with halo:  42%|████▏     | 454/1089 [00:36<01:04,  9.78it/s][A
+predict with halo:  42%|████▏     | 455/1089 [00:36<01:16,  8.33it/s][A
+predict with halo:  42%|████▏     | 456/1089 [00:36<01:26,  7.30it/s][A
+predict with halo:  42%|████▏     | 457/1089 [00:36<01:36,  6.55it/s][A
+predict with halo:  42%|████▏     | 458/1089 [00:37<01:45,  5.99it/s][A
+predict with halo:  43%|████▎     | 465/1089 [00:37<00:44, 13.98it/s][A
+predict with halo:  43%|████▎     | 467/1089 [00:37<00:48, 12.71it/s][A
+predict with halo:  47%|████▋     | 510/1089 [00:37<00:08, 67.14it/s][A
+predict with halo:  47%|████▋     | 517/1089 [00:38<00:15, 36.58it/s][A
+predict with halo:  48%|████▊     | 522/1089 [00:39<00:23, 23.92it/s][A
+predict with halo:  48%|████▊     | 526/1089 [00:39<00:36, 15.33it/s][A
+predict with halo:  49%|████▉     | 531/1089 [00:40<00:33, 16.41it/s][A
+predict with halo:  49%|████▉     | 534/1089 [00:40<00:45, 12.14it/s][A
+predict with halo:  49%|████▉     | 536/1089 [00:41<00:53, 10.25it/s][A
+predict with halo:  49%|████▉     | 538/1089 [00:41<00:54, 10.17it/s][A
+predict with halo:  50%|████▉     | 542/1089 [00:41<00:46, 11.74it/s][A
+predict with halo:  50%|████▉     | 544/1089 [00:41<00:58,  9.39it/s][A
+predict with halo:  50%|█████     | 546/1089 [00:42<01:08,  7.92it/s][A
+predict with halo:  50%|█████     | 547/1089 [00:42<01:13,  7.35it/s][A
+predict with halo:  50%|█████     | 548/1089 [00:42<01:19,  6.82it/s][A
+predict with halo:  50%|█████     | 549/1089 [00:43<01:25,  6.35it/s][A
+predict with halo:  51%|█████     | 550/1089 [00:43<01:30,  5.96it/s][A
+predict with halo:  51%|█████     | 552/1089 [00:43<01:18,  6.85it/s][A
+predict with halo:  51%|█████     | 553/1089 [00:43<01:24,  6.31it/s][A
+predict with halo:  51%|█████     | 554/1089 [00:43<01:30,  5.91it/s][A
+predict with halo:  51%|█████     | 555/1089 [00:44<01:34,  5.62it/s][A
+predict with halo:  51%|█████     | 556/1089 [00:44<01:38,  5.41it/s][A
+predict with halo:  51%|█████     | 557/1089 [00:44<01:41,  5.26it/s][A
+predict with halo:  51%|█████     | 558/1089 [00:44<01:43,  5.15it/s][A
+predict with halo:  51%|█████▏    | 560/1089 [00:44<01:21,  6.50it/s][A
+predict with halo:  52%|█████▏    | 561/1089 [00:45<01:28,  5.99it/s][A
+predict with halo:  52%|█████▏    | 563/1089 [00:45<01:15,  7.00it/s][A
+predict with halo:  52%|█████▏    | 564/1089 [00:45<01:22,  6.37it/s][A
+predict with halo:  52%|█████▏    | 565/1089 [00:45<01:28,  5.93it/s][A
+predict with halo:  52%|█████▏    | 566/1089 [00:45<01:33,  5.62it/s][A
+predict with halo:  52%|█████▏    | 567/1089 [00:46<01:36,  5.41it/s][A
+predict with halo:  52%|█████▏    | 568/1089 [00:46<01:39,  5.25it/s][A
+predict with halo:  52%|█████▏    | 569/1089 [00:46<01:41,  5.14it/s][A
+predict with halo:  52%|█████▏    | 571/1089 [00:46<01:19,  6.51it/s][A
+predict with halo:  53%|█████▎    | 572/1089 [00:46<01:26,  5.99it/s][A
+predict with halo:  53%|█████▎    | 575/1089 [00:47<01:00,  8.44it/s][A
+predict with halo:  53%|█████▎    | 576/1089 [00:47<01:09,  7.38it/s][A
+predict with halo:  53%|█████▎    | 577/1089 [00:47<01:17,  6.64it/s][A
+predict with halo:  53%|█████▎    | 578/1089 [00:47<01:23,  6.12it/s][A
+predict with halo:  53%|█████▎    | 579/1089 [00:47<01:28,  5.75it/s][A
+predict with halo:  54%|█████▍    | 586/1089 [00:48<00:36, 13.92it/s][A
+predict with halo:  54%|█████▍    | 588/1089 [00:48<00:39, 12.65it/s][A
+predict with halo:  58%|█████▊    | 631/1089 [00:48<00:06, 67.70it/s][A
+predict with halo:  59%|█████▊    | 638/1089 [00:49<00:10, 44.95it/s][A
+predict with halo:  59%|█████▉    | 643/1089 [00:49<00:16, 26.63it/s][A
+predict with halo:  59%|█████▉    | 647/1089 [00:50<00:20, 21.33it/s][A
+predict with halo:  60%|█████▉    | 652/1089 [00:50<00:20, 21.65it/s][A
+predict with halo:  60%|██████    | 655/1089 [00:50<00:30, 14.32it/s][A
+predict with halo:  60%|██████    | 658/1089 [00:51<00:40, 10.69it/s][A
+predict with halo:  61%|██████    | 663/1089 [00:51<00:33, 12.69it/s][A
+predict with halo:  61%|██████    | 665/1089 [00:52<00:41, 10.27it/s][A
+predict with halo:  61%|██████    | 667/1089 [00:52<00:48,  8.64it/s][A
+predict with halo:  61%|██████▏   | 669/1089 [00:52<00:55,  7.51it/s][A
+predict with halo:  62%|██████▏   | 670/1089 [00:53<00:59,  7.03it/s][A
+predict with halo:  62%|██████▏   | 671/1089 [00:53<01:03,  6.57it/s][A
+predict with halo:  62%|██████▏   | 673/1089 [00:53<00:57,  7.20it/s][A
+predict with halo:  62%|██████▏   | 674/1089 [00:53<01:02,  6.64it/s][A
+predict with halo:  62%|██████▏   | 675/1089 [00:54<01:07,  6.18it/s][A
+predict with halo:  62%|██████▏   | 676/1089 [00:54<01:10,  5.83it/s][A
+predict with halo:  62%|██████▏   | 677/1089 [00:54<01:14,  5.57it/s][A
+predict with halo:  62%|██████▏   | 678/1089 [00:54<01:16,  5.37it/s][A
+predict with halo:  62%|██████▏   | 679/1089 [00:54<01:18,  5.23it/s][A
+predict with halo:  63%|██████▎   | 681/1089 [00:55<01:02,  6.53it/s][A
+predict with halo:  63%|██████▎   | 682/1089 [00:55<01:07,  6.02it/s][A
+predict with halo:  63%|██████▎   | 684/1089 [00:55<00:57,  7.02it/s][A
+predict with halo:  63%|██████▎   | 685/1089 [00:55<01:03,  6.39it/s][A
+predict with halo:  63%|██████▎   | 686/1089 [00:55<01:07,  5.94it/s][A
+predict with halo:  63%|██████▎   | 687/1089 [00:56<01:11,  5.63it/s][A
+predict with halo:  63%|██████▎   | 688/1089 [00:56<01:14,  5.41it/s][A
+predict with halo:  63%|██████▎   | 689/1089 [00:56<01:16,  5.25it/s][A
+predict with halo:  64%|██████▎   | 692/1089 [00:56<00:49,  8.04it/s][A
+predict with halo:  64%|██████▎   | 693/1089 [00:56<00:56,  7.07it/s][A
+predict with halo:  64%|██████▍   | 695/1089 [00:57<00:50,  7.76it/s][A
+predict with halo:  64%|██████▍   | 696/1089 [00:57<00:56,  6.90it/s][A
+predict with halo:  64%|██████▍   | 697/1089 [00:57<01:02,  6.30it/s][A
+predict with halo:  64%|██████▍   | 698/1089 [00:57<01:06,  5.88it/s][A
+predict with halo:  64%|██████▍   | 699/1089 [00:57<01:09,  5.58it/s][A
+predict with halo:  64%|██████▍   | 700/1089 [00:58<01:12,  5.38it/s][A
+predict with halo:  65%|██████▍   | 707/1089 [00:58<00:27, 13.73it/s][A
+predict with halo:  65%|██████▌   | 709/1089 [00:58<00:30, 12.48it/s][A
+predict with halo:  69%|██████▉   | 752/1089 [00:58<00:04, 67.80it/s][A
+predict with halo:  70%|██████▉   | 759/1089 [00:59<00:07, 44.95it/s][A
+predict with halo:  70%|███████   | 764/1089 [00:59<00:12, 26.72it/s][A
+predict with halo:  71%|███████   | 768/1089 [01:00<00:15, 21.38it/s][A
+predict with halo:  71%|███████   | 773/1089 [01:00<00:14, 21.69it/s][A
+predict with halo:  71%|███████▏  | 776/1089 [01:01<00:21, 14.33it/s][A
+predict with halo:  72%|███████▏  | 779/1089 [01:01<00:28, 10.69it/s][A
+predict with halo:  72%|███████▏  | 784/1089 [01:01<00:24, 12.70it/s][A
+predict with halo:  72%|███████▏  | 786/1089 [01:02<00:29, 10.29it/s][A
+predict with halo:  72%|███████▏  | 788/1089 [01:02<00:34,  8.64it/s][A
+predict with halo:  73%|███████▎  | 790/1089 [01:03<00:39,  7.51it/s][A
+predict with halo:  73%|███████▎  | 791/1089 [01:03<00:42,  7.03it/s][A
+predict with halo:  73%|███████▎  | 792/1089 [01:03<00:45,  6.58it/s][A
+predict with halo:  73%|███████▎  | 794/1089 [01:03<00:40,  7.21it/s][A
+predict with halo:  73%|███████▎  | 795/1089 [01:04<00:44,  6.64it/s][A
+predict with halo:  73%|███████▎  | 796/1089 [01:04<00:47,  6.19it/s][A
+predict with halo:  73%|███████▎  | 797/1089 [01:04<00:50,  5.84it/s][A
+predict with halo:  73%|███████▎  | 798/1089 [01:04<00:52,  5.58it/s][A
+predict with halo:  73%|███████▎  | 799/1089 [01:04<00:53,  5.38it/s][A
+predict with halo:  73%|███████▎  | 800/1089 [01:05<00:55,  5.24it/s][A
+predict with halo:  74%|███████▎  | 802/1089 [01:05<00:43,  6.54it/s][A
+predict with halo:  74%|███████▎  | 803/1089 [01:05<00:47,  6.03it/s][A
+predict with halo:  74%|███████▍  | 804/1089 [01:05<00:51,  5.55it/s][A
+predict with halo:  74%|███████▍  | 805/1089 [01:05<00:53,  5.35it/s][A
+predict with halo:  74%|███████▍  | 806/1089 [01:06<00:54,  5.21it/s][A
+predict with halo:  74%|███████▍  | 807/1089 [01:06<00:55,  5.12it/s][A
+predict with halo:  74%|███████▍  | 808/1089 [01:06<00:55,  5.05it/s][A
+predict with halo:  74%|███████▍  | 809/1089 [01:06<00:55,  5.00it/s][A
+predict with halo:  74%|███████▍  | 810/1089 [01:06<00:56,  4.96it/s][A
+predict with halo:  75%|███████▍  | 813/1089 [01:07<00:35,  7.82it/s][A
+predict with halo:  75%|███████▍  | 814/1089 [01:07<00:39,  6.91it/s][A
+predict with halo:  75%|███████▍  | 816/1089 [01:07<00:35,  7.62it/s][A
+predict with halo:  75%|███████▌  | 817/1089 [01:07<00:39,  6.81it/s][A
+predict with halo:  75%|███████▌  | 818/1089 [01:07<00:43,  6.24it/s][A
+predict with halo:  75%|███████▌  | 819/1089 [01:08<00:46,  5.83it/s][A
+predict with halo:  75%|███████▌  | 820/1089 [01:08<00:48,  5.55it/s][A
+predict with halo:  75%|███████▌  | 821/1089 [01:08<00:50,  5.35it/s][A
+predict with halo:  76%|███████▌  | 827/1089 [01:08<00:21, 12.20it/s][A
+predict with halo:  76%|███████▌  | 829/1089 [01:09<00:29,  8.84it/s][A
+predict with halo:  80%|████████  | 873/1089 [01:09<00:03, 56.70it/s][A
+predict with halo:  81%|████████  | 880/1089 [01:09<00:05, 40.67it/s][A
+predict with halo:  81%|████████▏ | 885/1089 [01:10<00:08, 25.41it/s][A
+predict with halo:  82%|████████▏ | 889/1089 [01:10<00:08, 24.34it/s][A
+predict with halo:  82%|████████▏ | 894/1089 [01:10<00:08, 24.02it/s][A
+predict with halo:  82%|████████▏ | 897/1089 [01:11<00:12, 15.11it/s][A
+predict with halo:  83%|████████▎ | 900/1089 [01:12<00:17, 11.06it/s][A
+predict with halo:  83%|████████▎ | 905/1089 [01:12<00:14, 13.02it/s][A
+predict with halo:  83%|████████▎ | 907/1089 [01:12<00:17, 10.47it/s][A
+predict with halo:  83%|████████▎ | 909/1089 [01:13<00:20,  8.76it/s][A
+predict with halo:  84%|████████▎ | 911/1089 [01:13<00:23,  7.58it/s][A
+predict with halo:  84%|████████▎ | 912/1089 [01:13<00:24,  7.09it/s][A
+predict with halo:  84%|████████▍ | 913/1089 [01:14<00:26,  6.62it/s][A
+predict with halo:  84%|████████▍ | 915/1089 [01:14<00:24,  7.23it/s][A
+predict with halo:  84%|████████▍ | 916/1089 [01:14<00:25,  6.66it/s][A
+predict with halo:  84%|████████▍ | 917/1089 [01:14<00:27,  6.20it/s][A
+predict with halo:  84%|████████▍ | 918/1089 [01:14<00:29,  5.85it/s][A
+predict with halo:  84%|████████▍ | 919/1089 [01:15<00:30,  5.59it/s][A
+predict with halo:  84%|████████▍ | 920/1089 [01:15<00:31,  5.39it/s][A
+predict with halo:  85%|████████▍ | 921/1089 [01:15<00:32,  5.24it/s][A
+predict with halo:  85%|████████▍ | 923/1089 [01:15<00:25,  6.54it/s][A
+predict with halo:  85%|████████▍ | 924/1089 [01:15<00:27,  6.03it/s][A
+predict with halo:  85%|████████▍ | 925/1089 [01:16<00:29,  5.58it/s][A
+predict with halo:  85%|████████▌ | 926/1089 [01:16<00:30,  5.37it/s][A
+predict with halo:  85%|████████▌ | 927/1089 [01:16<00:31,  5.21it/s][A
+predict with halo:  85%|████████▌ | 928/1089 [01:16<00:31,  5.09it/s][A
+predict with halo:  85%|████████▌ | 929/1089 [01:16<00:31,  5.03it/s][A
+predict with halo:  85%|████████▌ | 930/1089 [01:17<00:31,  4.99it/s][A
+predict with halo:  85%|████████▌ | 931/1089 [01:17<00:31,  4.96it/s][A
+predict with halo:  86%|████████▌ | 934/1089 [01:17<00:19,  7.81it/s][A
+predict with halo:  86%|████████▌ | 935/1089 [01:17<00:22,  6.90it/s][A
+predict with halo:  86%|████████▌ | 936/1089 [01:17<00:24,  6.15it/s][A
+predict with halo:  86%|████████▌ | 937/1089 [01:18<00:26,  5.77it/s][A
+predict with halo:  86%|████████▌ | 938/1089 [01:18<00:27,  5.50it/s][A
+predict with halo:  86%|████████▌ | 939/1089 [01:18<00:28,  5.32it/s][A
+predict with halo:  86%|████████▋ | 940/1089 [01:18<00:28,  5.19it/s][A
+predict with halo:  86%|████████▋ | 941/1089 [01:18<00:29,  5.08it/s][A
+predict with halo:  87%|████████▋ | 942/1089 [01:19<00:29,  5.02it/s][A
+predict with halo:  87%|████████▋ | 948/1089 [01:19<00:11, 11.98it/s][A
+predict with halo:  87%|████████▋ | 950/1089 [01:19<00:15,  8.72it/s][A
+predict with halo:  93%|█████████▎| 1018/1089 [01:20<00:00, 84.07it/s][A
+predict with halo:  94%|█████████▍| 1028/1089 [01:20<00:01, 59.84it/s][A
+predict with halo:  95%|█████████▌| 1036/1089 [01:21<00:02, 26.03it/s][A
+predict with halo:  96%|█████████▌| 1042/1089 [01:22<00:02, 16.02it/s][A
+predict with halo:  96%|█████████▌| 1046/1089 [01:23<00:03, 13.58it/s][A
+predict with halo:  96%|█████████▋| 1049/1089 [01:24<00:03, 11.28it/s][A
+predict with halo:  97%|█████████▋| 1052/1089 [01:24<00:03, 11.65it/s][A
+predict with halo:  97%|█████████▋| 1055/1089 [01:24<00:02, 12.05it/s][A
+predict with halo:  97%|█████████▋| 1057/1089 [01:25<00:03,  9.96it/s][A
+predict with halo:  97%|█████████▋| 1059/1089 [01:25<00:03,  8.50it/s][A
+predict with halo:  97%|█████████▋| 1061/1089 [01:25<00:03,  7.44it/s][A
+predict with halo:  98%|█████████▊| 1069/1089 [01:26<00:01, 12.78it/s][A
+predict with halo:  98%|█████████▊| 1071/1089 [01:26<00:01, 10.19it/s][Apredict with halo: 100%|██████████| 1089/1089 [01:26<00:00, 12.59it/s]
+Prediction time in 86.95673203468323 s
+Eroding mitochondria instances globally by 0 voxels ...
+Instance erosion completed in 1.57 s
+
+Label all sub-blocks:   0%|          | 0/72 [00:00<?, ?it/s][ALabel all sub-blocks: 100%|██████████| 72/72 [00:00<00:00, 750.55it/s]
+
+Merge labels across block faces:   0%|          | 0/72 [00:00<?, ?it/s][AMerge labels across block faces: 100%|██████████| 72/72 [00:00<00:00, 5488.53it/s]
+
+Write blocks:   0%|          | 0/72 [00:00<?, ?it/s][AWrite blocks: 100%|██████████| 72/72 [00:00<00:00, 2136.05it/s]
+Compute connected components in 4.063023090362549 s
+
+  0%|          | 0/72 [00:00<?, ?it/s][A
+ 18%|█▊        | 13/72 [00:00<00:00, 111.33it/s][A
+ 35%|███▍      | 25/72 [00:00<00:00, 48.51it/s] [A100%|██████████| 72/72 [00:00<00:00, 148.59it/s]
+
+  0%|          | 0/72 [00:00<?, ?it/s][A
+ 26%|██▋       | 19/72 [00:00<00:00, 151.06it/s][A
+ 49%|████▊     | 35/72 [00:00<00:00, 152.90it/s][A100%|██████████| 72/72 [00:00<00:00, 313.57it/s]
+ 67%|██████▋   | 10/15 [14:45<08:04, 96.88s/it]Size filter in 7.152186632156372 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT20_eb5_model2_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT20_eb5_model2_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M1_eb6_model_combined.h5
+Segmenting cristae in volume of shape (124, 1336, 1336)
+Run prediction with mask.
+
+predict with halo:  19%|█▉        | 182/968 [00:00<00:01, 625.16it/s][A
+predict with halo:  25%|██▌       | 245/968 [00:01<00:04, 150.07it/s][A
+predict with halo:  31%|███▏      | 303/968 [00:01<00:03, 170.64it/s][A
+predict with halo:  34%|███▍      | 331/968 [00:03<00:08, 72.04it/s] [A
+predict with halo:  43%|████▎     | 413/968 [00:03<00:05, 107.66it/s][A
+predict with halo:  45%|████▌     | 437/968 [00:04<00:09, 58.84it/s] [A
+predict with halo:  47%|████▋     | 453/968 [00:05<00:09, 54.96it/s][A
+predict with halo:  55%|█████▌    | 534/968 [00:05<00:04, 90.76it/s][A
+predict with halo:  57%|█████▋    | 553/968 [00:06<00:07, 58.82it/s][A
+predict with halo:  59%|█████▊    | 567/968 [00:07<00:08, 44.57it/s][A
+predict with halo:  60%|█████▉    | 577/968 [00:07<00:08, 44.85it/s][A
+predict with halo:  68%|██████▊   | 655/968 [00:07<00:03, 86.41it/s][A
+predict with halo:  69%|██████▉   | 671/968 [00:08<00:05, 52.21it/s][A
+predict with halo:  71%|███████   | 683/968 [00:09<00:06, 42.50it/s][A
+predict with halo:  71%|███████▏  | 692/968 [00:09<00:07, 37.80it/s][A
+predict with halo:  80%|████████  | 776/968 [00:10<00:02, 84.06it/s][A
+predict with halo:  82%|████████▏ | 791/968 [00:11<00:03, 50.63it/s][A
+predict with halo:  83%|████████▎ | 802/968 [00:11<00:04, 40.88it/s][A
+predict with halo:  84%|████████▎ | 810/968 [00:12<00:03, 40.38it/s][A
+predict with halo:  93%|█████████▎| 897/968 [00:12<00:00, 93.51it/s][A
+predict with halo:  94%|█████████▍| 913/968 [00:13<00:01, 54.04it/s][A
+predict with halo:  96%|█████████▌| 925/968 [00:13<00:00, 43.45it/s][Apredict with halo: 100%|██████████| 968/968 [00:13<00:00, 69.47it/s]
+Prediction time in 14.396243572235107 s
+Eroding mitochondria instances globally by 0 voxels ...
+Instance erosion completed in 0.41 s
+
+Label all sub-blocks:   0%|          | 0/36 [00:00<?, ?it/s][A
+Label all sub-blocks:  42%|████▏     | 15/36 [00:00<00:00, 86.71it/s][A
+Label all sub-blocks:  67%|██████▋   | 24/36 [00:00<00:00, 83.27it/s][A
+Label all sub-blocks:  92%|█████████▏| 33/36 [00:00<00:00, 81.17it/s][ALabel all sub-blocks: 100%|██████████| 36/36 [00:00<00:00, 89.69it/s]
+
+Merge labels across block faces:   0%|          | 0/36 [00:00<?, ?it/s][AMerge labels across block faces: 100%|██████████| 36/36 [00:00<00:00, 12102.83it/s]
+
+Write blocks:   0%|          | 0/36 [00:00<?, ?it/s][A
+Write blocks:  64%|██████▍   | 23/36 [00:00<00:00, 210.10it/s][AWrite blocks: 100%|██████████| 36/36 [00:00<00:00, 163.23it/s]
+Compute connected components in 3.43886399269104 s
+
+  0%|          | 0/36 [00:00<?, ?it/s][A
+ 19%|█▉        | 7/36 [00:00<00:01, 20.13it/s][A
+ 28%|██▊       | 10/36 [00:00<00:01, 22.75it/s][A
+ 39%|███▉      | 14/36 [00:00<00:00, 22.53it/s][A
+ 53%|█████▎    | 19/36 [00:00<00:00, 27.08it/s][A100%|██████████| 36/36 [00:00<00:00, 42.14it/s]
+
+  0%|          | 0/36 [00:00<?, ?it/s][A
+ 25%|██▌       | 9/36 [00:00<00:01, 23.54it/s][A
+ 42%|████▏     | 15/36 [00:00<00:00, 24.70it/s][A
+ 69%|██████▉   | 25/36 [00:00<00:00, 38.89it/s][A100%|██████████| 36/36 [00:00<00:00, 44.64it/s]
+ 73%|███████▎  | 11/15 [15:44<05:40, 85.25s/it]Size filter in 6.316027879714966 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/M1_eb6_model_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/M1_eb6_model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/M2_eb5_model_combined.h5
+Segmenting cristae in volume of shape (111, 1336, 1336)
+Run prediction with mask.
+
+predict with halo:   6%|▌         | 52/847 [00:00<00:03, 215.98it/s][A
+predict with halo:   9%|▊         | 74/847 [00:01<00:16, 47.74it/s] [A
+predict with halo:  10%|█         | 85/847 [00:01<00:21, 34.88it/s][A
+predict with halo:  11%|█         | 92/847 [00:02<00:25, 29.72it/s][A
+predict with halo:  11%|█▏        | 97/847 [00:02<00:30, 24.55it/s][A
+predict with halo:  12%|█▏        | 101/847 [00:02<00:31, 23.62it/s][A
+predict with halo:  18%|█▊        | 149/847 [00:03<00:11, 62.88it/s][A
+predict with halo:  19%|█▊        | 158/847 [00:03<00:11, 58.61it/s][A
+predict with halo:  20%|█▉        | 166/847 [00:03<00:15, 43.51it/s][A
+predict with halo:  20%|██        | 172/847 [00:04<00:20, 33.27it/s][A
+predict with halo:  21%|██        | 177/847 [00:04<00:25, 26.25it/s][A
+predict with halo:  21%|██▏       | 182/847 [00:04<00:25, 25.76it/s][A
+predict with halo:  22%|██▏       | 186/847 [00:05<00:38, 17.09it/s][A
+predict with halo:  23%|██▎       | 195/847 [00:05<00:30, 21.65it/s][A
+predict with halo:  23%|██▎       | 198/847 [00:06<00:38, 16.83it/s][A
+predict with halo:  24%|██▍       | 206/847 [00:06<00:30, 20.94it/s][A
+predict with halo:  25%|██▍       | 209/847 [00:06<00:39, 16.10it/s][A
+predict with halo:  26%|██▌       | 217/847 [00:06<00:30, 20.56it/s][A
+predict with halo:  26%|██▌       | 220/847 [00:07<00:39, 15.68it/s][A
+predict with halo:  32%|███▏      | 269/847 [00:07<00:09, 59.98it/s][A
+predict with halo:  33%|███▎      | 277/847 [00:08<00:12, 45.12it/s][A
+predict with halo:  34%|███▎      | 284/847 [00:08<00:21, 26.42it/s][A
+predict with halo:  34%|███▍      | 291/847 [00:09<00:20, 27.44it/s][A
+predict with halo:  35%|███▍      | 296/847 [00:09<00:31, 17.50it/s][A
+predict with halo:  36%|███▌      | 302/847 [00:10<00:28, 19.08it/s][A
+predict with halo:  36%|███▌      | 305/847 [00:10<00:39, 13.71it/s][A
+predict with halo:  36%|███▋      | 308/847 [00:10<00:38, 13.84it/s][A
+predict with halo:  37%|███▋      | 314/847 [00:11<00:32, 16.50it/s][A
+predict with halo:  37%|███▋      | 317/847 [00:11<00:39, 13.40it/s][A
+predict with halo:  38%|███▊      | 319/847 [00:11<00:41, 12.66it/s][A
+predict with halo:  39%|███▊      | 327/847 [00:11<00:28, 18.22it/s][A
+predict with halo:  39%|███▉      | 330/847 [00:12<00:36, 14.03it/s][A
+predict with halo:  40%|███▉      | 338/847 [00:12<00:26, 19.20it/s][A
+predict with halo:  40%|████      | 341/847 [00:12<00:34, 14.68it/s][A
+predict with halo:  46%|████▌     | 390/847 [00:13<00:07, 60.56it/s][A
+predict with halo:  47%|████▋     | 398/847 [00:13<00:09, 45.19it/s][A
+predict with halo:  48%|████▊     | 404/847 [00:14<00:17, 25.65it/s][A
+predict with halo:  49%|████▊     | 412/847 [00:14<00:15, 27.54it/s][A
+predict with halo:  49%|████▉     | 417/847 [00:15<00:24, 17.50it/s][A
+predict with halo:  50%|████▉     | 423/847 [00:15<00:22, 19.08it/s][A
+predict with halo:  50%|█████     | 427/847 [00:16<00:33, 12.71it/s][A
+predict with halo:  51%|█████▏    | 435/847 [00:16<00:25, 16.25it/s][A
+predict with halo:  52%|█████▏    | 438/847 [00:17<00:34, 11.97it/s][A
+predict with halo:  52%|█████▏    | 441/847 [00:17<00:32, 12.34it/s][A
+predict with halo:  53%|█████▎    | 448/847 [00:17<00:24, 16.02it/s][A
+predict with halo:  53%|█████▎    | 451/847 [00:18<00:30, 13.10it/s][A
+predict with halo:  54%|█████▍    | 459/847 [00:18<00:21, 17.87it/s][A
+predict with halo:  55%|█████▍    | 462/847 [00:18<00:27, 14.12it/s][A
+predict with halo:  60%|██████    | 511/847 [00:19<00:05, 57.26it/s][A
+predict with halo:  61%|██████▏   | 519/847 [00:19<00:07, 43.64it/s][A
+predict with halo:  62%|██████▏   | 525/847 [00:20<00:12, 25.13it/s][A
+predict with halo:  63%|██████▎   | 533/847 [00:20<00:11, 26.95it/s][A
+predict with halo:  64%|██████▎   | 538/847 [00:21<00:17, 17.29it/s][A
+predict with halo:  64%|██████▍   | 544/847 [00:21<00:16, 18.80it/s][A
+predict with halo:  65%|██████▍   | 547/847 [00:22<00:22, 13.58it/s][A
+predict with halo:  65%|██████▍   | 550/847 [00:22<00:21, 13.72it/s][A
+predict with halo:  66%|██████▌   | 556/847 [00:22<00:17, 16.32it/s][A
+predict with halo:  66%|██████▌   | 559/847 [00:23<00:25, 11.37it/s][A
+predict with halo:  66%|██████▌   | 561/847 [00:23<00:25, 11.07it/s][A
+predict with halo:  67%|██████▋   | 569/847 [00:23<00:17, 16.32it/s][A
+predict with halo:  68%|██████▊   | 572/847 [00:24<00:21, 13.08it/s][A
+predict with halo:  68%|██████▊   | 580/847 [00:24<00:14, 18.09it/s][A
+predict with halo:  69%|██████▉   | 583/847 [00:24<00:18, 14.12it/s][A
+predict with halo:  74%|███████▍  | 631/847 [00:24<00:03, 57.21it/s][A
+predict with halo:  75%|███████▌  | 639/847 [00:25<00:05, 36.84it/s][A
+predict with halo:  76%|███████▌  | 645/847 [00:26<00:08, 22.96it/s][A
+predict with halo:  77%|███████▋  | 654/847 [00:26<00:07, 25.71it/s][A
+predict with halo:  78%|███████▊  | 659/847 [00:27<00:08, 21.81it/s][A
+predict with halo:  79%|███████▊  | 665/847 [00:27<00:07, 22.87it/s][A
+predict with halo:  79%|███████▉  | 669/847 [00:28<00:12, 14.05it/s][A
+predict with halo:  80%|███████▉  | 677/847 [00:28<00:09, 17.61it/s][A
+predict with halo:  80%|████████  | 680/847 [00:28<00:13, 12.65it/s][A
+predict with halo:  81%|████████▏ | 690/847 [00:29<00:08, 18.11it/s][A
+predict with halo:  82%|████████▏ | 693/847 [00:29<00:10, 14.74it/s][A
+predict with halo:  83%|████████▎ | 701/847 [00:29<00:07, 18.89it/s][A
+predict with halo:  83%|████████▎ | 704/847 [00:29<00:07, 17.98it/s][A
+predict with halo:  89%|████████▉ | 752/847 [00:30<00:01, 63.95it/s][A
+predict with halo:  90%|████████▉ | 760/847 [00:30<00:02, 39.14it/s][A
+predict with halo:  90%|█████████ | 766/847 [00:31<00:03, 23.84it/s][A
+predict with halo:  91%|█████████▏| 775/847 [00:31<00:02, 26.49it/s][A
+predict with halo:  92%|█████████▏| 780/847 [00:32<00:03, 22.29it/s][A
+predict with halo:  93%|█████████▎| 786/847 [00:32<00:02, 23.27it/s][A
+predict with halo:  93%|█████████▎| 790/847 [00:32<00:03, 18.81it/s][A
+predict with halo:  94%|█████████▍| 798/847 [00:33<00:02, 22.40it/s][A
+predict with halo:  95%|█████████▍| 801/847 [00:33<00:03, 14.58it/s][A
+predict with halo:  96%|█████████▌| 811/847 [00:33<00:01, 20.34it/s][A
+predict with halo:  96%|█████████▌| 814/847 [00:34<00:01, 19.16it/s][A
+predict with halo:  97%|█████████▋| 822/847 [00:34<00:01, 23.27it/s][A
+predict with halo:  97%|█████████▋| 825/847 [00:34<00:01, 21.14it/s][Apredict with halo: 100%|██████████| 847/847 [00:34<00:00, 24.48it/s]
+Prediction time in 35.062949419021606 s
+Eroding mitochondria instances globally by 0 voxels ...
+Instance erosion completed in 0.77 s
+
+Label all sub-blocks:   0%|          | 0/36 [00:00<?, ?it/s][A
+Label all sub-blocks:  53%|█████▎    | 19/36 [00:00<00:00, 157.91it/s][A
+Label all sub-blocks:  97%|█████████▋| 35/36 [00:00<00:00, 143.95it/s][ALabel all sub-blocks: 100%|██████████| 36/36 [00:00<00:00, 150.11it/s]
+
+Merge labels across block faces:   0%|          | 0/36 [00:00<?, ?it/s][AMerge labels across block faces: 100%|██████████| 36/36 [00:00<00:00, 4320.31it/s]
+
+Write blocks:   0%|          | 0/36 [00:00<?, ?it/s][AWrite blocks: 100%|██████████| 36/36 [00:00<00:00, 487.77it/s]
+Compute connected components in 2.9139411449432373 s
+
+  0%|          | 0/36 [00:00<?, ?it/s][A
+ 19%|█▉        | 7/36 [00:00<00:00, 40.77it/s][A
+ 33%|███▎      | 12/36 [00:00<00:00, 34.12it/s][A
+ 44%|████▍     | 16/36 [00:00<00:00, 29.71it/s][A
+ 58%|█████▊    | 21/36 [00:00<00:00, 33.40it/s][A100%|██████████| 36/36 [00:00<00:00, 54.33it/s]
+
+  0%|          | 0/36 [00:00<?, ?it/s][A
+ 22%|██▏       | 8/36 [00:00<00:01, 20.58it/s][A
+ 44%|████▍     | 16/36 [00:00<00:00, 29.81it/s][A
+ 58%|█████▊    | 21/36 [00:00<00:00, 25.90it/s][A
+ 67%|██████▋   | 24/36 [00:00<00:00, 25.80it/s][A100%|██████████| 36/36 [00:00<00:00, 38.62it/s]
+ 80%|████████  | 12/15 [17:01<04:08, 82.83s/it]Size filter in 5.683284044265747 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/M2_eb5_model_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/M2_eb5_model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined.h5
+Segmenting cristae in volume of shape (87, 1920, 2560)
+Run prediction with mask.
+
+predict with halo:   2%|▏         | 33/1800 [00:00<00:12, 142.86it/s][A
+predict with halo:   3%|▎         | 48/1800 [00:00<00:17, 101.37it/s][A
+predict with halo:   3%|▎         | 59/1800 [00:01<00:50, 34.16it/s] [A
+predict with halo:   4%|▍         | 70/1800 [00:01<00:45, 37.77it/s][A
+predict with halo:   4%|▍         | 76/1800 [00:01<00:59, 28.97it/s][A
+predict with halo:   5%|▌         | 90/1800 [00:02<00:46, 36.66it/s][A
+predict with halo:   5%|▌         | 95/1800 [00:02<01:02, 27.41it/s][A
+predict with halo:   6%|▌         | 109/1800 [00:02<00:47, 35.39it/s][A
+predict with halo:   6%|▋         | 114/1800 [00:03<01:14, 22.50it/s][A
+predict with halo:   7%|▋         | 129/1800 [00:03<00:53, 31.29it/s][A
+predict with halo:   7%|▋         | 134/1800 [00:04<01:18, 21.11it/s][A
+predict with halo:   8%|▊         | 148/1800 [00:04<00:57, 28.76it/s][A
+predict with halo:   8%|▊         | 153/1800 [00:04<01:10, 23.29it/s][A
+predict with halo:   9%|▉         | 168/1800 [00:05<00:50, 32.14it/s][A
+predict with halo:  10%|▉         | 173/1800 [00:05<01:04, 25.13it/s][A
+predict with halo:  10%|█         | 188/1800 [00:05<00:47, 34.05it/s][A
+predict with halo:  11%|█         | 193/1800 [00:05<00:50, 31.84it/s][A
+predict with halo:  18%|█▊        | 333/1800 [00:06<00:08, 172.45it/s][A
+predict with halo:  20%|█▉        | 352/1800 [00:06<00:14, 102.94it/s][A
+predict with halo:  20%|██        | 366/1800 [00:07<00:17, 81.09it/s] [A
+predict with halo:  21%|██        | 377/1800 [00:08<00:29, 48.96it/s][A
+predict with halo:  22%|██▏       | 390/1800 [00:08<00:27, 50.69it/s][A
+predict with halo:  22%|██▏       | 398/1800 [00:08<00:33, 41.59it/s][A
+predict with halo:  23%|██▎       | 409/1800 [00:08<00:32, 43.35it/s][A
+predict with halo:  23%|██▎       | 415/1800 [00:09<00:47, 29.11it/s][A
+predict with halo:  24%|██▍       | 429/1800 [00:09<00:38, 35.37it/s][A
+predict with halo:  24%|██▍       | 434/1800 [00:10<00:56, 24.04it/s][A
+predict with halo:  25%|██▍       | 447/1800 [00:10<00:44, 30.31it/s][A
+predict with halo:  25%|██▌       | 452/1800 [00:11<01:03, 21.12it/s][A
+predict with halo:  26%|██▌       | 467/1800 [00:11<00:45, 29.43it/s][A
+predict with halo:  26%|██▌       | 472/1800 [00:12<01:04, 20.66it/s][A
+predict with halo:  27%|██▋       | 488/1800 [00:12<00:44, 29.74it/s][A
+predict with halo:  27%|██▋       | 493/1800 [00:12<00:45, 28.73it/s][A
+predict with halo:  35%|███▌      | 633/1800 [00:12<00:07, 158.74it/s][A
+predict with halo:  36%|███▋      | 653/1800 [00:13<00:13, 86.33it/s] [A
+predict with halo:  37%|███▋      | 668/1800 [00:13<00:13, 83.94it/s][A
+predict with halo:  38%|███▊      | 681/1800 [00:14<00:21, 51.27it/s][A
+predict with halo:  38%|███▊      | 690/1800 [00:14<00:22, 50.01it/s][A
+predict with halo:  39%|███▉      | 698/1800 [00:15<00:26, 41.06it/s][A
+predict with halo:  39%|███▉      | 709/1800 [00:15<00:25, 42.91it/s][A
+predict with halo:  40%|███▉      | 715/1800 [00:16<00:37, 28.88it/s][A
+predict with halo:  40%|████      | 728/1800 [00:16<00:31, 34.33it/s][A
+predict with halo:  41%|████      | 733/1800 [00:17<00:51, 20.59it/s][A
+predict with halo:  42%|████▏     | 747/1800 [00:17<00:38, 27.46it/s][A
+predict with halo:  42%|████▏     | 752/1800 [00:17<00:52, 19.98it/s][A
+predict with halo:  43%|████▎     | 767/1800 [00:18<00:36, 28.05it/s][A
+predict with halo:  43%|████▎     | 772/1800 [00:18<00:51, 20.11it/s][A
+predict with halo:  44%|████▍     | 788/1800 [00:18<00:34, 29.06it/s][A
+predict with halo:  44%|████▍     | 793/1800 [00:19<00:42, 23.82it/s][A
+predict with halo:  52%|█████▏    | 933/1800 [00:19<00:06, 137.28it/s][A
+predict with halo:  53%|█████▎    | 952/1800 [00:20<00:07, 106.05it/s][A
+predict with halo:  54%|█████▎    | 967/1800 [00:20<00:09, 83.62it/s] [A
+predict with halo:  54%|█████▍    | 979/1800 [00:21<00:16, 50.56it/s][A
+predict with halo:  55%|█████▌    | 990/1800 [00:21<00:15, 50.70it/s][A
+predict with halo:  55%|█████▌    | 998/1800 [00:22<00:22, 36.27it/s][A
+predict with halo:  56%|█████▌    | 1010/1800 [00:22<00:20, 39.43it/s][A
+predict with halo:  56%|█████▋    | 1016/1800 [00:22<00:24, 31.85it/s][A
+predict with halo:  57%|█████▋    | 1028/1800 [00:22<00:21, 36.24it/s][A
+predict with halo:  57%|█████▋    | 1033/1800 [00:23<00:36, 21.10it/s][A
+predict with halo:  58%|█████▊    | 1047/1800 [00:23<00:26, 28.07it/s][A
+predict with halo:  58%|█████▊    | 1052/1800 [00:24<00:36, 20.23it/s][A
+predict with halo:  59%|█████▉    | 1067/1800 [00:24<00:25, 28.36it/s][A
+predict with halo:  60%|█████▉    | 1072/1800 [00:25<00:35, 20.24it/s][A
+predict with halo:  60%|██████    | 1088/1800 [00:25<00:24, 29.22it/s][A
+predict with halo:  61%|██████    | 1093/1800 [00:26<00:29, 23.91it/s][A
+predict with halo:  68%|██████▊   | 1233/1800 [00:26<00:04, 137.20it/s][A
+predict with halo:  70%|██████▉   | 1252/1800 [00:26<00:05, 105.54it/s][A
+predict with halo:  70%|███████   | 1267/1800 [00:27<00:06, 83.04it/s] [A
+predict with halo:  71%|███████   | 1279/1800 [00:28<00:10, 50.19it/s][A
+predict with halo:  72%|███████▏  | 1290/1800 [00:28<00:10, 50.29it/s][A
+predict with halo:  72%|███████▏  | 1298/1800 [00:28<00:13, 35.99it/s][A
+predict with halo:  73%|███████▎  | 1310/1800 [00:29<00:12, 39.09it/s][A
+predict with halo:  73%|███████▎  | 1316/1800 [00:29<00:15, 31.59it/s][A
+predict with halo:  74%|███████▍  | 1328/1800 [00:29<00:13, 35.89it/s][A
+predict with halo:  74%|███████▍  | 1333/1800 [00:30<00:22, 20.94it/s][A
+predict with halo:  75%|███████▍  | 1347/1800 [00:30<00:16, 27.83it/s][A
+predict with halo:  75%|███████▌  | 1352/1800 [00:31<00:22, 20.01it/s][A
+predict with halo:  76%|███████▌  | 1367/1800 [00:31<00:15, 28.02it/s][A
+predict with halo:  76%|███████▌  | 1372/1800 [00:32<00:21, 20.03it/s][A
+predict with halo:  77%|███████▋  | 1388/1800 [00:32<00:14, 28.87it/s][A
+predict with halo:  77%|███████▋  | 1393/1800 [00:32<00:17, 23.67it/s][A
+predict with halo:  85%|████████▌ | 1533/1800 [00:33<00:01, 135.18it/s][A
+predict with halo:  86%|████████▌ | 1552/1800 [00:33<00:01, 125.40it/s][A
+predict with halo:  87%|████████▋ | 1568/1800 [00:33<00:02, 93.77it/s] [A
+predict with halo:  88%|████████▊ | 1580/1800 [00:34<00:03, 61.19it/s][A
+predict with halo:  88%|████████▊ | 1590/1800 [00:34<00:03, 58.72it/s][A
+predict with halo:  89%|████████▉ | 1598/1800 [00:35<00:05, 39.32it/s][A
+predict with halo:  89%|████████▉ | 1610/1800 [00:35<00:04, 42.21it/s][A
+predict with halo:  90%|████████▉ | 1616/1800 [00:35<00:05, 33.22it/s][A
+predict with halo:  90%|█████████ | 1628/1800 [00:36<00:04, 37.58it/s][A
+predict with halo:  91%|█████████ | 1633/1800 [00:36<00:06, 24.49it/s][A
+predict with halo:  92%|█████████▏| 1647/1800 [00:36<00:04, 31.80it/s][A
+predict with halo:  92%|█████████▏| 1652/1800 [00:37<00:06, 21.66it/s][A
+predict with halo:  93%|█████████▎| 1667/1800 [00:37<00:04, 30.03it/s][A
+predict with halo:  93%|█████████▎| 1672/1800 [00:38<00:06, 20.80it/s][A
+predict with halo:  94%|█████████▍| 1688/1800 [00:38<00:03, 29.94it/s][A
+predict with halo:  94%|█████████▍| 1693/1800 [00:38<00:04, 24.20it/s][Apredict with halo: 100%|██████████| 1800/1800 [00:39<00:00, 46.14it/s]
+Prediction time in 39.555328130722046 s
+Eroding mitochondria instances globally by 0 voxels ...
+Instance erosion completed in 1.26 s
+
+Label all sub-blocks:   0%|          | 0/80 [00:00<?, ?it/s][A
+Label all sub-blocks:  64%|██████▍   | 51/80 [00:00<00:00, 174.68it/s][A
+Label all sub-blocks:  86%|████████▋ | 69/80 [00:00<00:00, 150.69it/s][ALabel all sub-blocks: 100%|██████████| 80/80 [00:00<00:00, 180.12it/s]
+
+Merge labels across block faces:   0%|          | 0/80 [00:00<?, ?it/s][AMerge labels across block faces: 100%|██████████| 80/80 [00:00<00:00, 7530.84it/s]
+
+Write blocks:   0%|          | 0/80 [00:00<?, ?it/s][A
+Write blocks:  75%|███████▌  | 60/80 [00:00<00:00, 570.26it/s][AWrite blocks: 100%|██████████| 80/80 [00:00<00:00, 629.03it/s]
+Compute connected components in 6.108330488204956 s
+
+  0%|          | 0/80 [00:00<?, ?it/s][A
+ 55%|█████▌    | 44/80 [00:00<00:00, 210.07it/s][A
+ 82%|████████▎ | 66/80 [00:00<00:00, 76.16it/s] [A100%|██████████| 80/80 [00:00<00:00, 103.59it/s]
+
+  0%|          | 0/80 [00:00<?, ?it/s][A
+ 52%|█████▎    | 42/80 [00:00<00:00, 97.20it/s][A
+ 65%|██████▌   | 52/80 [00:00<00:00, 45.35it/s][A
+ 72%|███████▎  | 58/80 [00:01<00:00, 32.47it/s][A100%|██████████| 80/80 [00:01<00:00, 52.49it/s]
+ 87%|████████▋ | 13/15 [19:04<03:09, 94.87s/it]Size filter in 10.228586673736572 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/mitochondria/cooper/cristae/2026/36194_B4_66K_TS_R01A_SC_01_rec_crop_combined.h5
+Segmenting cristae in volume of shape (236, 1024, 1024)
+Run prediction with mask.
+
+predict with halo:   1%|          | 11/960 [00:00<00:19, 49.44it/s][A
+predict with halo:   2%|▏         | 16/960 [00:00<00:27, 34.84it/s][A
+predict with halo:   2%|▏         | 20/960 [00:00<00:49, 19.10it/s][A
+predict with halo:   8%|▊         | 75/960 [00:01<00:09, 89.99it/s][A
+predict with halo:   9%|▉         | 86/960 [00:02<00:23, 36.48it/s][A
+predict with halo:  10%|▉         | 94/960 [00:02<00:27, 31.64it/s][A
+predict with halo:  14%|█▍        | 139/960 [00:02<00:13, 61.36it/s][A
+predict with halo:  16%|█▌        | 150/960 [00:04<00:26, 30.85it/s][A
+predict with halo:  16%|█▋        | 158/960 [00:04<00:28, 28.29it/s][A
+predict with halo:  17%|█▋        | 165/960 [00:04<00:27, 28.93it/s][A
+predict with halo:  18%|█▊        | 170/960 [00:04<00:28, 28.17it/s][A
+predict with halo:  21%|██        | 203/960 [00:05<00:14, 51.82it/s][A
+predict with halo:  22%|██▏       | 211/960 [00:05<00:21, 34.65it/s][A
+predict with halo:  23%|██▎       | 217/960 [00:06<00:29, 25.09it/s][A
+predict with halo:  23%|██▎       | 222/960 [00:06<00:34, 21.57it/s][A
+predict with halo:  24%|██▍       | 229/960 [00:06<00:31, 23.45it/s][A
+predict with halo:  24%|██▍       | 233/960 [00:07<00:32, 22.69it/s][A
+predict with halo:  28%|██▊       | 267/960 [00:07<00:13, 51.62it/s][A
+predict with halo:  29%|██▊       | 274/960 [00:07<00:17, 38.68it/s][A
+predict with halo:  29%|██▉       | 280/960 [00:08<00:30, 22.49it/s][A
+predict with halo:  30%|██▉       | 285/960 [00:08<00:29, 22.63it/s][A
+predict with halo:  30%|███       | 289/960 [00:09<00:30, 21.98it/s][A
+predict with halo:  31%|███       | 293/960 [00:09<00:31, 21.37it/s][A
+predict with halo:  31%|███       | 296/960 [00:09<00:33, 19.84it/s][A
+predict with halo:  34%|███▍      | 331/960 [00:09<00:11, 55.13it/s][A
+predict with halo:  35%|███▌      | 338/960 [00:10<00:15, 39.62it/s][A
+predict with halo:  36%|███▌      | 343/960 [00:10<00:28, 21.63it/s][A
+predict with halo:  36%|███▋      | 349/960 [00:11<00:26, 22.71it/s][A
+predict with halo:  37%|███▋      | 353/960 [00:11<00:27, 22.07it/s][A
+predict with halo:  37%|███▋      | 357/960 [00:11<00:28, 21.43it/s][A
+predict with halo:  38%|███▊      | 360/960 [00:11<00:30, 19.85it/s][A
+predict with halo:  41%|████      | 395/960 [00:11<00:10, 55.47it/s][A
+predict with halo:  42%|████▏     | 402/960 [00:12<00:14, 39.77it/s][A
+predict with halo:  42%|████▏     | 407/960 [00:13<00:25, 21.64it/s][A
+predict with halo:  43%|████▎     | 413/960 [00:13<00:24, 22.72it/s][A
+predict with halo:  43%|████▎     | 417/960 [00:13<00:24, 22.07it/s][A
+predict with halo:  44%|████▍     | 420/960 [00:13<00:26, 20.40it/s][A
+predict with halo:  44%|████▍     | 427/960 [00:14<00:22, 23.34it/s][A
+predict with halo:  45%|████▍     | 430/960 [00:14<00:25, 21.20it/s][A
+predict with halo:  48%|████▊     | 460/960 [00:14<00:09, 52.28it/s][A
+predict with halo:  49%|████▊     | 466/960 [00:14<00:10, 45.99it/s][A
+predict with halo:  49%|████▉     | 471/960 [00:15<00:22, 21.94it/s][A
+predict with halo:  50%|████▉     | 477/960 [00:15<00:20, 23.08it/s][A
+predict with halo:  50%|█████     | 481/960 [00:16<00:25, 18.60it/s][A
+predict with halo:  50%|█████     | 484/960 [00:16<00:31, 14.90it/s][A
+predict with halo:  51%|█████     | 491/960 [00:16<00:25, 18.35it/s][A
+predict with halo:  51%|█████▏    | 494/960 [00:16<00:26, 17.57it/s][A
+predict with halo:  52%|█████▏    | 499/960 [00:17<00:24, 18.98it/s][A
+predict with halo:  52%|█████▏    | 502/960 [00:17<00:25, 17.83it/s][A
+predict with halo:  53%|█████▎    | 507/960 [00:17<00:23, 19.32it/s][A
+predict with halo:  53%|█████▎    | 510/960 [00:18<00:38, 11.74it/s][A
+predict with halo:  55%|█████▌    | 532/960 [00:18<00:14, 30.32it/s][A
+predict with halo:  56%|█████▌    | 537/960 [00:19<00:24, 17.49it/s][A
+predict with halo:  56%|█████▋    | 541/960 [00:19<00:23, 17.73it/s][A
+predict with halo:  57%|█████▋    | 544/960 [00:19<00:28, 14.47it/s][A
+predict with halo:  57%|█████▋    | 547/960 [00:20<00:28, 14.42it/s][A
+predict with halo:  57%|█████▋    | 549/960 [00:20<00:30, 13.39it/s][A
+predict with halo:  58%|█████▊    | 555/960 [00:20<00:24, 16.83it/s][A
+predict with halo:  58%|█████▊    | 557/960 [00:20<00:26, 15.12it/s][A
+predict with halo:  59%|█████▊    | 562/960 [00:20<00:22, 17.34it/s][A
+predict with halo:  59%|█████▉    | 564/960 [00:21<00:32, 12.10it/s][A
+predict with halo:  59%|█████▉    | 570/960 [00:21<00:24, 15.92it/s][A
+predict with halo:  60%|█████▉    | 572/960 [00:21<00:33, 11.54it/s][A
+predict with halo:  60%|█████▉    | 574/960 [00:22<00:42,  9.12it/s][A
+predict with halo:  62%|██████▏   | 598/960 [00:22<00:11, 30.75it/s][A
+predict with halo:  63%|██████▎   | 603/960 [00:23<00:14, 23.87it/s][A
+predict with halo:  63%|██████▎   | 607/960 [00:23<00:18, 18.97it/s][A
+predict with halo:  64%|██████▎   | 610/960 [00:23<00:19, 18.05it/s][A
+predict with halo:  64%|██████▍   | 613/960 [00:24<00:24, 14.15it/s][A
+predict with halo:  64%|██████▍   | 615/960 [00:24<00:26, 13.26it/s][A
+predict with halo:  64%|██████▍   | 619/960 [00:24<00:23, 14.55it/s][A
+predict with halo:  65%|██████▍   | 621/960 [00:24<00:25, 13.40it/s][A
+predict with halo:  65%|██████▌   | 626/960 [00:24<00:20, 16.07it/s][A
+predict with halo:  65%|██████▌   | 628/960 [00:25<00:29, 11.37it/s][A
+predict with halo:  66%|██████▌   | 630/960 [00:25<00:30, 11.00it/s][A
+predict with halo:  66%|██████▌   | 634/960 [00:25<00:25, 12.98it/s][A
+predict with halo:  66%|██████▋   | 636/960 [00:26<00:33,  9.63it/s][A
+predict with halo:  66%|██████▋   | 638/960 [00:26<00:40,  7.86it/s][A
+predict with halo:  69%|██████▉   | 662/960 [00:26<00:09, 30.21it/s][A
+predict with halo:  69%|██████▉   | 666/960 [00:27<00:13, 22.54it/s][A
+predict with halo:  70%|██████▉   | 670/960 [00:27<00:13, 21.80it/s][A
+predict with halo:  70%|███████   | 673/960 [00:27<00:17, 16.36it/s][A
+predict with halo:  70%|███████   | 676/960 [00:28<00:17, 15.92it/s][A
+predict with halo:  71%|███████   | 679/960 [00:28<00:17, 15.63it/s][A
+predict with halo:  71%|███████   | 683/960 [00:28<00:16, 16.44it/s][A
+predict with halo:  71%|███████▏  | 685/960 [00:28<00:23, 11.69it/s][A
+predict with halo:  72%|███████▏  | 689/960 [00:29<00:20, 13.30it/s][A
+predict with halo:  72%|███████▏  | 691/960 [00:29<00:26, 10.02it/s][A
+predict with halo:  72%|███████▏  | 693/960 [00:29<00:32,  8.16it/s][A
+predict with halo:  73%|███████▎  | 698/960 [00:30<00:23, 11.36it/s][A
+predict with halo:  73%|███████▎  | 700/960 [00:30<00:29,  8.96it/s][A
+predict with halo:  73%|███████▎  | 702/960 [00:30<00:28,  9.11it/s][A
+predict with halo:  76%|███████▌  | 726/960 [00:30<00:07, 32.90it/s][A
+predict with halo:  76%|███████▌  | 730/960 [00:31<00:09, 23.83it/s][A
+predict with halo:  76%|███████▋  | 734/960 [00:31<00:09, 22.70it/s][A
+predict with halo:  77%|███████▋  | 737/960 [00:31<00:13, 16.80it/s][A
+predict with halo:  77%|███████▋  | 743/960 [00:32<00:11, 19.29it/s][A
+predict with halo:  78%|███████▊  | 747/960 [00:32<00:11, 19.12it/s][A
+predict with halo:  78%|███████▊  | 750/960 [00:32<00:14, 14.46it/s][A
+predict with halo:  78%|███████▊  | 753/960 [00:33<00:14, 14.33it/s][A
+predict with halo:  79%|███████▊  | 755/960 [00:33<00:19, 10.67it/s][A
+predict with halo:  79%|███████▉  | 757/960 [00:33<00:23,  8.63it/s][A
+predict with halo:  79%|███████▉  | 762/960 [00:34<00:16, 11.69it/s][A
+predict with halo:  80%|███████▉  | 764/960 [00:34<00:21,  9.19it/s][A
+predict with halo:  80%|███████▉  | 766/960 [00:34<00:20,  9.30it/s][A
+predict with halo:  82%|████████▏ | 790/960 [00:34<00:05, 32.84it/s][A
+predict with halo:  83%|████████▎ | 794/960 [00:35<00:06, 23.83it/s][A
+predict with halo:  83%|████████▎ | 798/960 [00:35<00:07, 22.67it/s][A
+predict with halo:  83%|████████▎ | 801/960 [00:35<00:09, 16.80it/s][A
+predict with halo:  84%|████████▍ | 807/960 [00:36<00:07, 19.26it/s][A
+predict with halo:  84%|████████▍ | 811/960 [00:36<00:07, 19.07it/s][A
+predict with halo:  85%|████████▍ | 814/960 [00:36<00:10, 14.44it/s][A
+predict with halo:  85%|████████▌ | 817/960 [00:37<00:10, 14.29it/s][A
+predict with halo:  85%|████████▌ | 819/960 [00:37<00:13, 10.69it/s][A
+predict with halo:  86%|████████▌ | 821/960 [00:37<00:16,  8.64it/s][A
+predict with halo:  86%|████████▌ | 826/960 [00:38<00:11, 11.70it/s][A
+predict with halo:  86%|████████▋ | 828/960 [00:38<00:14,  9.21it/s][A
+predict with halo:  89%|████████▉ | 855/960 [00:38<00:03, 33.66it/s][A
+predict with halo:  90%|████████▉ | 860/960 [00:38<00:03, 31.44it/s][A
+predict with halo:  90%|█████████ | 864/960 [00:39<00:05, 19.13it/s][A
+predict with halo:  91%|█████████ | 871/960 [00:39<00:04, 21.76it/s][A
+predict with halo:  91%|█████████▏| 876/960 [00:39<00:03, 22.08it/s][A
+predict with halo:  92%|█████████▏| 881/960 [00:40<00:03, 22.31it/s][A
+predict with halo:  92%|█████████▏| 884/960 [00:40<00:05, 13.75it/s][A
+predict with halo:  93%|█████████▎| 890/960 [00:41<00:04, 16.54it/s][A
+predict with halo:  93%|█████████▎| 893/960 [00:41<00:04, 16.11it/s][A
+predict with halo:  96%|█████████▌| 919/960 [00:41<00:00, 41.03it/s][A
+predict with halo:  97%|█████████▋| 927/960 [00:41<00:00, 40.15it/s][A
+predict with halo:  97%|█████████▋| 932/960 [00:41<00:00, 35.93it/s][Apredict with halo: 100%|██████████| 960/960 [00:41<00:00, 22.93it/s]
+Prediction time in 42.33621335029602 s
+Eroding mitochondria instances globally by 0 voxels ...
+Instance erosion completed in 1.44 s
+
+Label all sub-blocks:   0%|          | 0/32 [00:00<?, ?it/s][A
+Label all sub-blocks:  41%|████      | 13/32 [00:00<00:00, 60.78it/s][A
+Label all sub-blocks:  66%|██████▌   | 21/32 [00:00<00:00, 65.48it/s][A
+Label all sub-blocks:  88%|████████▊ | 28/32 [00:00<00:00, 62.22it/s][ALabel all sub-blocks: 100%|██████████| 32/32 [00:00<00:00, 65.79it/s]
+
+Merge labels across block faces:   0%|          | 0/32 [00:00<?, ?it/s][AMerge labels across block faces: 100%|██████████| 32/32 [00:00<00:00, 2029.94it/s]
+
+Write blocks:   0%|          | 0/32 [00:00<?, ?it/s][A
+Write blocks:  72%|███████▏  | 23/32 [00:00<00:00, 197.21it/s][AWrite blocks: 100%|██████████| 32/32 [00:00<00:00, 107.02it/s]
+Compute connected components in 3.815497875213623 s
+
+  0%|          | 0/32 [00:00<?, ?it/s][A
+ 12%|█▎        | 4/32 [00:00<00:01, 27.17it/s][A
+ 22%|██▏       | 7/32 [00:00<00:01, 17.73it/s][A
+ 28%|██▊       | 9/32 [00:00<00:01, 18.20it/s][A
+ 38%|███▊      | 12/32 [00:00<00:01, 11.57it/s][A
+ 75%|███████▌  | 24/32 [00:00<00:00, 30.80it/s][A100%|██████████| 32/32 [00:00<00:00, 32.42it/s]
+
+  0%|          | 0/32 [00:00<?, ?it/s][A
+ 31%|███▏      | 10/32 [00:00<00:00, 37.85it/s][A
+ 44%|████▍     | 14/32 [00:00<00:00, 22.90it/s][A
+ 62%|██████▎   | 20/32 [00:00<00:00, 22.75it/s][A
+ 72%|███████▏  | 23/32 [00:00<00:00, 22.39it/s][A
+ 81%|████████▏ | 26/32 [00:01<00:00, 15.55it/s][A100%|██████████| 32/32 [00:01<00:00, 23.16it/s]
+ 93%|█████████▎| 14/15 [20:54<01:39, 99.60s/it]Size filter in 6.948861360549927 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/36194_B4_66K_TS_R01A_SC_01_rec_crop_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/36194_B4_66K_TS_R01A_SC_01_rec_crop_combined.h5
+opening file /mnt/lustre-grete/usr/u12103/cristae_data/wichmann/inital_data/WT21_syn4_model2_combined.h5
+Segmenting cristae in volume of shape (99, 1336, 1336)
+Run prediction with mask.
+
+predict with halo:   4%|▍         | 37/847 [00:00<00:05, 157.91it/s][A
+predict with halo:   6%|▋         | 53/847 [00:01<00:34, 22.91it/s] [A
+predict with halo:   7%|▋         | 61/847 [00:02<00:48, 16.07it/s][A
+predict with halo:   8%|▊         | 66/847 [00:03<00:46, 16.96it/s][A
+predict with halo:   8%|▊         | 70/847 [00:03<00:57, 13.48it/s][A
+predict with halo:  19%|█▊        | 158/847 [00:04<00:10, 66.90it/s][A
+predict with halo:  20%|██        | 172/847 [00:05<00:21, 31.99it/s][A
+predict with halo:  21%|██▏       | 182/847 [00:06<00:27, 24.18it/s][A
+predict with halo:  22%|██▏       | 189/847 [00:07<00:28, 22.94it/s][A
+predict with halo:  23%|██▎       | 195/847 [00:07<00:30, 21.35it/s][A
+predict with halo:  33%|███▎      | 279/847 [00:07<00:08, 66.27it/s][A
+predict with halo:  35%|███▍      | 293/847 [00:09<00:16, 33.17it/s][A
+predict with halo:  36%|███▌      | 303/847 [00:10<00:21, 25.21it/s][A
+predict with halo:  37%|███▋      | 310/847 [00:10<00:22, 23.82it/s][A
+predict with halo:  37%|███▋      | 316/847 [00:11<00:24, 22.10it/s][A
+predict with halo:  47%|████▋     | 400/847 [00:11<00:06, 66.32it/s][A
+predict with halo:  49%|████▉     | 414/847 [00:13<00:12, 33.39it/s][A
+predict with halo:  50%|█████     | 424/847 [00:14<00:16, 25.38it/s][A
+predict with halo:  51%|█████     | 432/847 [00:14<00:18, 22.54it/s][A
+predict with halo:  52%|█████▏    | 438/847 [00:15<00:17, 23.17it/s][A
+predict with halo:  62%|██████▏   | 521/847 [00:15<00:04, 67.65it/s][A
+predict with halo:  63%|██████▎   | 535/847 [00:16<00:09, 33.65it/s][A
+predict with halo:  64%|██████▍   | 545/847 [00:17<00:11, 25.48it/s][A
+predict with halo:  65%|██████▌   | 553/847 [00:18<00:12, 22.62it/s][A
+predict with halo:  66%|██████▌   | 559/847 [00:18<00:12, 23.25it/s][A
+predict with halo:  76%|███████▌  | 642/847 [00:19<00:03, 67.66it/s][A
+predict with halo:  77%|███████▋  | 656/847 [00:20<00:05, 33.46it/s][A
+predict with halo:  79%|███████▊  | 666/847 [00:21<00:07, 23.73it/s][A
+predict with halo:  79%|███████▉  | 673/847 [00:22<00:07, 22.53it/s][A
+predict with halo:  80%|████████  | 679/847 [00:22<00:07, 21.08it/s][A
+predict with halo:  90%|█████████ | 763/847 [00:23<00:01, 63.28it/s][A
+predict with halo:  92%|█████████▏| 777/847 [00:24<00:02, 32.53it/s][A
+predict with halo:  93%|█████████▎| 787/847 [00:25<00:02, 26.62it/s][A
+predict with halo:  94%|█████████▍| 795/847 [00:25<00:01, 27.68it/s][Apredict with halo: 100%|██████████| 847/847 [00:25<00:00, 32.85it/s]
+Prediction time in 26.227660655975342 s
+Eroding mitochondria instances globally by 0 voxels ...
+Instance erosion completed in 0.44 s
+
+Label all sub-blocks:   0%|          | 0/36 [00:00<?, ?it/s][A
+Label all sub-blocks:  53%|█████▎    | 19/36 [00:00<00:00, 141.93it/s][A
+Label all sub-blocks:  94%|█████████▍| 34/36 [00:00<00:00, 137.80it/s][ALabel all sub-blocks: 100%|██████████| 36/36 [00:00<00:00, 146.50it/s]
+
+Merge labels across block faces:   0%|          | 0/36 [00:00<?, ?it/s][AMerge labels across block faces: 100%|██████████| 36/36 [00:00<00:00, 21555.31it/s]
+
+Write blocks:   0%|          | 0/36 [00:00<?, ?it/s][A
+Write blocks:  61%|██████    | 22/36 [00:00<00:00, 187.76it/s][AWrite blocks: 100%|██████████| 36/36 [00:00<00:00, 222.25it/s]
+Compute connected components in 2.585017204284668 s
+
+  0%|          | 0/36 [00:00<?, ?it/s][A
+ 14%|█▍        | 5/36 [00:00<00:00, 45.92it/s][A
+ 28%|██▊       | 10/36 [00:00<00:01, 23.59it/s][A
+ 39%|███▉      | 14/36 [00:00<00:00, 25.14it/s][A
+ 58%|█████▊    | 21/36 [00:00<00:00, 36.15it/s][A100%|██████████| 36/36 [00:00<00:00, 54.61it/s]
+
+  0%|          | 0/36 [00:00<?, ?it/s][A
+ 25%|██▌       | 9/36 [00:00<00:00, 42.59it/s][A
+ 39%|███▉      | 14/36 [00:00<00:01, 16.40it/s][A100%|██████████| 36/36 [00:00<00:00, 44.54it/s]
+100%|██████████| 15/15 [21:56<00:00, 88.34s/it]100%|██████████| 15/15 [21:56<00:00, 87.80s/it]
+Size filter in 4.386024236679077 s
+Data successfully exported to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT21_syn4_model2_combined.h5
+Saved to /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT21_syn4_model2_combined.h5
+Evaluating: 0it [00:00, ?it/s]Evaluating: 1it [01:17, 77.69s/it]Evaluating: 2it [02:19, 68.38s/it]Evaluating: 3it [03:30, 69.53s/it]Evaluating: 4it [04:09, 57.37s/it]Evaluating: 5it [05:00, 55.03s/it]Evaluating: 6it [05:46, 52.12s/it]Evaluating: 7it [06:31, 49.71s/it]Evaluating: 8it [07:04, 44.39s/it]Evaluating: 9it [08:39, 60.21s/it]Evaluating: 10it [10:14, 71.07s/it]Evaluating: 11it [11:12, 67.17s/it]Evaluating: 12it [11:54, 59.51s/it]Evaluating: 13it [12:36, 54.07s/it]Evaluating: 14it [13:19, 50.84s/it]Evaluating: 15it [14:01, 48.01s/it]Evaluating: 15it [14:01, 56.09s/it]
+/mnt/vast-nhr/home/freckmann15/u12103/synapse/synapse/cristae/evaluate.py:200: RuntimeWarning: Mean of empty slice
+  avg_dict = {k: float(np.nanmean([d.get(k, np.nan) for d in all_scores])) for k in avg_keys}
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/36194_B4_66K_TS_R01A_SC_01_rec_crop_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/36194_B4_66K_TS_R01A_SC_01_rec_crop_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/36194_B4_66K_TS_SC_22_rec_crop_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/36194_B4_66K_TS_SC_22_rec_crop_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/KO8_eb4_model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/KO8_eb4_model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/M1_eb6_model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/M1_eb6_model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/M2_eb5_model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/M2_eb5_model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/M5_eb1_model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/M5_eb1_model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/M8_eb6_model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/M8_eb6_model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT20_eb5_model2_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT20_eb5_model2_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT21_eb5_model2_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT21_eb5_model2_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT21_syn4_model2_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT21_syn4_model2_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT22_eb5_model2_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT22_eb5_model2_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+label:  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT40_eb10_model_combined.h5
+seg:    /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/WT40_eb10_model_combined.h5
+
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+Evaluation results saved to: /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae_eval_results.csv
+  36194_B4_66K_TS_R01A_SC_01_rec_crop_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.9729  band8 AP=nan  core8 AP=0.9725  band12 AP=0.3159  core12 AP=0.9726
+  36194_B4_66K_TS_SC_22_rec_crop_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.9717  band8 AP=nan  core8 AP=0.9725  band12 AP=0.2564  core12 AP=0.9746
+  36859_J1_66K_TS_PS_03_rec_2kb1dawbp_crop_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.9375  band8 AP=0.0000  core8 AP=0.9380  band12 AP=0.0507  core12 AP=0.9387
+  KO8_eb4_model_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.8050  band8 AP=0.7860  core8 AP=0.8067  band12 AP=0.7797  core12 AP=0.8082
+  M1_eb6_model_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.8679  band8 AP=0.8105  core8 AP=0.8693  band12 AP=0.7908  core12 AP=0.8710
+  M2_eb5_model_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.8257  band8 AP=0.6553  core8 AP=0.8282  band12 AP=0.6507  core12 AP=0.8318
+  M5_eb1_model_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.8944  band8 AP=0.8866  core8 AP=0.8953  band12 AP=0.8878  core12 AP=0.8954
+  M8_eb6_model_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.6261  band8 AP=0.5333  core8 AP=0.6348  band12 AP=0.5340  core12 AP=0.6415
+  Otof_AVCN03_429A_WT_M.Stim_D3_4model_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.5431  band8 AP=0.0613  core8 AP=0.5444  band12 AP=0.0760  core12 AP=0.5453
+  Otof_AVCN07_455L_KO_M.Stim_B3_2_35933_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.6872  band8 AP=nan  core8 AP=0.6872  band12 AP=0.0197  core12 AP=0.6876
+  WT20_eb5_model2_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.8944  band8 AP=0.8424  core8 AP=0.8968  band12 AP=0.8220  core12 AP=0.8989
+  WT21_eb5_model2_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.8588  band8 AP=0.7046  core8 AP=0.8675  band12 AP=0.7094  core12 AP=0.8727
+  WT21_syn4_model2_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.8537  band8 AP=0.8696  core8 AP=0.8534  band12 AP=0.8555  core12 AP=0.8532
+  WT22_eb5_model2_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.8388  band8 AP=0.6293  core8 AP=0.8467  band12 AP=0.6665  core12 AP=0.8486
+  WT40_eb10_model_combined [vs=1.74,1.74,1.74 nm (default)]  all AP=0.8366  band8 AP=0.7952  core8 AP=0.8371  band12 AP=0.7949  core12 AP=0.8386
+
+[AP] cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31 (n=15 files)
+  region=all        macro AP=0.8276  AUC=0.9512  gt_fg=1,374,001/8,333,378 voxels
+  region=band8      macro AP=0.6312  AUC=0.9652  gt_fg=46,718/1,226,375 voxels
+  region=core8      macro AP=0.8300  AUC=0.9433  gt_fg=1,327,283/7,107,002 voxels
+  region=band12     macro AP=0.5473  AUC=0.9696  gt_fg=74,142/1,773,655 voxels
+  region=core12     macro AP=0.8319  AUC=0.9394  gt_fg=1,299,859/6,559,722 voxels
+  ->  /mnt/lustre-grete/usr/u12103/cristae/test_segmentations/cristae-net32-lr1.7e-4-bs24-ps32x256x256-membw-pos3-neg2-band12-2026-07-31/cristae_ap_summary.csv
+=== Do 6. Aug 11:05:03 CEST 2026 : Done. ===
