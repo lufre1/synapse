@@ -128,6 +128,7 @@ python post_processing.py  # watershed, connected components, size filtering
 - Format converters: MRC → H5, TIF/PNG stack → H5/Zarr, H5 ↔ Zarr
 - `downscale_zarr.py` — zarr downscaling / multiscale pyramid generation
 - `fix_zarr_multiscales.py` — repair zarr multiscales metadata
+- `imod_to_zarr.py` — rasterize IMOD `.mod` contours to zarr labels without a raw stack (imodmesh + imodfillin densify, even-odd fill); `run_imod_to_zarr.sh` exports the volume-EM animals
 - Annotation helpers: SAM-assisted annotation, ROI extraction, relabeling
 
 ### `cellmap/` and `cryoet/`
