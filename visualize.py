@@ -147,10 +147,10 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
             paths.extend(get_file_paths(root_path, ".rec"))
     else:
         paths = get_file_paths(root_path, ext)
-    if root_label_path is not None:
-        label_paths = get_file_paths(root_label_path, ".tif")
-    else:
-        label_paths = None
+    if isinstance(root_label_path, str):
+        root_label_path = [root_label_path]
+    label_path_lists = [[p for e in (".tif", ".h5", ".zarr") for p in get_file_paths(r, e)]
+                        for r in (root_label_path or [])]
     print("Found files:", len(paths))
     proceed = False
     for path in tqdm(paths):
@@ -161,12 +161,9 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
                 else:
                     proceed = True
         print("\n", path)
-        if label_paths is not None and len(label_paths) > 1:
-            label_path = util.find_label_file(path, label_paths)
-        elif label_paths and len(label_paths) == 1:
-            label_path = label_paths[0]
-        else:
-            label_path = None
+        label_files = [util.find_label_file(path, lps) if len(lps) > 1 else lps[0]
+                       for lps in label_path_lists if lps]
+        label_files = [lp for lp in label_files if lp is not None]
         with open_file(path, mode="r") as f:
             if "voxel_size" in f.attrs:
                 voxel_size = tuple(float(x) for x in f.attrs["voxel_size"])
@@ -175,7 +172,7 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
             else:
                 voxel_size = None
             data = {}
-            if label_path is not None:
+            for label_path in label_files:
                 print("Loading label data from", label_path)
                 if "data" in f.keys():
                     ndim = f["data"].ndim
@@ -185,10 +182,14 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
                     print("Warning! Assuming NDIM = 3")
                     ndim = 3
                 slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-                data["label"] = imread(label_path)[slicing] if scale > 1 else imread(label_path)
+                if label_path.endswith(".tif"):
+                    data["label"] = imread(label_path)[slicing] if scale > 1 else imread(label_path)
+                else:  # h5 / zarr: load every dataset, prefixed with the label folder name
+                    with open_file(label_path, mode="r") as lf:
+                        extract_data(lf, data, prefix=os.path.basename(os.path.dirname(label_path)), scale=scale)
                 # import skimage as ski
                 # data["label"] = ski.morphology.remove_small_objects(data["label"], min_size=1000)
-            else:
+            if not label_files:
                 print("No specific label path loaded.")
             if ".mrc" in path or ".rec" in path:
                 ndim = f["data"].ndim
@@ -244,7 +245,8 @@ if __name__ == "__main__":
     parser.add_argument("--ext", "-e", type=str, default=None)
     parser.add_argument("--scale", "-s", type=int, default=1)
     parser.add_argument("--upsample", "-u", type=int, default=None)
-    parser.add_argument("--label_path", "-lp", type=str, default=None)
+    parser.add_argument("--label_path", "-lp", type=str, nargs="+", default=None,
+                        help="One or more label folders; layers are prefixed with the folder name")
     parser.add_argument("--segment", "-seg", default=False, action="store_true")
     parser.add_argument("--offset_z", "-o", type=int, default=None, help="Offset in z direction")
     parser.add_argument("--start_pattern", "-sp", type=str, default=None, help="Pattern to start from")
