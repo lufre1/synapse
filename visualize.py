@@ -1,15 +1,14 @@
 # import time
 from typing import Any, Dict
-import synapse.util as util
 # from config import *
 import h5py
 import zarr
 import argparse
+from contextlib import ExitStack
 import multiprocessing
 import os
 from glob import glob
 import numpy as np
-import torch_em
 import napari
 # import elf.parallel as parallel
 from elf.io import open_file
@@ -67,7 +66,28 @@ def visualize_data(data, name=None, offset_z=None, args=None, voxel_size=None):
     napari.run()
 
 
-def extract_data(group: Any, data: Dict[str, Any], prefix: str = "", scale: int = 1):
+def _read(ds, scale: int = 1, block: int = 64):
+    """Read a dataset, keeping every scale-th voxel along the last three axes.
+
+    h5py strided reads are ~2.5x slower than plain ones, so z-blocks are read whole and strided in numpy.
+    """
+    if scale == 1:
+        return ds[:]
+    slicing = tuple(slice(None, None, scale) if i >= ds.ndim - 3 else slice(None) for i in range(ds.ndim))
+    ax, step = max(ds.ndim - 3, 0), block * scale  # step is a multiple of scale, so the stride stays in phase
+    blocks = [ds[(slice(None),) * ax + (slice(i, i + step),)][slicing] for i in range(0, ds.shape[ax], step)]
+    return np.concatenate(blocks, axis=ax)
+
+
+def _as_lazy(item, scale: int = 1) -> da.Array:
+    """Wrap a dataset as a lazy dask array, keeping every scale-th voxel along the last three axes."""
+    # unchunked data (mrc memmaps, contiguous h5) reads any plane cheaply, so dask gets one chunk per z-plane
+    chunks = getattr(item, "chunks", None) or (1,) * (item.ndim - 2) + item.shape[-2:]
+    slicing = tuple(slice(None, None, scale) if i >= item.ndim - 3 else slice(None) for i in range(item.ndim))
+    return da.from_array(item, chunks=chunks)[slicing]
+
+
+def extract_data(group: Any, data: Dict[str, Any], prefix: str = "", scale: int = 1, lazy: bool = False):
     """
     Recursively extract datasets from a group and store them in a dictionary.
     """
@@ -75,49 +95,9 @@ def extract_data(group: Any, data: Dict[str, Any], prefix: str = "", scale: int 
         full_key = f"{prefix}/{key}" if prefix else key
         if isinstance(item, (zarr.Group, h5py.Group, z5py.Group)):
             # Recursively extract data from subgroups
-            extract_data(item, data, prefix=full_key, scale=scale)
+            extract_data(item, data, prefix=full_key, scale=scale, lazy=lazy)
         else:
-            ndim = item.ndim
-            # Generate a slicing tuple based on the number of dimensions
-            slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-
-            # Apply downsampling while preserving batch/channel dimensions
-            data[full_key] = item[slicing] if scale > 1 else item[:]
-            # # Store the dataset in the dictionary
-            # data[full_key] = item[:]
-
-
-def _as_lazy(item, scale: int = 1) -> da.Array:
-    """
-    Convert a NumPy/Zarr/H5/Z5 dataset to a *lazy* Dask array.
-    `scale` is applied only to the last three (spatial) axes.
-    """
-    # 1️⃣  Already a NumPy array → just wrap it (no copy)
-    if isinstance(item, np.ndarray):
-        return da.from_array(item, chunks=item.shape)
-
-    # 2️⃣  Zarr / H5 / Z5 objects – they expose a ``chunks`` attribute
-    if hasattr(item, "chunks"):
-        ndim = item.ndim
-        # Down‑sample only the spatial axes (the last three dimensions)
-        slicing = tuple(
-            slice(None, None, scale) if i >= (ndim - 3) else slice(None)
-            for i in range(ndim)
-        )
-        # Create a lazy Dask array and apply the slicing
-        return da.from_array(item, chunks=item.chunks)[slicing]
-
-    # 3️⃣  Fallback – treat anything else as a NumPy‑like object
-    return da.from_array(item, chunks=item.shape)
-
-
-def extract_data_lazy(group, data, prefix="", scale=1):
-    for key, item in group.items():
-        full_key = f"{prefix}/{key}" if prefix else key
-        if isinstance(item, (zarr.Group, h5py.Group, z5py.Group)):
-            extract_data_lazy(item, data, prefix=full_key, scale=scale)
-        else:
-            data[full_key] = _as_lazy(item, scale)
+            data[full_key] = _as_lazy(item, scale) if lazy else _read(item, scale)
 
 
 def upsample_data(data, factor):
@@ -164,7 +144,11 @@ def _read_tif_labels(path, scale=1, block=64):
 
 def show_set(path, label_files, scale=1, upsample=False, segment=False, args=None):
     """Load one file plus its (name, path) label files and show them in napari; blocks until the window closes."""
-    with open_file(path, mode="r") as f:
+    lazy = getattr(args, "lazy", False)
+    read = _as_lazy if lazy else _read
+    # files stay open until the viewer closes, lazy layers read from them while browsing
+    with ExitStack() as files:
+        f = files.enter_context(open_file(path, mode="r"))
         if "voxel_size" in f.attrs:
             voxel_size = tuple(float(x) for x in f.attrs["voxel_size"])
         elif "raw" in f and "voxel_size" in f["raw"].attrs:
@@ -177,58 +161,49 @@ def show_set(path, label_files, scale=1, upsample=False, segment=False, args=Non
             if label_path.endswith(".tif"):
                 data[label_name] = _read_tif_labels(label_path, scale)
             else:  # h5 / zarr: load every dataset, prefixed with the label folder name
-                with open_file(label_path, mode="r") as lf:
-                    extract_data(lf, data, prefix=label_name, scale=scale)
+                lf = files.enter_context(open_file(label_path, mode="r"))
+                extract_data(lf, data, prefix=label_name, scale=scale, lazy=lazy)
             # import skimage as ski
             # data["label"] = ski.morphology.remove_small_objects(data["label"], min_size=1000)
         if not label_files:
             print("No specific label path loaded.")
         if ".mrc" in path or ".rec" in path:
-            ndim = f["data"].ndim
-            slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-            data["raw"] = f["data"][slicing] if scale > 1 else f["data"][:]
+            data["raw"] = read(f["data"], scale)
         elif ".tif" in path:
-            ndim = f[""][:].ndim
-            slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-            data["label"] = f[""][slicing] if scale > 1 else f[""][:]  # tif has no keys
+            data["label"] = read(f[""], scale)  # tif has no keys
         else:
             print(f.keys())
             for key in f.keys():
                 if isinstance(f[key], (zarr.Group, h5py.Group, z5py.Group)):
                     print(f"Loading group: {key}")
-                    extract_data(f[key], data, scale=scale, prefix=key)
+                    extract_data(f[key], data, scale=scale, prefix=key, lazy=lazy)
                     continue
-                ndim = f[key].ndim
+                data[key] = read(f[key], scale)
+        for key in ["label"] + [name for name, _ in label_files]:
+            if key in data and "raw" in data and data[key].shape != data["raw"].shape:
+                print(f"Resizing {key} to match raw data shape")
+                data[key] = resize(
+                    data[key], data["raw"].shape, preserve_range=True, order=0,
+                    anti_aliasing=False).astype(data[key].dtype)
+        if upsample:
+            del data["pred"]
+            del data["raw"]
 
-                # Generate a slicing tuple based on the number of dimensions
-                slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-                # Apply downsampling while preserving batch/channel dimensions
-                data[key] = f[key][slicing] if scale > 1 else f[key][:]
-    for key in ["label"] + [name for name, _ in label_files]:
-        if key in data and "raw" in data and data[key].shape != data["raw"].shape:
-            print(f"Resizing {key} to match raw data shape")
-            data[key] = resize(
-                data[key], data["raw"].shape, preserve_range=True, order=0,
-                anti_aliasing=False).astype(data[key].dtype)
-    if upsample:
-        del data["pred"]
-        del data["raw"]
-
-        for key in data.keys():
-            data[key] = upsample_data(data[key], upsample)
-    # breakpoint()
-    if "raw_mitos_combined" in data.keys() and data["raw_mitos_combined"].ndim == 4:
-        for dim in range(data["raw_mitos_combined"].shape[0]):
-            if dim == 0:
-                data[f"raw_{dim}"] = data["raw_mitos_combined"][dim]
-            if dim == 1:
-                data[f"mitos_{dim}"] = data["raw_mitos_combined"][dim].astype(np.uint8)
-        del data["raw_mitos_combined"]
-    if segment:
-        # get foreground and boundary
-        new_seg = _segment(data["pred/foreground"], data["pred/boundary"])
-        data["new_seg"] = new_seg
-    visualize_data(data, name=os.path.basename(path), args=args, voxel_size=voxel_size)
+            for key in data.keys():
+                data[key] = upsample_data(data[key], upsample)
+        # breakpoint()
+        if "raw_mitos_combined" in data.keys() and data["raw_mitos_combined"].ndim == 4:
+            for dim in range(data["raw_mitos_combined"].shape[0]):
+                if dim == 0:
+                    data[f"raw_{dim}"] = data["raw_mitos_combined"][dim]
+                if dim == 1:
+                    data[f"mitos_{dim}"] = data["raw_mitos_combined"][dim].astype(np.uint8)
+            del data["raw_mitos_combined"]
+        if segment:
+            # get foreground and boundary
+            new_seg = _segment(data["pred/foreground"], data["pred/boundary"])
+            data["new_seg"] = new_seg
+        visualize_data(data, name=os.path.basename(path), args=args, voxel_size=voxel_size)
 
 
 def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False,
@@ -254,6 +229,8 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
                          [p for e in (".tif", ".h5", ".zarr") for p in get_file_paths(r, e)])
                         for r in (root_label_path or [])]
     print("Found files:", len(paths))
+    # not at module level: it pulls in torch, which every spawned viewer process would re-import (~3.5 s)
+    import synapse.util as util
     # ponytail: napari 0.6 never frees a viewer closed via its X button, so each set runs in its own process and
     # the OS reclaims the RAM; costs ~5 s of imports per set, a single viewer with a 'next' key would avoid that
     ctx = multiprocessing.get_context("spawn")
@@ -285,6 +262,9 @@ if __name__ == "__main__":
     parser.add_argument("--label_path", "-lp", type=str, nargs="+", default=None,
                         help="One or more label folders; layers are prefixed with the folder name")
     parser.add_argument("--segment", "-seg", default=False, action="store_true")
+    parser.add_argument("--lazy", action="store_true",
+                        help="Open instantly and read slices on demand (slower scrolling, avoid 3D view); "
+                             "label resizing, --upsample and --segment still load their data")
     parser.add_argument("--offset_z", "-o", type=int, default=None, help="Offset in z direction")
     parser.add_argument("--start_pattern", "-sp", type=str, default=None, help="Pattern to start from")
     parser.add_argument(
