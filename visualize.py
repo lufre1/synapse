@@ -5,6 +5,7 @@ import synapse.util as util
 import h5py
 import zarr
 import argparse
+import multiprocessing
 import os
 from glob import glob
 import numpy as np
@@ -15,7 +16,7 @@ from elf.io import open_file
 from elf.parallel import label
 from tqdm import tqdm
 import z5py
-from tifffile import imread
+from tifffile import TiffFile
 from skimage.transform import resize
 import dask.array as da
 
@@ -131,6 +132,105 @@ def upsample_data(data, factor):
     return upsampled_data
 
 
+def _read_tif_labels(path, scale=1, block=64):
+    """Read a label tif into the smallest integer dtype that holds its values.
+
+    Predictions are often saved as (u)int64, which costs 8x the RAM of uint8 for a few dozen ids, so z-stacks
+    are read in blocks of pages (decoded multithreaded by tifffile) and never held in full as int64.
+    """
+    with TiffFile(path) as tif:
+        s = tif.series[0]
+        if s.ndim != 3 or len(s.pages) != s.shape[0]:  # ponytail: only plain z-stacks are shrunk, rest loads as is
+            data = tif.asarray()
+            return data[tuple(slice(None, None, scale) if i >= data.ndim - 3 else slice(None)
+                              for i in range(data.ndim))]
+        blocks = [slice(z, min(z + block * scale, s.shape[0]), scale) for z in range(0, s.shape[0], block * scale)]
+
+        def read(key):  # a single page comes back 2D
+            return tif.asarray(key=key, series=0).reshape(-1, *s.shape[1:])[:, ::scale, ::scale]
+
+        dtype = s.dtype
+        if np.issubdtype(dtype, np.integer):
+            lo = hi = 0
+            for key in blocks:
+                b = read(key)
+                lo, hi = min(lo, b.min()), max(hi, b.max())
+            dtype = np.result_type(np.min_scalar_type(lo), np.min_scalar_type(hi))
+        out = np.empty(tuple(len(range(0, n, scale)) for n in s.shape), dtype)
+        for j, key in enumerate(blocks):
+            out[j * block:(j + 1) * block] = read(key)
+    return out
+
+
+def show_set(path, label_files, scale=1, upsample=False, segment=False, args=None):
+    """Load one file plus its (name, path) label files and show them in napari; blocks until the window closes."""
+    with open_file(path, mode="r") as f:
+        if "voxel_size" in f.attrs:
+            voxel_size = tuple(float(x) for x in f.attrs["voxel_size"])
+        elif "raw" in f and "voxel_size" in f["raw"].attrs:
+            voxel_size = tuple(float(x) for x in f["raw"].attrs["voxel_size"])
+        else:
+            voxel_size = None
+        data = {}
+        for label_name, label_path in label_files:
+            print("Loading label data from", label_path)
+            if label_path.endswith(".tif"):
+                data[label_name] = _read_tif_labels(label_path, scale)
+            else:  # h5 / zarr: load every dataset, prefixed with the label folder name
+                with open_file(label_path, mode="r") as lf:
+                    extract_data(lf, data, prefix=label_name, scale=scale)
+            # import skimage as ski
+            # data["label"] = ski.morphology.remove_small_objects(data["label"], min_size=1000)
+        if not label_files:
+            print("No specific label path loaded.")
+        if ".mrc" in path or ".rec" in path:
+            ndim = f["data"].ndim
+            slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+            data["raw"] = f["data"][slicing] if scale > 1 else f["data"][:]
+        elif ".tif" in path:
+            ndim = f[""][:].ndim
+            slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+            data["label"] = f[""][slicing] if scale > 1 else f[""][:]  # tif has no keys
+        else:
+            print(f.keys())
+            for key in f.keys():
+                if isinstance(f[key], (zarr.Group, h5py.Group, z5py.Group)):
+                    print(f"Loading group: {key}")
+                    extract_data(f[key], data, scale=scale, prefix=key)
+                    continue
+                ndim = f[key].ndim
+
+                # Generate a slicing tuple based on the number of dimensions
+                slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
+                # Apply downsampling while preserving batch/channel dimensions
+                data[key] = f[key][slicing] if scale > 1 else f[key][:]
+    for key in ["label"] + [name for name, _ in label_files]:
+        if key in data and "raw" in data and data[key].shape != data["raw"].shape:
+            print(f"Resizing {key} to match raw data shape")
+            data[key] = resize(
+                data[key], data["raw"].shape, preserve_range=True, order=0,
+                anti_aliasing=False).astype(data[key].dtype)
+    if upsample:
+        del data["pred"]
+        del data["raw"]
+
+        for key in data.keys():
+            data[key] = upsample_data(data[key], upsample)
+    # breakpoint()
+    if "raw_mitos_combined" in data.keys() and data["raw_mitos_combined"].ndim == 4:
+        for dim in range(data["raw_mitos_combined"].shape[0]):
+            if dim == 0:
+                data[f"raw_{dim}"] = data["raw_mitos_combined"][dim]
+            if dim == 1:
+                data[f"mitos_{dim}"] = data["raw_mitos_combined"][dim].astype(np.uint8)
+        del data["raw_mitos_combined"]
+    if segment:
+        # get foreground and boundary
+        new_seg = _segment(data["pred/foreground"], data["pred/boundary"])
+        data["new_seg"] = new_seg
+    visualize_data(data, name=os.path.basename(path), args=args, voxel_size=voxel_size)
+
+
 def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False,
          root_label_path: str = None, segment: bool = False,
          offset_z: int = None, args=None):
@@ -149,9 +249,14 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
         paths = get_file_paths(root_path, ext)
     if isinstance(root_label_path, str):
         root_label_path = [root_label_path]
-    label_path_lists = [[p for e in (".tif", ".h5", ".zarr") for p in get_file_paths(r, e)]
+    # one layer per label root, named after the root folder (e.g. "mitochondria2", "cristae5")
+    label_path_lists = [(os.path.basename(os.path.normpath(r)),
+                         [p for e in (".tif", ".h5", ".zarr") for p in get_file_paths(r, e)])
                         for r in (root_label_path or [])]
     print("Found files:", len(paths))
+    # ponytail: napari 0.6 never frees a viewer closed via its X button, so each set runs in its own process and
+    # the OS reclaims the RAM; costs ~5 s of imports per set, a single viewer with a 'next' key would avoid that
+    ctx = multiprocessing.get_context("spawn")
     proceed = False
     for path in tqdm(paths):
         if args is not None and not proceed:
@@ -161,82 +266,14 @@ def main(root_path: str, ext: str = None, scale: int = 1, upsample: bool = False
                 else:
                     proceed = True
         print("\n", path)
-        label_files = [util.find_label_file(path, lps) if len(lps) > 1 else lps[0]
-                       for lps in label_path_lists if lps]
-        label_files = [lp for lp in label_files if lp is not None]
-        with open_file(path, mode="r") as f:
-            if "voxel_size" in f.attrs:
-                voxel_size = tuple(float(x) for x in f.attrs["voxel_size"])
-            elif "raw" in f and "voxel_size" in f["raw"].attrs:
-                voxel_size = tuple(float(x) for x in f["raw"].attrs["voxel_size"])
-            else:
-                voxel_size = None
-            data = {}
-            for label_path in label_files:
-                print("Loading label data from", label_path)
-                if "data" in f.keys():
-                    ndim = f["data"].ndim
-                elif "raw" in f.keys():
-                    ndim = f["raw"].ndim
-                else:
-                    print("Warning! Assuming NDIM = 3")
-                    ndim = 3
-                slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-                if label_path.endswith(".tif"):
-                    data["label"] = imread(label_path)[slicing] if scale > 1 else imread(label_path)
-                else:  # h5 / zarr: load every dataset, prefixed with the label folder name
-                    with open_file(label_path, mode="r") as lf:
-                        extract_data(lf, data, prefix=os.path.basename(os.path.dirname(label_path)), scale=scale)
-                # import skimage as ski
-                # data["label"] = ski.morphology.remove_small_objects(data["label"], min_size=1000)
-            if not label_files:
-                print("No specific label path loaded.")
-            if ".mrc" in path or ".rec" in path:
-                ndim = f["data"].ndim
-                slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-                data["raw"] = f["data"][slicing] if scale > 1 else f["data"][:]
-            elif ".tif" in path:
-                ndim = f[""][:].ndim
-                slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-                data["label"] = f[""][slicing] if scale > 1 else f[""][:]  # tif has no keys
-            else:
-                print(f.keys())
-                for key in f.keys():
-                    if isinstance(f[key], (zarr.Group, h5py.Group, z5py.Group)):
-                        print(f"Loading group: {key}")
-                        extract_data(f[key], data, scale=scale, prefix=key)
-                        continue
-                    ndim = f[key].ndim
-
-                    # Generate a slicing tuple based on the number of dimensions
-                    slicing = tuple(slice(None, None, scale) if i >= (ndim - 3) else slice(None) for i in range(ndim))
-                    # Apply downsampling while preserving batch/channel dimensions
-                    data[key] = f[key][slicing] if scale > 1 else f[key][:]
-        if "label" in data.keys() and data["label"] is not None and "raw" in data.keys():  # check if label exists in data["label"]
-            if not np.array_equal(data["label"].shape, data["raw"].shape):
-                print("Resizing label data to match raw data shape")
-                data["label"] = resize(
-                    data["label"], data["raw"].shape, preserve_range=True, order=0,
-                    anti_aliasing=False).astype(np.uint8)
-        if upsample:
-            del data["pred"]
-            del data["raw"]
-
-            for key in data.keys():
-                data[key] = upsample_data(data[key], upsample)
-        # breakpoint()
-        if "raw_mitos_combined" in data.keys() and data["raw_mitos_combined"].ndim == 4:
-            for dim in range(data["raw_mitos_combined"].shape[0]):
-                if dim == 0:
-                    data[f"raw_{dim}"] = data["raw_mitos_combined"][dim]
-                if dim == 1:
-                    data[f"mitos_{dim}"] = data["raw_mitos_combined"][dim].astype(np.uint8)
-            del data["raw_mitos_combined"]
-        if segment:
-            # get foreground and boundary
-            new_seg = _segment(data["pred/foreground"], data["pred/boundary"])
-            data["new_seg"] = new_seg
-        visualize_data(data, name=os.path.basename(path), args=args, voxel_size=voxel_size)
+        label_files = [(name, util.find_label_file(path, lps) if len(lps) > 1 else lps[0])
+                       for name, lps in label_path_lists if lps]
+        label_files = [(name, lp) for name, lp in label_files if lp is not None]
+        p = ctx.Process(target=show_set, args=(path, label_files, scale, upsample, segment, args))
+        p.start()
+        p.join()
+        if p.exitcode:
+            print(f"Viewer for {path} exited with code {p.exitcode}")
 
 
 if __name__ == "__main__":
